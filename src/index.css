@@ -1,0 +1,234 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Google Fonts Import */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap');
+
+@layer base {
+  :root {
+    /* --- Light Mode (Academy Paper) --- */
+    --background: 220 30% 98%;
+    /* Softer, paper-like white */
+    --foreground: 224 30% 15%;
+    /* Deep charcoal, not black */
+
+    --card: 0 0% 100%;
+    --card-foreground: 224 30% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 30% 15%;
+
+    --primary: 226 70% 55%;
+    /* Refined Indigo */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 220 20% 94%;
+    --secondary-foreground: 224 30% 15%;
+
+    --muted: 220 20% 94%;
+    --muted-foreground: 220 20% 45%;
+
+    --accent: 220 20% 94%;
+    --accent-foreground: 224 30% 15%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 20% 90%;
+    --input: 220 20% 90%;
+    --ring: 226 70% 55%;
+
+    --radius: 0.75rem;
+  }
+
+  /* --- Dark Mode (Deep Space) --- */
+  .dark {
+    --background: 230 25% 6%;
+    /* Richer, deeper black-blue */
+    --foreground: 210 20% 98%;
+
+    --card: 230 25% 10%;
+    --card-foreground: 210 20% 98%;
+
+    --popover: 230 25% 10%;
+    --popover-foreground: 210 20% 98%;
+
+    --primary: 226 80% 65%;
+    /* Brighter indigo for contrast */
+    --primary-foreground: 224 30% 15%;
+
+    --secondary: 230 25% 15%;
+    --secondary-foreground: 210 20% 98%;
+
+    --muted: 230 25% 15%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 230 25% 15%;
+    --accent-foreground: 210 20% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 20% 98%;
+
+    --border: 230 25% 15%;
+    --input: 230 25% 15%;
+    --ring: 226 80% 65%;
+  }
+
+  /* Default Body */
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', sans-serif;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    @apply tracking-tight;
+  }
+
+  .font-serif-display {
+    font-family: 'Playfair Display', serif;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/60 backdrop-blur-xl border border-white/40 shadow-sm supports-[backdrop-filter]:bg-white/40;
+  }
+
+  .glass-dark {
+    @apply bg-slate-900/60 backdrop-blur-xl border border-white/10 shadow-sm supports-[backdrop-filter]:bg-slate-900/40;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Noise Texture */
+  .bg-noise {
+    position: relative;
+  }
+
+  .bg-noise::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+
+  .dark .bg-noise::before {
+    opacity: 0.07;
+  }
+
+  /* Animations */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-delayed {
+    animation: float 6s ease-in-out 3s infinite;
+  }
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-15px);
+    }
+  }
+
+  .animate-fade-up {
+    animation: fade-up 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+  }
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(30px) scale(0.98);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .delay-100 {
+    animation-delay: 100ms;
+  }
+
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+
+  .delay-500 {
+    animation-delay: 500ms;
+  }
+
+  /* Aurora - More organic */
+  .animate-aurora {
+    animation: aurora 25s linear infinite alternate;
+  }
+
+  @keyframes aurora {
+    0% {
+      transform: translate(0, 0) rotate(0deg) scale(1);
+    }
+
+    50% {
+      transform: translate(-2%, 5%) rotate(2deg) scale(1.1);
+    }
+
+    100% {
+      transform: translate(5%, -5%) rotate(-2deg) scale(1);
+    }
+  }
+
+  .animate-spin-slow {
+    animation: spin 12s linear infinite;
+  }
+
+  .animate-spin-reverse-slow {
+    animation: spin 15s linear infinite reverse;
+  }
+
+  /* Shimmer Text */
+  .animate-shimmer-text {
+    background-size: 200% auto;
+    animation: shimmer-text 5s linear infinite;
+  }
+
+  @keyframes shimmer-text {
+    to {
+      background-position: 200% center;
+    }
+  }
+}
