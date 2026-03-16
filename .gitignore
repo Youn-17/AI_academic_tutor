@@ -31,3 +31,4 @@ frontend-bundle/
 backend/
 design-system/
 metadata.json
+supabase/.temp/
