@@ -17,8 +17,8 @@ interface LandingPageProps {
 // ── Font injection ────────────────────────────────────────────────────────────
 const fontLink = document.createElement('link');
 fontLink.rel = 'stylesheet';
-fontLink.href = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap';
-if (!document.head.querySelector('[href*="Cormorant"]')) document.head.appendChild(fontLink);
+fontLink.href = 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Noto+Sans+SC:wght@400;500;600&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap';
+if (!document.head.querySelector('[href*="Noto+Serif"]')) document.head.appendChild(fontLink);
 
 // ── Copy ─────────────────────────────────────────────────────────────────────
 const T = {
@@ -31,7 +31,7 @@ const T = {
 
     hero_eyebrow: '面向研究型高校的学术督导平台',
     hero_title: '让每位学生的研究进展对导师真正可见',
-    hero_sub: '大多数导师在定期会议之间，几乎无法判断学生真实的研究状态——谁卡住了，谁在漂移，谁需要介入。HAKIF 构建了一套以"学生—AI—导师"三元互动为核心的持续督导基础设施。',
+    hero_sub: '两次例会之间，导师往往看不到学生真实的研究状态——谁还卡在原地，谁已悄悄走偏，谁其实需要你帮一把。HAKIF 让学生在研究的每个阶段都能与 AI 持续对话，同时把值得关注的动态及时传递给导师，让你的督导不再只发生在会议室里。',
     hero_cta: '进入平台',
     hero_cta_2: '了解工作原理',
 
@@ -103,7 +103,7 @@ const T = {
 
     hero_eyebrow: 'Academic supervision infrastructure for research institutions',
     hero_title: 'Make each student\'s research process genuinely visible to their supervisor',
-    hero_sub: 'Most supervisors have almost no continuous view of a student\'s real research state between scheduled meetings — who is stuck, who is drifting, who needs intervention. HAKIF builds a triadic student–AI–supervisor infrastructure for continuous supervision.',
+    hero_sub: 'Between scheduled meetings, supervisors often have no real view of a student\'s research state — who is stuck, who has quietly lost direction, who actually needs your help. HAKIF builds continuous AI-supported dialogue into every stage of a student\'s research, while surfacing the signals that matter most to the supervisor — so your oversight extends beyond the meeting room.',
     hero_cta: 'Enter Platform',
     hero_cta_2: 'See How It Works',
 
@@ -175,7 +175,7 @@ const T = {
 
     hero_eyebrow: '面向研究型高校的學術督導平台',
     hero_title: '讓每位學生的研究進展對導師真正可見',
-    hero_sub: '大多數導師在定期會議之間，幾乎無法判斷學生真實的研究狀態——誰卡住了，誰在漂移，誰需要介入。HAKIF 構建了一套以「學生—AI—導師」三元互動為核心的持續督導基礎設施。',
+    hero_sub: '兩次例會之間，導師往往看不到學生真實的研究狀態——誰還卡在原地，誰已悄悄走偏，誰其實需要你幫一把。HAKIF 讓學生在研究的每個階段都能與 AI 持續對話，同時把值得關注的動態及時傳遞給導師，讓你的督導不再只發生在會議室裡。',
     hero_cta: '進入平台',
     hero_cta_2: '了解運作原理',
 
@@ -476,41 +476,60 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
 
       {/* ── HERO ── */}
       <section className="relative pt-40 pb-24 px-6 max-w-6xl mx-auto">
-        <div className={`inline-block text-xs font-semibold uppercase tracking-widest mb-6 px-3 py-1.5 rounded border ${borderColor} ${textMuted}`}
-          style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-          {t.hero_eyebrow}
+        <div className="grid md:grid-cols-2 gap-12 items-center">
+          {/* Left: text */}
+          <div>
+            <div className={`inline-block text-xs font-semibold uppercase tracking-widest mb-6 px-3 py-1.5 rounded border ${borderColor} ${textMuted}`}
+              style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+              {t.hero_eyebrow}
+            </div>
+
+            <h1
+              className="text-4xl md:text-5xl font-semibold leading-[1.15] mb-8"
+              style={{ fontFamily: isEN ? 'Cormorant Garamond, Georgia, serif' : 'Noto Serif SC, serif', letterSpacing: isEN ? '-0.01em' : '0.01em' }}
+            >
+              {t.hero_title}
+            </h1>
+
+            <p className={`text-base leading-relaxed mb-10 ${textMuted}`} style={{ fontFamily: isEN ? 'Manrope, sans-serif' : 'Noto Sans SC, sans-serif' }}>
+              {t.hero_sub}
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={onEnter}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-all hover:shadow-lg hover:shadow-blue-500/20 active:scale-[0.98]"
+              >
+                {t.hero_cta} <ArrowRight size={15} />
+              </button>
+              <button
+                className={`inline-flex items-center gap-2 px-6 py-3 rounded border text-sm font-medium transition-colors ${borderColor} ${textMuted} hover:text-blue-500`}
+              >
+                {t.hero_cta_2} <ChevronRight size={14} />
+              </button>
+            </div>
+
+            {/* Institutional note */}
+            <p className={`mt-10 text-xs ${textMuted} flex items-center gap-2`}>
+              <ShieldCheck size={12} className="text-blue-500 flex-shrink-0" />
+              {isEN ? 'Designed for graduate research supervision. All AI interactions are supervisor-visible by default.' : '专为研究生督导设计。所有AI交互对导师默认可见。'}
+            </p>
+          </div>
+
+          {/* Right: hero image */}
+          <div className="hidden md:flex items-center justify-center">
+            <div className="relative w-full max-w-md">
+              <div className={`absolute inset-0 rounded-3xl blur-3xl opacity-20 ${isDark ? 'bg-blue-600' : 'bg-blue-400'}`} />
+              <img
+                src="/images/hero_bg.png"
+                alt=""
+                aria-hidden="true"
+                className="relative w-full rounded-2xl shadow-2xl"
+                style={{ opacity: isDark ? 0.85 : 0.9 }}
+              />
+            </div>
+          </div>
         </div>
-
-        <h1
-          className="text-4xl md:text-6xl font-semibold leading-[1.1] mb-8 max-w-4xl"
-          style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', letterSpacing: '-0.01em' }}
-        >
-          {t.hero_title}
-        </h1>
-
-        <p className={`text-base md:text-lg leading-relaxed max-w-2xl mb-10 ${textMuted}`}>
-          {t.hero_sub}
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={onEnter}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-all hover:shadow-lg hover:shadow-blue-500/20 active:scale-[0.98]"
-          >
-            {t.hero_cta} <ArrowRight size={15} />
-          </button>
-          <button
-            className={`inline-flex items-center gap-2 px-6 py-3 rounded border text-sm font-medium transition-colors ${borderColor} ${textMuted} hover:text-blue-500`}
-          >
-            {t.hero_cta_2} <ChevronRight size={14} />
-          </button>
-        </div>
-
-        {/* Institutional note */}
-        <p className={`mt-10 text-xs ${textMuted} flex items-center gap-2`}>
-          <ShieldCheck size={12} className="text-blue-500 flex-shrink-0" />
-          {isEN ? 'Designed for graduate research supervision. All AI interactions are supervisor-visible by default.' : '专为研究生督导设计。所有AI交互对导师默认可见。'}
-        </p>
       </section>
 
       {/* ── PROBLEM SECTION ── */}
@@ -519,11 +538,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
           <div className={`text-xs font-semibold uppercase tracking-widest mb-4 ${textMuted}`} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
             {t.problem_label}
           </div>
-          <h2 className="text-3xl md:text-4xl font-semibold mb-16 max-w-2xl" style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+          <h2 className="text-3xl md:text-4xl font-semibold mb-16 max-w-2xl" style={{ fontFamily: isEN ? 'Cormorant Garamond, Georgia, serif' : 'Noto Serif SC, serif' }}>
             {t.problem_title}
           </h2>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-8 mb-16">
             {[
               { icon: Eye, title: t.problem_1_title, desc: t.problem_1_desc, accent: 'text-red-400' },
               { icon: AlertTriangle, title: t.problem_2_title, desc: t.problem_2_desc, accent: 'text-amber-400' },
@@ -536,6 +555,20 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
               </div>
             ))}
           </div>
+
+          {/* Visual: collaboration scene */}
+          <div className="relative rounded-2xl overflow-hidden">
+            <img
+              src="/images/collaboration.png"
+              alt={isEN ? 'Supervisor and students reviewing research data' : '导师与学生共同查看研究数据'}
+              className="w-full object-cover"
+              style={{ maxHeight: '420px', objectPosition: 'center 20%' }}
+            />
+            <div className={`absolute inset-0 ${isDark ? 'bg-gradient-to-t from-[#060E1E] via-transparent to-transparent' : 'bg-gradient-to-t from-[#F8FAFC]/80 via-transparent to-transparent'}`} />
+            <p className={`absolute bottom-5 left-6 text-xs ${textMuted}`} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+              {isEN ? 'Real-time research visibility: what supervisors currently lack' : '研究过程的实时可见性——这正是导师目前缺少的'}
+            </p>
+          </div>
         </div>
       </section>
 
@@ -545,7 +578,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
           <div className={`text-xs font-semibold uppercase tracking-widest mb-4 ${textMuted}`} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
             {t.triad_label}
           </div>
-          <h2 className="text-3xl md:text-4xl font-semibold mb-6 max-w-2xl" style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+          <h2 className="text-3xl md:text-4xl font-semibold mb-6 max-w-2xl" style={{ fontFamily: isEN ? 'Cormorant Garamond, Georgia, serif' : 'Noto Serif SC, serif' }}>
             {t.triad_title}
           </h2>
           <p className={`text-sm ${textMuted} mb-16 max-w-xl`}>
@@ -579,10 +612,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
               <div className={`text-xs font-semibold uppercase tracking-widest mb-4 ${textMuted}`} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
                 {t.socratic_label}
               </div>
-              <h2 className="text-3xl md:text-4xl font-semibold mb-6" style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+              <h2 className="text-3xl md:text-4xl font-semibold mb-6" style={{ fontFamily: isEN ? 'Cormorant Garamond, Georgia, serif' : 'Noto Serif SC, serif' }}>
                 {t.socratic_title}
               </h2>
-              <p className={`text-sm leading-relaxed ${textMuted}`}>{t.socratic_note}</p>
+              <p className={`text-sm leading-relaxed ${textMuted} mb-8`}>{t.socratic_note}</p>
+              {/* Socratic AI visual */}
+              <div className="relative w-48 h-48">
+                <div className={`absolute inset-0 rounded-full blur-3xl opacity-30 ${isDark ? 'bg-emerald-500' : 'bg-emerald-300'}`} />
+                <img src="/socratic-ai.png" alt="" aria-hidden="true" className="relative w-full h-full object-contain drop-shadow-2xl" />
+              </div>
             </div>
 
             {/* Example questions */}
@@ -609,7 +647,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
           <div className={`text-xs font-semibold uppercase tracking-widest mb-4 ${textMuted}`} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
             {t.supervisor_label}
           </div>
-          <h2 className="text-3xl md:text-4xl font-semibold mb-4" style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+          <h2 className="text-3xl md:text-4xl font-semibold mb-4" style={{ fontFamily: isEN ? 'Cormorant Garamond, Georgia, serif' : 'Noto Serif SC, serif' }}>
             {t.supervisor_title}
           </h2>
           <p className={`text-sm ${textMuted} mb-12 max-w-xl`}>{t.supervisor_desc}</p>
@@ -625,6 +663,17 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
               <div className={`mt-6 p-4 rounded-xl border border-blue-500/20 bg-blue-500/5`}>
                 <p className={`text-sm leading-relaxed text-blue-400`}>{t.supervisor_intervention}</p>
               </div>
+
+              {/* Teacher dashboard visual */}
+              <div className="relative mt-6 rounded-2xl overflow-hidden shadow-2xl">
+                <img
+                  src="/teacher-dashboard.png"
+                  alt={isEN ? 'Teacher dashboard visualization' : '导师看板可视化'}
+                  className="w-full object-cover rounded-2xl"
+                  style={{ maxHeight: '220px', objectPosition: 'center top' }}
+                />
+                <div className="absolute inset-0 rounded-2xl" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)' }} />
+              </div>
             </div>
 
             <DashboardMockup isDark={isDark} t={t} isEN={isEN} />
@@ -638,7 +687,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
           <div className={`text-xs font-semibold uppercase tracking-widest mb-4 ${textMuted}`} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
             {t.boundary_label}
           </div>
-          <h2 className="text-3xl md:text-4xl font-semibold mb-16 max-w-2xl" style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+          <h2 className="text-3xl md:text-4xl font-semibold mb-16 max-w-2xl" style={{ fontFamily: isEN ? 'Cormorant Garamond, Georgia, serif' : 'Noto Serif SC, serif' }}>
             {t.boundary_title}
           </h2>
 
@@ -666,17 +715,30 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
       {/* ── RAG FUTURE DIRECTION ── */}
       <section className={`py-24 border-t ${sectionBorder}`}>
         <div className="max-w-6xl mx-auto px-6">
-          <div className="max-w-2xl">
-            <div className={`text-xs font-semibold uppercase tracking-widest mb-4 ${textMuted}`} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-              {t.rag_label}
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div>
+              <div className={`text-xs font-semibold uppercase tracking-widest mb-4 ${textMuted}`} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                {t.rag_label}
+              </div>
+              <h2 className="text-3xl md:text-4xl font-semibold mb-6" style={{ fontFamily: isEN ? 'Cormorant Garamond, Georgia, serif' : 'Noto Serif SC, serif' }}>
+                {t.rag_title}
+              </h2>
+              <p className={`text-sm leading-relaxed ${textMuted} mb-6`}>{t.rag_desc}</p>
+              <div className={`flex items-start gap-3 p-4 rounded-xl border ${borderColor} ${isDark ? 'bg-slate-900/40' : 'bg-slate-50'}`}>
+                <AlertTriangle size={14} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                <p className={`text-xs leading-relaxed ${textMuted}`}>{t.rag_note}</p>
+              </div>
             </div>
-            <h2 className="text-3xl md:text-4xl font-semibold mb-6" style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
-              {t.rag_title}
-            </h2>
-            <p className={`text-sm leading-relaxed ${textMuted} mb-6`}>{t.rag_desc}</p>
-            <div className={`flex items-start gap-3 p-4 rounded-xl border ${borderColor} ${isDark ? 'bg-slate-900/40' : 'bg-slate-50'}`}>
-              <AlertTriangle size={14} className="text-amber-400 flex-shrink-0 mt-0.5" />
-              <p className={`text-xs leading-relaxed ${textMuted}`}>{t.rag_note}</p>
+
+            {/* Knowledge graph visual */}
+            <div className="relative flex items-center justify-center">
+              <div className={`absolute inset-0 rounded-3xl blur-3xl opacity-15 ${isDark ? 'bg-blue-700' : 'bg-blue-400'}`} />
+              <img
+                src="/images/knowledge_graph.png"
+                alt={isEN ? 'Knowledge graph research network' : '学术知识图谱'}
+                className="relative w-full max-w-sm rounded-2xl shadow-2xl"
+                style={{ opacity: isDark ? 0.9 : 0.85 }}
+              />
             </div>
           </div>
         </div>
@@ -686,7 +748,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
       <section className={`py-24 border-t ${sectionBorder}`}>
         <div className="max-w-6xl mx-auto px-6">
           <div className={`rounded-2xl p-12 border ${borderColor} ${isDark ? 'bg-slate-900/40' : 'bg-white'} text-center`}>
-            <h2 className="text-3xl md:text-4xl font-semibold mb-4 max-w-xl mx-auto" style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
+            <h2 className="text-3xl md:text-4xl font-semibold mb-4 max-w-xl mx-auto" style={{ fontFamily: isEN ? 'Cormorant Garamond, Georgia, serif' : 'Noto Serif SC, serif' }}>
               {t.cta_title}
             </h2>
             <p className={`text-sm ${textMuted} mb-8`}>{t.cta_desc}</p>
