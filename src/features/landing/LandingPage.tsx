@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   ArrowRight, BrainCircuit, Search, ShieldCheck,
   Quote, Lightbulb, Menu, X, MessageSquare,
-  FileText, Eye, Users, Network, GraduationCap, ChevronRight
+  FileText, Eye, Users, Network, GraduationCap, ChevronRight,
+  Globe, ChevronDown, Check
 } from 'lucide-react';
 import { Locale, Theme } from '@/types';
 
@@ -215,6 +216,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: loc, setLoca
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [quoteIdx, setQuoteIdx] = useState(0);
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
   const quotes = QUOTES[loc];
 
   useEffect(() => {
@@ -227,6 +230,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: loc, setLoca
     const id = setInterval(() => setQuoteIdx(i => (i + 1) % quotes.length), 6000);
     return () => clearInterval(id);
   }, [quotes.length]);
+
+  useEffect(() => {
+    const fn = (e: MouseEvent) => { if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false); };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
 
   // ── Design tokens ──────────────────────────
   const bg       = isDark ? '#07111A'  : '#F8FAFC';
@@ -287,25 +296,44 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: loc, setLoca
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Language switcher */}
-            <div className="hidden sm:flex items-center rounded-lg p-0.5 gap-0.5"
-              style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}>
-              {(['zh-CN', 'zh-TW', 'en'] as Locale[]).map(l => (
-                <button key={l} onClick={() => { setLocale(l); localStorage.setItem('preferred-locale', l); }}
-                  className="px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-200 cursor-pointer"
-                  style={{
-                    background: loc === l ? (isDark ? 'rgba(255,255,255,0.12)' : 'white') : 'transparent',
-                    color: loc === l ? emeraldLight : textMuted,
-                    boxShadow: loc === l ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
-                  }}>
-                  {l === 'zh-CN' ? '简' : l === 'zh-TW' ? '繁' : 'EN'}
-                </button>
-              ))}
+
+            {/* Globe language dropdown */}
+            <div className="hidden sm:block relative" ref={langRef}>
+              <button onClick={() => setLangOpen(!langOpen)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 cursor-pointer"
+                style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', color: textMuted }}>
+                <Globe size={14} />
+                <span>{loc === 'zh-CN' ? '简体中文' : loc === 'zh-TW' ? '繁體中文' : 'English'}</span>
+                <ChevronDown size={11} className={`transition-transform duration-200 ${langOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {langOpen && (
+                <div className="absolute right-0 top-full mt-2 w-44 rounded-2xl overflow-hidden shadow-2xl z-50"
+                  style={{ background: surface, border: `1px solid ${border}` }}>
+                  {([
+                    { code: 'zh-CN' as Locale, label: '简体中文', sub: 'Simplified Chinese' },
+                    { code: 'zh-TW' as Locale, label: '繁體中文', sub: 'Traditional Chinese' },
+                    { code: 'en'    as Locale, label: 'English',  sub: 'English' },
+                  ]).map(({ code, label, sub }) => (
+                    <button key={code}
+                      onClick={() => { setLocale(code); localStorage.setItem('preferred-locale', code); setLangOpen(false); }}
+                      className="w-full px-4 py-3 text-left flex items-center justify-between gap-2 transition-colors duration-150 cursor-pointer"
+                      style={{ background: loc === code ? `${emerald}12` : 'transparent' }}
+                      onMouseEnter={e => { if (loc !== code) (e.currentTarget as HTMLButtonElement).style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'; }}
+                      onMouseLeave={e => { if (loc !== code) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}>
+                      <div>
+                        <p className="text-sm font-medium" style={{ color: loc === code ? emeraldLight : textBase }}>{label}</p>
+                        <p className="text-xs" style={{ color: textMuted }}>{sub}</p>
+                      </div>
+                      {loc === code && <Check size={13} style={{ color: emeraldLight, flexShrink: 0 }} />}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Theme toggle */}
             <button onClick={() => setTheme(isDark ? 'light' : 'dark')}
-              className="hidden sm:flex w-8 h-8 rounded-lg items-center justify-center transition-all duration-200 cursor-pointer"
+              className="hidden sm:flex w-8 h-8 rounded-xl items-center justify-center transition-all duration-200 cursor-pointer"
               style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', color: textMuted }}>
               <span className="text-xs">{isDark ? '☀' : '◐'}</span>
             </button>
@@ -338,12 +366,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: loc, setLoca
                   className="text-sm font-medium py-2" style={{ color: textMuted }}>{l.label}</a>
               ))}
             </div>
-            <div className="flex gap-1 mb-3 p-1 rounded-xl" style={{ background: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9' }}>
-              {(['zh-CN', 'zh-TW', 'en'] as Locale[]).map(l => (
-                <button key={l} onClick={() => { setLocale(l); localStorage.setItem('preferred-locale', l); setMobileOpen(false); }}
-                  className="flex-1 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer"
-                  style={{ background: loc === l ? (isDark ? 'rgba(255,255,255,0.12)' : 'white') : 'transparent', color: loc === l ? emeraldLight : textMuted }}>
-                  {l === 'zh-CN' ? '简体' : l === 'zh-TW' ? '繁體' : 'EN'}
+            <div className="mb-3 rounded-xl overflow-hidden" style={{ border: `1px solid ${border}` }}>
+              {([
+                { code: 'zh-CN' as Locale, label: '简体中文' },
+                { code: 'zh-TW' as Locale, label: '繁體中文' },
+                { code: 'en'    as Locale, label: 'English' },
+              ]).map(({ code, label }, i) => (
+                <button key={code} onClick={() => { setLocale(code); localStorage.setItem('preferred-locale', code); setMobileOpen(false); }}
+                  className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium cursor-pointer transition-colors"
+                  style={{
+                    background: loc === code ? `${emerald}12` : 'transparent',
+                    color: loc === code ? emeraldLight : textMuted,
+                    borderTop: i > 0 ? `1px solid ${border}` : 'none',
+                  }}>
+                  <span className="flex items-center gap-2"><Globe size={14} />{label}</span>
+                  {loc === code && <Check size={13} style={{ color: emeraldLight }} />}
                 </button>
               ))}
             </div>
@@ -483,10 +520,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: loc, setLoca
                 {t.features_label}
               </span>
               <h2 className="font-bold mb-4"
-                style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(2rem, 4vw, 3rem)', color: textBase }}>
+                style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(2.2rem, 4.5vw, 3.4rem)', color: textBase }}>
                 {t.features_h2}
               </h2>
-              <p className="text-base max-w-xl mx-auto" style={{ color: textMuted }}>{t.features_sub}</p>
+              <p className="text-lg max-w-xl mx-auto" style={{ color: textMuted }}>{t.features_sub}</p>
             </div>
           </FadeIn>
 
@@ -533,7 +570,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: loc, setLoca
           <FadeIn>
             <div className="text-center mb-16">
               <Network size={28} className="inline-block mb-4" style={{ color: emeraldLight }} />
-              <h2 className="font-bold" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)', color: textBase }}>
+              <h2 className="font-bold" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(2rem, 4vw, 3.2rem)', color: textBase }}>
                 {t.how_h2}
               </h2>
             </div>
@@ -575,7 +612,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: loc, setLoca
           <FadeIn>
             <div className="text-center mb-12">
               <Quote size={24} className="inline-block mb-4" style={{ color: emeraldLight }} />
-              <h2 className="font-bold mb-2" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', color: textBase }}>
+              <h2 className="font-bold mb-2" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)', color: textBase }}>
                 {t.quotes_h2}
               </h2>
               <p className="text-sm" style={{ color: textMuted }}>{t.quotes_sub}</p>
@@ -623,7 +660,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: loc, setLoca
           <FadeIn>
             <div className="text-center mb-16">
               <Lightbulb size={28} className="inline-block mb-4" style={{ color: '#F59E0B' }} />
-              <h2 className="font-bold" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)', color: textBase }}>
+              <h2 className="font-bold" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(2rem, 4vw, 3.2rem)', color: textBase }}>
                 {t.phil_h2}
               </h2>
             </div>
@@ -681,7 +718,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: loc, setLoca
                 </div>
 
                 <h2 className="font-bold mb-4"
-                  style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(2rem, 4vw, 3rem)', color: textBase }}>
+                  style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(2.2rem, 4.5vw, 3.4rem)', color: textBase }}>
                   {t.cta_h2}
                 </h2>
                 <p className="text-base mb-10 max-w-md mx-auto" style={{ color: textMuted }}>

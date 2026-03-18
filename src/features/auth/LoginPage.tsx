@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthProvider';
-import { supabase } from '@/lib/supabase';
 import {
   Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, BrainCircuit,
-  AlertTriangle, Globe, ArrowLeft, BookOpen, ShieldCheck, Home,
-  GraduationCap, Sparkles, Quote
+  AlertTriangle, ArrowLeft, BookOpen, ShieldCheck,
+  GraduationCap, Quote, Globe, ChevronDown, Check, Network
 } from 'lucide-react';
+
+type Lang = 'zh-CN' | 'zh-TW' | 'en';
 
 interface LoginPageProps {
   onSwitchToRegister: () => void;
@@ -14,548 +15,402 @@ interface LoginPageProps {
   theme: 'light' | 'dark';
 }
 
-// Nature color palette
-const NATURE_COLORS = {
-  primary: '#059669',
-  primaryDark: '#047857',
-  secondary: '#10B981',
-  bgLight: '#ECFDF5',
-  text: '#064E3B',
-  accent: '#FBBF24',
-  slate: {
-    50: '#F8FAFC',
-    100: '#F1F5F9',
-    200: '#E2E8F0',
-    300: '#CBD5E1',
-    400: '#94A3B8',
-    500: '#64748B',
-    600: '#475569',
-    700: '#334155',
-    800: '#1E293B',
-    900: '#0F172A',
-  }
-};
+// ── Design tokens (match landing page) ──────────
+const em  = '#059669';
+const emL = '#10B981';
 
-// Academic quotes for right panel - cinematic style
-const ACADEMIC_QUOTES = {
+// ── i18n ────────────────────────────────────────
+const QUOTES: Record<Lang, { text: string; author: string; source: string }[]> = {
   'zh-CN': [
-    { quote: '教育的目的不是注满一桶水，而是点燃一把火。', author: '叶芝', source: '哲学思考' },
-    { quote: '学而不思则罔，思而不学则殆。', author: '孔子', source: '论语·为政' },
-    { quote: 'AI 的角色是促进思考，而非替代思考。', author: 'HAKHub', source: '苏格拉底式教学法' },
-    { quote: '有效的学术成长依赖于监控、反馈与调整的不间断运行。', author: 'Zimmerman', source: '自我调节学习' },
-    { quote: '导师必须保持在环可见与可干预。', author: 'Mosqueira-Rey', source: '人在环治理' },
-    { quote: '让研究过程更加透明，让学术支持更加连续，让思维发展更加可见。', author: 'HAKHub', source: '平台愿景' },
+    { text: '教育的目的不是注满一桶水，而是点燃一把火。', author: '叶芝', source: '哲学思考' },
+    { text: '学而不思则罔，思而不学则殆。', author: '孔子', source: '论语·为政' },
+    { text: 'AI 的角色是促进思考，而非替代思考。', author: 'HAKHub', source: '苏格拉底式教学法' },
+    { text: '让研究过程更加透明，让学术支持更加连续，让思维发展更加可见。', author: 'HAKHub', source: '平台愿景' },
   ],
   'zh-TW': [
-    { quote: '教育的目的不是注滿一桶水，而是點燃一把火。', author: '葉芝', source: '哲學思考' },
-    { quote: '學而不思則罔，思而不學則殆。', author: '孔子', source: '論語·為政' },
-    { quote: 'AI 的角色是促進思考，而非替代思考。', author: 'HAKHub', source: '蘇格拉底式教學法' },
-    { quote: '有效的學術成長依賴於監控、反饋與調整的不間斷運行。', author: 'Zimmerman', source: '自我調節學習' },
-    { quote: '導師必須保持在環可見與可干預。', author: 'Mosqueira-Rey', source: '人在環治理' },
-    { quote: '讓研究過程更加透明，讓學術支持更加連續，讓思維發展更加可見。', author: 'HAKHub', source: '平台願景' },
+    { text: '教育的目的不是注滿一桶水，而是點燃一把火。', author: '葉芝', source: '哲學思考' },
+    { text: '學而不思則罔，思而不學則殆。', author: '孔子', source: '論語·為政' },
+    { text: 'AI 的角色是促進思考，而非替代思考。', author: 'HAKHub', source: '蘇格拉底式教學法' },
+    { text: '讓研究過程更加透明，讓學術支持更加連續，讓思維發展更加可見。', author: 'HAKHub', source: '平台願景' },
   ],
   'en': [
-    { quote: 'Education is not the filling of a pail, but the lighting of a fire.', author: 'William Butler Yeats', source: 'Philosophy' },
-    { quote: 'Learning without thought is labor lost; thought without learning is perilous.', author: 'Confucius', source: 'The Analects' },
-    { quote: 'AI should promote thinking, not replace it.', author: 'HAKHub', source: 'Socratic Method' },
-    { quote: 'Effective academic growth depends on uninterrupted cycles of monitoring, feedback, and adjustment.', author: 'Zimmerman', source: 'Self-Regulated Learning' },
-    { quote: 'Supervisors must remain visible and intervenable.', author: 'Mosqueira-Rey', source: 'Human-in-the-Loop' },
-    { quote: 'Make research processes more transparent, academic support more continuous, and thinking development more visible.', author: 'HAKHub', source: 'Platform Vision' },
+    { text: 'Education is not the filling of a pail, but the lighting of a fire.', author: 'W.B. Yeats', source: 'Philosophy' },
+    { text: 'Learning without thought is labor lost; thought without learning is perilous.', author: 'Confucius', source: 'The Analects' },
+    { text: 'AI should promote thinking, not replace it.', author: 'HAKHub', source: 'Socratic Method' },
+    { text: 'Make research processes transparent, academic support continuous, and thinking development visible.', author: 'HAKHub', source: 'Platform Vision' },
   ],
 };
 
-// Platform values
-const PLATFORM_VALUES = {
-  'zh-CN': [
-    { icon: 'BookOpen', title: '支持而不替代', desc: 'AI 通过苏格拉底式提问促进学生思考，而非提供捷径。' },
-    { icon: 'ShieldCheck', title: '导师保持可见', desc: '所有学生—AI 交互对导师透明，支持精准介入。' },
-    { icon: 'Globe', title: '研究过程导向', desc: '聚焦研究进展与方法论，而非论文代写。' },
-  ],
-  'zh-TW': [
-    { icon: 'BookOpen', title: '支持而不替代', desc: 'AI 通過蘇格拉底式提問促進學生思考，而非提供捷徑。' },
-    { icon: 'ShieldCheck', title: '導師保持可見', desc: '所有學生—AI 交互對導師透明，支持精準介入。' },
-    { icon: 'Globe', title: '研究過程導向', desc: '聚焦研究進展與方法論，而非論文代寫。' },
-  ],
-  'en': [
-    { icon: 'BookOpen', title: 'Support without substitution', desc: 'AI promotes thinking through Socratic questioning, not shortcuts.' },
-    { icon: 'ShieldCheck', title: 'Supervisor remains visible', desc: 'All student–AI interactions are transparent to supervisors.' },
-    { icon: 'Globe', title: 'Process-oriented', desc: 'Focus on research progress, not writing assistance.' },
-  ],
+const STR: Record<Lang, Record<string, string>> = {
+  'zh-CN': {
+    back: '返回首页', brand_sub: '人机知识互动论坛',
+    tagline: '进入以科研过程为中心的学术工作空间，让进展可见、可对话、可干预。',
+    email: '邮箱', password: '密码', forgot: '忘记密码?',
+    signin: '登录', no_account: '还没有账号？', register: '创建账号',
+    privacy: '隐私政策', ethics: '研究伦理', about: '关于',
+    right_title: '为什么选择 HAKHub？',
+    right_desc: '在学生、AI 与导师的持续互动中，跟踪研究进展，识别关键问题，在恰当时机实现有依据的学术介入。',
+    triadic: '三元互动模型', triadic_note: '所有交互对导师可见 · 无私密 AI 对话',
+    student: '学生', ai: 'AI', supervisor: '导师',
+    wisdom: '智慧与灵感',
+    err_invalid: '邮箱或密码错误，请重试',
+  },
+  'zh-TW': {
+    back: '返回首頁', brand_sub: '人機知識互動論壇',
+    tagline: '進入以科研過程為中心的學術工作空間，讓進展可見、可對話、可干預。',
+    email: '郵箱', password: '密碼', forgot: '忘記密碼?',
+    signin: '登入', no_account: '還沒有帳號？', register: '創建帳號',
+    privacy: '隱私政策', ethics: '研究倫理', about: '關於',
+    right_title: '為什麼選擇 HAKHub？',
+    right_desc: '在學生、AI 與導師的持續互動中，追蹤研究進展，識別關鍵問題，在恰當時機實現有依據的學術介入。',
+    triadic: '三元互動模型', triadic_note: '所有交互對導師可見 · 無私密 AI 對話',
+    student: '學生', ai: 'AI', supervisor: '導師',
+    wisdom: '智慧與靈感',
+    err_invalid: '郵箱或密碼錯誤，請重試',
+  },
+  'en': {
+    back: 'Back to Home', brand_sub: 'Human–AI Knowledge Interaction Forum',
+    tagline: 'Enter a research-centered academic workspace where progress is visible, dialogic, and actionable.',
+    email: 'Email', password: 'Password', forgot: 'Forgot?',
+    signin: 'Sign In', no_account: "Don't have an account?", register: 'Create Account',
+    privacy: 'Privacy Policy', ethics: 'Research Ethics', about: 'About',
+    right_title: 'Why HAKHub?',
+    right_desc: 'In continuous interaction between students, AI, and supervisors, track research progress, identify key issues, and enable evidence-based academic intervention.',
+    triadic: 'Triadic Interaction Model', triadic_note: 'All interactions visible to supervisor · No private AI chats',
+    student: 'Student', ai: 'AI', supervisor: 'Supervisor',
+    wisdom: 'Wisdom & Inspiration',
+    err_invalid: 'Invalid email or password',
+  },
 };
 
-const ICON_MAP: Record<string, typeof BookOpen> = {
-  BookOpen,
-  ShieldCheck,
-  Globe,
+const LANGS: { code: Lang; label: string; sub: string }[] = [
+  { code: 'zh-CN', label: '简体中文', sub: 'Simplified Chinese' },
+  { code: 'zh-TW', label: '繁體中文', sub: 'Traditional Chinese' },
+  { code: 'en',    label: 'English',  sub: 'English' },
+];
+
+// ── Globe Dropdown ───────────────────────────────
+const LangDropdown: React.FC<{ lang: Lang; onChange: (l: Lang) => void; isDark: boolean }> = ({ lang, onChange, isDark }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const bg      = isDark ? '#0D1E2C' : '#FFFFFF';
+  const border  = isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0';
+  const textBase= isDark ? '#E8F1F8' : '#0F172A';
+  const textMuted=isDark ? '#7A9BB0' : '#64748B';
+
+  useEffect(() => {
+    const fn = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 cursor-pointer"
+        style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', color: textMuted }}>
+        <Globe size={13} />
+        <span>{LANGS.find(l => l.code === lang)?.label}</span>
+        <ChevronDown size={10} className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-44 rounded-2xl overflow-hidden shadow-2xl z-50"
+          style={{ background: bg, border: `1px solid ${border}` }}>
+          {LANGS.map(({ code, label, sub }, i) => (
+            <button key={code} onClick={() => { onChange(code); setOpen(false); }}
+              className="w-full px-4 py-3 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+              style={{
+                background: lang === code ? `${em}12` : 'transparent',
+                borderTop: i > 0 ? `1px solid ${border}` : 'none',
+              }}
+              onMouseEnter={e => { if (lang !== code) (e.currentTarget as HTMLButtonElement).style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'; }}
+              onMouseLeave={e => { if (lang !== code) (e.currentTarget as HTMLButtonElement).style.background = lang === code ? `${em}12` : 'transparent'; }}>
+              <div>
+                <p className="text-sm font-medium" style={{ color: lang === code ? emL : textBase }}>{label}</p>
+                <p className="text-xs" style={{ color: textMuted }}>{sub}</p>
+              </div>
+              {lang === code && <Check size={12} style={{ color: emL, flexShrink: 0 }} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
-const LoginPage: React.FC<LoginPageProps> = ({
-  onSwitchToRegister,
-  onSwitchToForgotPassword,
-  onSuccess,
-  theme
-}) => {
+// ── Main Component ────────────────────────────────
+const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister, onSwitchToForgotPassword, onSuccess, theme }) => {
   const { signIn } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Right panel state
-  const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
-  const [currentValueIndex, setCurrentValueIndex] = useState(0);
-  const [loginLocale, setLoginLocale] = useState<'zh-CN' | 'zh-TW' | 'en'>('zh-CN');
-
-  const quotes = ACADEMIC_QUOTES[loginLocale];
-  const values = PLATFORM_VALUES[loginLocale];
-  const isEN = loginLocale === 'en';
   const isDark = theme === 'dark';
 
-  // Auto-rotate quotes and values - cinematic timing
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
+  const [showPwd, setShowPwd]   = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+  const [lang, setLang]         = useState<Lang>('zh-CN');
+  const [quoteIdx, setQuoteIdx] = useState(0);
+  const [quoteAnim, setQuoteAnim] = useState(false);
+
+  const s = STR[lang];
+  const quotes = QUOTES[lang];
+
+  // Design tokens
+  const bg      = isDark ? '#07111A' : '#F8FAFC';
+  const surface = isDark ? '#0D1E2C' : '#FFFFFF';
+  const border  = isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0';
+  const textBase= isDark ? '#E8F1F8' : '#0F172A';
+  const textMuted=isDark ? '#7A9BB0' : '#64748B';
+  const inputBg = isDark
+    ? 'rgba(255,255,255,0.04)'
+    : 'rgba(0,0,0,0.02)';
+
   useEffect(() => {
-    const quoteInterval = setInterval(() => {
-      setCurrentQuoteIndex((prev) => (prev + 1) % quotes.length);
-    }, 7000); // Slower for cinematic feel
-    const valueInterval = setInterval(() => {
-      setCurrentValueIndex((prev) => (prev + 1) % values.length);
-    }, 5000);
-    return () => {
-      clearInterval(quoteInterval);
-      clearInterval(valueInterval);
-    };
-  }, [quotes.length, values.length]);
+    const id = setInterval(() => {
+      setQuoteAnim(true);
+      setTimeout(() => { setQuoteIdx(i => (i + 1) % quotes.length); setQuoteAnim(false); }, 400);
+    }, 7000);
+    return () => clearInterval(id);
+  }, [quotes.length]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
     const { error } = await signIn(email, password);
-
     if (error) {
-      setError(error.message === 'Invalid login credentials'
-        ? (isEN ? 'Invalid email or password' : '邮箱或密码错误，请重试')
-        : error.message);
+      setError(error.message === 'Invalid login credentials' ? s.err_invalid : error.message);
       setLoading(false);
     } else {
       onSuccess();
     }
   };
 
-  // Go back to landing page
   const handleBackToLanding = () => {
     sessionStorage.removeItem('hasViewedLanding');
     window.location.reload();
   };
 
-  // Style helpers
-  const textMuted = isDark ? 'text-slate-400' : 'text-slate-600';
-  const textSubtle = isDark ? 'text-slate-500' : 'text-slate-500';
-  const borderClass = isDark ? 'border-slate-700' : 'border-slate-200';
-  const inputBg = isDark ? 'bg-[#0B1416] border-slate-700 focus:border-emerald-500/50 focus:bg-slate-800' : 'bg-white border-slate-200 focus:border-emerald-500 focus:bg-slate-50';
-  const cardBg = isDark ? 'bg-[#0F2937]' : 'bg-white';
-
-  // Cinematic Quote Carousel - movie credits style
-  const CinematicQuoteCarousel: React.FC = () => {
-    const [isAnimating, setIsAnimating] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-      setIsAnimating(true);
-      const timer = setTimeout(() => setIsAnimating(false), 800);
-      return () => clearTimeout(timer);
-    }, [currentQuoteIndex]);
-
-    const currentQuote = quotes[currentQuoteIndex];
-    const prevQuoteIndex = currentQuoteIndex === 0 ? quotes.length - 1 : currentQuoteIndex - 1;
-    const nextQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
-
-    return (
-      <div className="relative overflow-hidden rounded-2xl" style={{ background: isDark ? 'linear-gradient(135deg, rgba(5, 150, 105, 0.08) 0%, rgba(16, 185, 129, 0.03) 100%)' : 'linear-gradient(135deg, #ECFDF5 0%, #F0FDFA 100%)' }}>
-        {/* Top decorative line */}
-        <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, transparent, ${NATURE_COLORS.primary}, transparent)` }} />
-
-        {/* Main quote display */}
-        <div className="p-6 text-center" ref={containerRef}>
-          {/* Quote icon */}
-          <div className="flex justify-center mb-4">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDark ? 'bg-emerald-500/10' : 'bg-emerald-100'}`}>
-              <Quote size={18} style={{ color: NATURE_COLORS.primary }} />
-            </div>
-          </div>
-
-          {/* Quote text with animation */}
-          <div className={`transition-all duration-700 ${isAnimating ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
-            <p className="text-base leading-relaxed mb-4" style={{ fontFamily: 'Crimson Pro, Georgia, serif', color: isDark ? '#E0F2FE' : NATURE_COLORS.text, fontStyle: 'italic' }}>
-              "{currentQuote.quote}"
-            </p>
-
-            {/* Author and source */}
-            <div className="flex items-center justify-center gap-3 text-xs">
-              <span className={`px-3 py-1 rounded-full font-medium ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
-                {currentQuote.author}
-              </span>
-              <span className={textMuted}>·</span>
-              <span className={textMuted}>{currentQuote.source}</span>
-            </div>
-          </div>
-
-          {/* Cinematic progress bar */}
-          <div className="mt-5 flex justify-center gap-1.5">
-            {quotes.map((_, i) => (
-              <div
-                key={i}
-                className={`h-1 rounded-full transition-all duration-500 ${
-                  i === currentQuoteIndex ? 'w-8' : i === prevQuoteIndex || i === nextQuoteIndex ? 'w-3' : 'w-1.5'
-                }`}
-                style={{
-                  background: i === currentQuoteIndex ? NATURE_COLORS.primary : (i === prevQuoteIndex || i === nextQuoteIndex) ? `${NATURE_COLORS.primary}60` : `${NATURE_COLORS.primary}25`,
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Position indicator */}
-          <div className={`mt-3 text-xs font-mono ${textMuted}`}>
-            {String(currentQuoteIndex + 1).padStart(2, '0')} / {String(quotes.length).padStart(2, '0')}
-          </div>
-        </div>
-
-        {/* Bottom decorative line */}
-        <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, transparent, ${NATURE_COLORS.primary}, transparent)` }} />
-      </div>
-    );
-  };
-
-  // Value Card Carousel
-  const ValueCarousel: React.FC = () => {
-    const value = values[currentValueIndex];
-    const Icon = ICON_MAP[value.icon];
-
-    return (
-      <div className="space-y-3">
-        <div className={`p-5 rounded-xl border-2 ${cardBg} transition-all duration-200`}
-             style={{ borderColor: isDark ? 'rgba(16, 185, 129, 0.2)' : NATURE_COLORS.bgLight }}>
-          <Icon size={18} className="mb-2" style={{ color: NATURE_COLORS.primary }} />
-          <h4 className="font-semibold text-sm mb-1">{value.title}</h4>
-          <p className={`text-xs leading-relaxed ${textMuted}`}>{value.desc}</p>
-        </div>
-
-        {/* Navigation dots */}
-        <div className="flex justify-center gap-2">
-          {values.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentValueIndex(i)}
-              className={`w-1.5 h-1.5 rounded-full transition-all duration-200 cursor-pointer ${
-                i === currentValueIndex ? 'scale-150' : 'opacity-40 hover:opacity-60'
-              }`}
-              style={{ background: i === currentValueIndex ? NATURE_COLORS.primary : NATURE_COLORS.slate[400] }}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  // Triadic Mini Diagram - with better icons
-  const TriadicMini: React.FC = () => (
-    <div className="flex items-center justify-center gap-3 py-8">
-      {/* Student */}
-      <div className="flex flex-col items-center">
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-transform hover:scale-110 ${isDark ? 'bg-gradient-to-br from-blue-500/20 to-blue-600/20 border-blue-500/30' : 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200'} border-2`}>
-          <GraduationCap size={20} className={isDark ? 'text-blue-400' : 'text-blue-600'} />
-        </div>
-        <span className={`text-xs mt-2.5 font-medium ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
-          {isEN ? 'Student' : '学生'}
-        </span>
-      </div>
-
-      {/* Connection - Student to AI */}
-      <div className="flex items-center gap-0.5">
-        <div className={`w-6 h-0.5 ${isDark ? 'bg-gradient-to-r from-blue-500/50 to-emerald-500/50' : 'bg-gradient-to-r from-blue-300 to-emerald-300'}`} />
-        <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: NATURE_COLORS.primary }} />
-      </div>
-
-      {/* AI - Center */}
-      <div className="flex flex-col items-center">
-        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg transition-transform hover:scale-110 ${isDark ? 'bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-emerald-500/40' : 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200'} border-2 relative`}>
-          <BrainCircuit size={24} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
-          {/* Glow effect */}
-          <div className="absolute inset-0 rounded-2xl bg-emerald-500/10 animate-pulse" />
-        </div>
-        <span className={`text-xs mt-2.5 font-medium ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
-          {isEN ? 'AI' : 'AI'}
-        </span>
-      </div>
-
-      {/* Connection - AI to Supervisor */}
-      <div className="flex items-center gap-0.5">
-        <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: NATURE_COLORS.accent }} />
-        <div className={`w-6 h-0.5 ${isDark ? 'bg-gradient-to-r from-emerald-500/50 to-amber-500/50' : 'bg-gradient-to-r from-emerald-300 to-amber-300'}`} />
-      </div>
-
-      {/* Supervisor */}
-      <div className="flex flex-col items-center">
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-transform hover:scale-110 ${isDark ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-amber-500/30' : 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200'} border-2`}>
-          <ShieldCheck size={20} className={isDark ? 'text-amber-400' : 'text-amber-600'} />
-        </div>
-        <span className={`text-xs mt-2.5 font-medium ${isDark ? 'text-amber-300' : 'text-amber-700'}`}>
-          {isEN ? 'Supervisor' : '导师'}
-        </span>
-      </div>
-    </div>
-  );
-
   return (
-    <div className={`min-h-screen flex ${isDark ? 'bg-[#0B1416]' : 'bg-slate-50'}`}>
-      {/* Left Panel - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-10 relative">
-        {/* Top-right back button - mobile */}
-        <button
-          onClick={handleBackToLanding}
-          className="lg:hidden absolute top-5 right-5 p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-        >
-          <Home size={20} />
-        </button>
+    <div className="min-h-screen flex" style={{ background: bg, fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-        <div className="w-full max-w-md">
-          {/* Back to Landing Button - Desktop */}
-          <button
-            onClick={handleBackToLanding}
-            className="hidden lg:flex items-center gap-2 text-sm mb-8 transition-colors hover:text-emerald-600 dark:hover:text-emerald-400"
-            style={{ color: isDark ? NATURE_COLORS.slate[400] : NATURE_COLORS.slate[600] }}
-          >
-            <ArrowLeft size={16} />
-            {isEN ? 'Back to Home' : '返回首页'}
+      {/* ── LEFT — Form panel ── */}
+      <div className="w-full lg:w-[46%] flex flex-col justify-center px-8 md:px-14 lg:px-16 py-10 relative">
+
+        {/* Top bar: back + language */}
+        <div className="flex items-center justify-between mb-10">
+          <button onClick={handleBackToLanding}
+            className="flex items-center gap-2 text-sm font-medium transition-colors duration-200 cursor-pointer"
+            style={{ color: textMuted }}
+            onMouseEnter={e => (e.currentTarget.style.color = emL)}
+            onMouseLeave={e => (e.currentTarget.style.color = textMuted)}>
+            <ArrowLeft size={15} /> {s.back}
           </button>
+          <LangDropdown lang={lang} onChange={setLang} isDark={isDark} />
+        </div>
 
-          {/* Brand Header */}
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center shadow-md" style={{ background: NATURE_COLORS.primary }}>
-                <BrainCircuit size={22} className="text-white" />
-              </div>
-              <div>
-                <h1 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  HAKHub Scholar
-                </h1>
-                <p className={`text-xs ${textSubtle}`}>
-                  {isEN ? 'Human–AI Knowledge Interaction Forum' : '人机知识互动论坛'}
-                </p>
-              </div>
+        <div className="w-full max-w-sm mx-auto lg:mx-0">
+          {/* Brand */}
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+              style={{ background: `linear-gradient(135deg, ${em}, ${emL})`, boxShadow: `0 6px 20px ${em}40` }}>
+              <BrainCircuit size={22} className="text-white" />
             </div>
-            <p className={`text-sm ${textMuted} leading-relaxed`}>
-              {isEN
-                ? 'Enter a research-oriented academic workspace where progress is visible, dialogic, and actionable.'
-                : '进入一个面向科研过程的学术工作空间，让进展可见、可对话、可干预。'
-              }
-            </p>
+            <div>
+              <h1 className="text-xl font-bold leading-tight" style={{ color: textBase }}>HAKHub Scholar</h1>
+              <p className="text-xs" style={{ color: textMuted }}>{s.brand_sub}</p>
+            </div>
           </div>
 
-          {/* Error Alert */}
+          {/* Headline */}
+          <h2 className="font-bold mb-2 leading-tight" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: '2rem', color: textBase }}>
+            {lang === 'en' ? 'Welcome back' : '欢迎回来'}
+          </h2>
+          <p className="text-sm leading-relaxed mb-8" style={{ color: textMuted }}>{s.tagline}</p>
+
+          {/* Error */}
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3">
-              <AlertTriangle size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-red-500 font-medium">{error}</p>
+            <div className="mb-5 px-4 py-3 rounded-xl flex items-start gap-3"
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+              <AlertTriangle size={15} className="text-red-400 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-red-400">{error}</p>
             </div>
           )}
 
-          {/* Login Form */}
+          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}
-            <div className="space-y-1.5">
-              <label className={`block text-xs font-bold uppercase tracking-wide ${textSubtle}`}>
-                {isEN ? 'Email' : '邮箱'}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: textMuted }}>
+                {s.email}
               </label>
               <div className="relative group">
-                <Mail size={17} className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors duration-200 ${isDark ? 'text-slate-500 group-focus-within:text-emerald-400' : 'text-slate-400 group-focus-within:text-emerald-500'}`} />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={isEN ? 'name@university.edu' : 'name@university.edu'}
-                  required
-                  autoComplete="email"
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border text-sm transition-all duration-200 outline-none ${inputBg} ${isDark ? 'text-white placeholder-slate-600' : 'text-slate-900 placeholder-slate-400'}`}
-                />
+                <Mail size={15} className="absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-200"
+                  style={{ color: textMuted }} />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="name@university.edu" required autoComplete="email"
+                  className="w-full pl-11 pr-4 py-3.5 rounded-xl text-sm outline-none transition-all duration-200"
+                  style={{
+                    background: inputBg,
+                    border: `1px solid ${border}`,
+                    color: textBase,
+                  }}
+                  onFocus={e => (e.currentTarget.style.border = `1px solid ${emL}80`)}
+                  onBlur={e => (e.currentTarget.style.border = `1px solid ${border}`)} />
               </div>
             </div>
 
             {/* Password */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className={`block text-xs font-bold uppercase tracking-wide ${textSubtle}`}>
-                  {isEN ? 'Password' : '密码'}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: textMuted }}>
+                  {s.password}
                 </label>
-                <button
-                  type="button"
-                  onClick={onSwitchToForgotPassword}
-                  className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 font-medium transition-colors"
-                >
-                  {isEN ? 'Forgot?' : '忘记密码?'}
+                <button type="button" onClick={onSwitchToForgotPassword}
+                  className="text-xs font-medium transition-colors duration-200 cursor-pointer"
+                  style={{ color: emL }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+                  {s.forgot}
                 </button>
               </div>
-              <div className="relative group">
-                <Lock size={17} className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors duration-200 ${isDark ? 'text-slate-500 group-focus-within:text-emerald-400' : 'text-slate-400 group-focus-within:text-emerald-500'}`} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="•••••••••"
-                  required
-                  autoComplete="current-password"
-                  className={`w-full pl-10 pr-11 py-3 rounded-lg border text-sm transition-all duration-200 outline-none ${inputBg} ${isDark ? 'text-white placeholder-slate-600' : 'text-slate-900 placeholder-slate-400'}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 rounded-md transition-colors cursor-pointer text-slate-500 hover:text-slate-300 dark:hover:text-slate-300"
-                >
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              <div className="relative">
+                <Lock size={15} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: textMuted }} />
+                <input type={showPwd ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••" required autoComplete="current-password"
+                  className="w-full pl-11 pr-12 py-3.5 rounded-xl text-sm outline-none transition-all duration-200"
+                  style={{ background: inputBg, border: `1px solid ${border}`, color: textBase }}
+                  onFocus={e => (e.currentTarget.style.border = `1px solid ${emL}80`)}
+                  onBlur={e => (e.currentTarget.style.border = `1px solid ${border}`)} />
+                <button type="button" onClick={() => setShowPwd(!showPwd)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer" style={{ color: textMuted }}>
+                  {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-lg text-white font-medium transition-all duration-200 hover:shadow-md disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              style={{ background: NATURE_COLORS.primary }}
-              onMouseEnter={(e) => !loading && (e.currentTarget.style.background = NATURE_COLORS.primaryDark)}
-              onMouseLeave={(e) => e.currentTarget.style.background = NATURE_COLORS.primary}
-            >
-              {loading ? <Loader2 size={18} className="animate-spin" /> : (
-                <>
-                  {isEN ? 'Sign In' : '登录'}
-                  <ArrowRight size={17} />
-                </>
-              )}
+            {/* Submit */}
+            <button type="submit" disabled={loading}
+              className="w-full py-3.5 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+              style={{ background: `linear-gradient(135deg, ${em}, ${emL})`, boxShadow: `0 6px 20px ${em}40` }}
+              onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)'; }}>
+              {loading ? <Loader2 size={17} className="animate-spin" /> : <>{s.signin} <ArrowRight size={15} /></>}
             </button>
           </form>
 
-          {/* Footer */}
-          <div className={`mt-8 text-center text-sm ${textMuted}`}>
-            {isEN ? "Don't have an account?" : '还没有账号？'}{' '}
-            <button
-              onClick={onSwitchToRegister}
-              className="font-semibold transition-colors text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300"
-            >
-              {isEN ? 'Create Account' : '创建账号'}
+          {/* Switch to register */}
+          <p className="mt-6 text-center text-sm" style={{ color: textMuted }}>
+            {s.no_account}{' '}
+            <button onClick={onSwitchToRegister}
+              className="font-semibold cursor-pointer transition-colors duration-200"
+              style={{ color: emL }}>
+              {s.register}
             </button>
-          </div>
+          </p>
 
-          {/* Links */}
-          <div className={`mt-6 flex flex-wrap gap-4 justify-center text-xs ${textSubtle}`}>
-            <a href="#" className="hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">
-              {isEN ? 'Privacy Policy' : '隐私政策'}
-            </a>
-            <span>·</span>
-            <a href="#" className="hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">
-              {isEN ? 'Research Ethics' : '研究伦理'}
-            </a>
-            <span>·</span>
-            <a href="#" className="hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">
-              {isEN ? 'About' : '关于'}
-            </a>
+          {/* Footer links */}
+          <div className="mt-8 flex flex-wrap gap-4 justify-center text-xs" style={{ color: textMuted, opacity: 0.6 }}>
+            {[s.privacy, s.ethics, s.about].map((l, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <span>·</span>}
+                <a href="#" className="transition-opacity hover:opacity-100 cursor-pointer">{l}</a>
+              </React.Fragment>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Right Panel - Dynamic Content */}
-      <div className={`hidden lg:flex lg:w-1/2 flex-col justify-center p-12 relative ${isDark ? 'bg-[#0B1416]' : 'bg-white'}`}>
-        {/* Top-right back button */}
-        <button
-          onClick={handleBackToLanding}
-          className="absolute top-8 right-12 p-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          title={isEN ? 'Back to Home' : '返回首页'}
-        >
-          <Home size={20} />
-        </button>
+      {/* ── DIVIDER ── */}
+      <div className="hidden lg:block w-px flex-shrink-0" style={{ background: border }} />
 
-        {/* Background gradient - subtle */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-8%] right-[-8%] w-[350px] h-[350px] rounded-full blur-[100px] opacity-[0.06]" style={{ background: NATURE_COLORS.secondary }} />
-          <div className="absolute bottom-[-5%] left-[-5%] w-[280px] h-[280px] rounded-full blur-[80px] opacity-[0.04]" style={{ background: NATURE_COLORS.accent }} />
-        </div>
+      {/* ── RIGHT — Brand showcase panel ── */}
+      <div className="hidden lg:flex flex-1 flex-col justify-center px-14 xl:px-20 py-10 relative overflow-hidden"
+        style={{ background: isDark ? '#0A1825' : '#F0FDF4' }}>
 
-        <div className="relative max-w-md mx-auto w-full space-y-7">
-          {/* Language Selector */}
-          <div className="flex items-center justify-end">
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 rounded-lg p-0.5">
-              {(['zh-CN' as const, 'zh-TW' as const, 'en'] as const).map((loc) => (
-                <button
-                  key={loc}
-                  onClick={() => setLoginLocale(loc)}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer ${
-                    loginLocale === loc
-                      ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-400 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                  }`}
-                >
-                  {loc === 'zh-CN' ? '简体' : loc === 'zh-TW' ? '繁體' : 'EN'}
-                </button>
+        {/* Ambient orb */}
+        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full pointer-events-none"
+          style={{ background: `radial-gradient(circle, ${em}18 0%, transparent 70%)` }} />
+        <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full pointer-events-none"
+          style={{ background: `radial-gradient(circle, #0EA5E918 0%, transparent 70%)` }} />
+
+        <div className="relative max-w-sm w-full">
+          {/* Title */}
+          <div className="mb-8">
+            <ShieldCheck size={20} className="mb-3" style={{ color: emL }} />
+            <h2 className="font-bold mb-3 leading-tight" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: '1.8rem', color: textBase }}>
+              {s.right_title}
+            </h2>
+            <p className="text-sm leading-relaxed" style={{ color: textMuted }}>{s.right_desc}</p>
+          </div>
+
+          {/* Triadic diagram */}
+          <div className="p-6 rounded-2xl mb-6" style={{ background: surface, border: `1px solid ${border}` }}>
+            <p className="text-xs font-bold uppercase tracking-widest mb-5" style={{ color: textMuted, letterSpacing: '0.1em' }}>
+              {s.triadic}
+            </p>
+            <div className="flex items-center justify-between gap-2">
+              {[
+                { label: s.student, icon: GraduationCap, color: '#3B82F6' },
+                { label: s.ai,       icon: BrainCircuit,  color: em },
+                { label: s.supervisor, icon: ShieldCheck, color: '#F59E0B' },
+              ].map(({ label, icon: Icon, color }, i) => (
+                <React.Fragment key={label}>
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                      style={{ background: `${color}15`, border: `1px solid ${color}30` }}>
+                      <Icon size={22} style={{ color }} />
+                    </div>
+                    <span className="text-xs font-medium" style={{ color }}>{label}</span>
+                  </div>
+                  {i < 2 && (
+                    <div className="flex-1 flex items-center gap-1">
+                      <div className="flex-1 h-px" style={{ background: `linear-gradient(90deg, ${i === 0 ? '#3B82F6' : em}60, ${i === 0 ? em : '#F59E0B'}60)` }} />
+                      <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: i === 0 ? emL : '#F59E0B' }} />
+                    </div>
+                  )}
+                </React.Fragment>
               ))}
             </div>
+            <p className="text-xs text-center mt-4" style={{ color: textMuted, opacity: 0.7 }}>{s.triadic_note}</p>
           </div>
 
-          {/* Title */}
-          <div>
-            <ShieldCheck size={22} className="mb-3" style={{ color: NATURE_COLORS.primary }} />
-            <h2 className={`text-xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              {isEN ? 'Why This Platform Matters' : '为什么这个平台很重要'}
-            </h2>
-            <p className={`text-sm leading-relaxed ${textMuted}`}>
-              {isEN
-                ? 'In the continuous interaction between students, AI, and supervisors, we track research progress, identify key issues, and enable evidence-based academic intervention at the right moment.'
-                : '在学生、AI 与导师的持续互动中，跟踪研究进展，识别关键问题，并在恰当时机实现有依据的学术介入。'
-              }
-            </p>
-          </div>
-
-          {/* Triadic Model */}
-          <div className={`p-5 rounded-xl border-2 ${cardBg}`}
-               style={{ borderColor: isDark ? 'rgba(16, 185, 129, 0.15)' : NATURE_COLORS.slate[200] }}>
-            <h3 className={`text-xs font-bold uppercase tracking-wide mb-4 ${textSubtle}`}>
-              {isEN ? 'Triadic Interaction Model' : '三元互动模型'}
-            </h3>
-            <TriadicMini />
-            <p className={`text-xs text-center mt-2 ${textSubtle}`}>
-              {isEN
-                ? 'All interactions visible to supervisor · No private AI conversations'
-                : '所有交互对导师可见 · 无私密AI对话'
-              }
-            </p>
-          </div>
-
-          {/* Academic Quotes - Cinematic Style */}
-          <div>
-            <h3 className={`text-xs font-bold uppercase tracking-wide mb-3 flex items-center gap-2 ${textSubtle}`}>
-              <Sparkles size={13} style={{ color: NATURE_COLORS.accent }} />
-              {isEN ? 'Wisdom & Inspiration' : '智慧与灵感'}
-            </h3>
-            <CinematicQuoteCarousel />
-          </div>
-
-          {/* Platform Values */}
-          <div>
-            <h3 className={`text-xs font-bold uppercase tracking-wide mb-3 flex items-center gap-2 ${textSubtle}`}>
-              <Globe size={13} />
-              {isEN ? 'Platform Values' : '平台价值'}
-            </h3>
-            <ValueCarousel />
+          {/* Rotating quotes */}
+          <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${border}` }}>
+            <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, transparent, ${em}, transparent)` }} />
+            <div className="p-6" style={{ background: surface }}>
+              <div className="flex items-center gap-2 mb-4">
+                <Quote size={14} style={{ color: emL }} />
+                <span className="text-xs font-bold uppercase tracking-widest" style={{ color: textMuted, letterSpacing: '0.1em' }}>{s.wisdom}</span>
+              </div>
+              <div className={`transition-all duration-400 ${quoteAnim ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}>
+                <p className="text-sm leading-relaxed mb-4 italic"
+                  style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: '1.05rem', color: textBase }}>
+                  "{quotes[quoteIdx].text}"
+                </p>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="px-2.5 py-1 rounded-lg font-medium" style={{ background: `${em}15`, color: emL }}>
+                    {quotes[quoteIdx].author}
+                  </span>
+                  <span style={{ color: textMuted }}>· {quotes[quoteIdx].source}</span>
+                </div>
+              </div>
+              {/* Dots */}
+              <div className="flex gap-1.5 mt-5">
+                {quotes.map((_, i) => (
+                  <button key={i} onClick={() => setQuoteIdx(i)}
+                    className="rounded-full transition-all duration-300 cursor-pointer"
+                    style={{ width: i === quoteIdx ? '24px' : '6px', height: '6px', background: i === quoteIdx ? emL : `${textMuted}40` }} />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Bottom note */}
-        <div className={`absolute bottom-8 left-12 right-12 text-xs ${textSubtle}`}>
-          {isEN
-            ? '© 2026 HAKHub Team · HAKHub Scholar'
-            : '© 2026 HAKHub 团队 · HAKHub Scholar'
-          }
-        </div>
+        {/* Footer */}
+        <p className="absolute bottom-6 left-14 text-xs" style={{ color: textMuted, opacity: 0.5 }}>
+          © 2026 HAKHub Team · HAKHub Scholar
+        </p>
       </div>
     </div>
   );
