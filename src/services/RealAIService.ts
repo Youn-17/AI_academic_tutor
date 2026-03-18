@@ -21,6 +21,7 @@ export interface ChatMessage {
 }
 
 const EDGE_FUNCTION_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL || 'https://oztozjwngekmqtuylypt.supabase.co/functions/v1';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 const MAX_CONTENT_LENGTH = 10_000;
 
@@ -37,6 +38,7 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
     return {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`,
+        'apikey': SUPABASE_ANON_KEY,
     };
 }
 
