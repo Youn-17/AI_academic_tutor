@@ -48,13 +48,20 @@ function checkRateLimit(userId: string): boolean {
   return true;
 }
 
+const DMXAPI_EMBED_URL = 'https://www.dmxapi.cn/v1/embeddings';
+const EMBED_MODEL      = 'text-embedding-3-small';
+
 interface ChatRequest {
   messages: { role: string; content: string }[];
   provider: string;
   model: string;
   stream?: boolean;
-  api_key?: string;   // Optional: client-provided key (ignored for security — resolved server-side)
-  base_url?: string;  // Ignored — routing is done server-side
+  api_key?: string;   // Ignored — resolved server-side
+  base_url?: string;  // Ignored — routing done server-side
+  // RAG options
+  use_rag?: boolean;
+  course_id?: string;
+  layer_filter?: number[];  // e.g. [1, 2, 3] — which knowledge layers to search
 }
 
 const MAX_MESSAGE_LENGTH = 10_000;
@@ -112,7 +119,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { messages, provider: rawProvider, model, stream = true }: ChatRequest = await req.json();
+    const { messages, provider: rawProvider, model, stream = true, use_rag = false, course_id, layer_filter }: ChatRequest = await req.json();
 
     // ── 3. Input validation ────────────────────────────
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -240,7 +247,94 @@ serve(async (req: Request) => {
 
     const apiUrl = resolveEndpoint(provider);
 
-    // ── 5. Forward request to AI provider ─────────────
+    // ── 5. RAG retrieval (optional) ────────────────────
+    let ragContext = '';
+    let ragSources: { id: string; source_title: string; layer: number }[] = [];
+
+    if (use_rag) {
+      try {
+        // Get the last user message as the query
+        const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+        const queryText = lastUserMsg?.content || '';
+
+        if (queryText.length > 5) {
+          // Embed the query using DMXAPI (uses same key as chat if available)
+          const embedKey = DMXAPI_API_KEY || resolvedApiKey;
+          const embedResp = await fetch(DMXAPI_EMBED_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${embedKey}` },
+            body: JSON.stringify({ model: EMBED_MODEL, input: [queryText] }),
+          });
+
+          if (embedResp.ok) {
+            const embedData = await embedResp.json();
+            const queryEmbedding: number[] = embedData.data?.[0]?.embedding;
+
+            if (queryEmbedding?.length) {
+              // Search chunks with permission filter
+              const { data: chunks } = await serviceClient.rpc('match_chunks', {
+                query_embedding: `[${queryEmbedding.join(',')}]`,
+                p_user_id:       user.id,
+                p_course_id:     course_id || null,
+                p_layer_filter:  layer_filter || null,
+                match_count:     6,
+                similarity_threshold: 0.3,
+              });
+
+              // Search process memories
+              const { data: memories } = await serviceClient.rpc('match_memories', {
+                query_embedding:      `[${queryEmbedding.join(',')}]`,
+                p_user_id:            user.id,
+                match_count:          3,
+                similarity_threshold: 0.3,
+              });
+
+              const allResults = [
+                ...(chunks || []).map((c: { content: string; source_title: string; layer: number; id: string; similarity: number }) =>
+                  ({ ...c, origin: 'knowledge' })),
+                ...(memories || []).map((m: { content: string; memory_type: string; id: string; similarity: number }) =>
+                  ({ ...m, source_title: `[过程记忆·${m.memory_type}]`, layer: 4, origin: 'memory' })),
+              ].sort((a, b) => (b.similarity || 0) - (a.similarity || 0))
+               .slice(0, 8);
+
+              if (allResults.length > 0) {
+                ragContext = allResults
+                  .map((r, i) => `[参考${i + 1}] ${r.source_title || '知识库'}\n${r.content}`)
+                  .join('\n\n---\n\n');
+
+                ragSources = allResults.map(r => ({
+                  id: r.id, source_title: r.source_title, layer: r.layer
+                }));
+              }
+            }
+          }
+        }
+      } catch (ragErr) {
+        // RAG is best-effort: log and continue without context
+        console.error('RAG retrieval error:', ragErr);
+      }
+    }
+
+    // ── 6. Build final message array with RAG context ──
+    let finalMessages = messages;
+    if (ragContext) {
+      // Inject retrieved context into the system prompt
+      const systemIdx = messages.findIndex(m => m.role === 'system');
+      const ragBlock = `\n\n## 相关知识库内容（仅在相关时使用）\n\n${ragContext}\n\n请基于以上参考内容辅助回答，如参考内容与问题不相关则忽略。`;
+
+      if (systemIdx >= 0) {
+        finalMessages = messages.map((m, i) =>
+          i === systemIdx ? { ...m, content: m.content + ragBlock } : m
+        );
+      } else {
+        finalMessages = [
+          { role: 'system', content: `你是一位学术研究辅导助手。${ragBlock}` },
+          ...messages,
+        ];
+      }
+    }
+
+    // ── 7. Forward request to AI provider ─────────────
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -249,7 +343,7 @@ serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model,
-        messages,
+        messages: finalMessages,
         stream,
         max_tokens: 4096,
         temperature: 0.7,
@@ -277,6 +371,8 @@ serve(async (req: Request) => {
     }
 
     const data = await response.json();
+    // Attach RAG sources to non-streaming response so client can show citations
+    if (ragSources.length > 0) data._rag_sources = ragSources;
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
