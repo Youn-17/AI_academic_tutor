@@ -269,14 +269,15 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
         '什么方法适合我的研究？',
     ], [isEN]);
 
-    // Nature theme colors
+    // Deep navy academic theme
     const colors = {
-        bg: isDark ? '#1c1917' : '#fafaf9',
-        card: isDark ? '#292524' : '#ffffff',
-        border: isDark ? '#44403c' : '#e7e5e4',
-        text: isDark ? '#fafaf9' : '#1c1917',
-        textSecondary: isDark ? '#a8a29e' : '#78716c',
+        bg: isDark ? '#07111A' : '#f8fafc',
+        card: isDark ? '#0D1E2C' : '#ffffff',
+        border: isDark ? 'rgba(16,185,129,0.12)' : '#e2e8f0',
+        text: isDark ? '#f1f5f9' : '#0f172a',
+        textSecondary: isDark ? '#64748b' : '#64748b',
         primary: '#10b981',
+        headerBg: isDark ? 'rgba(7,17,26,0.92)' : 'rgba(255,255,255,0.95)',
     };
 
     return (
@@ -284,7 +285,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
             {/* Main Chat Area */}
             <div className="flex-1 flex flex-col h-full min-w-0">
                 {/* Header */}
-                <header className="h-16 px-4 sm:px-6 flex items-center justify-between border-b sticky top-0 backdrop-blur-md z-10" style={{ backgroundColor: isDark ? 'rgba(28, 25, 23, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: colors.border }}>
+                <header className="h-16 px-4 sm:px-6 flex items-center justify-between border-b sticky top-0 backdrop-blur-md z-10" style={{ backgroundColor: colors.headerBg, borderColor: colors.border }}>
                     {/* Left: Chat Info */}
                     <div className="flex items-center gap-3 min-w-0">
                         <AITutorAvatar size="md" theme={theme} animate={loading} />
@@ -414,32 +415,57 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                     <div className={`${maxWidthClass} mx-auto px-4 py-6 space-y-6`}>
                         {/* Welcome State */}
                         {messages.length === 0 && !loading && (
-                            <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4 animate-in fade-in">
-                                <div className="relative mb-6">
-                                    <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/20">
-                                        <SparklesIcon size={36} className="text-white" />
+                            <div className="min-h-[65vh] flex flex-col items-center justify-center text-center px-4 animate-in fade-in duration-500">
+                                {/* Hero Icon */}
+                                <div className="relative mb-8">
+                                    <div className="w-24 h-24 rounded-3xl flex items-center justify-center bg-gradient-to-br from-emerald-500 via-teal-500 to-emerald-600 shadow-2xl shadow-emerald-500/25">
+                                        <SparklesIcon size={40} className="text-white" />
                                     </div>
-                                    <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center bg-white dark:bg-slate-800 shadow-md">
+                                    {/* Orbit ring */}
+                                    <div className="absolute inset-0 rounded-3xl border-2 border-emerald-500/20 scale-125 animate-pulse" />
+                                    <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: colors.card, border: `1px solid ${colors.border}` }}>
                                         <AITutorAvatar size="sm" theme={theme} />
                                     </div>
                                 </div>
 
-                                <h2 className="text-2xl font-bold mb-2" style={{ color: colors.text }}>{isEN ? 'Socratic Academic Tutor' : '苏格拉底式学术导师'}</h2>
-                                <p className="text-sm mb-8 max-w-md" style={{ color: colors.textSecondary }}>{isEN ? 'I guide your thinking through questions, not answers.' : '我通过追问引导你思考，而非直接给出答案。'}</p>
+                                <h2 className="text-3xl font-bold mb-3 font-heading" style={{ color: colors.text }}>
+                                    {isEN ? 'Socratic Academic Tutor' : '苏格拉底式 AI 导师'}
+                                </h2>
+                                <p className="text-sm mb-2 max-w-sm leading-relaxed" style={{ color: colors.textSecondary }}>
+                                    {isEN ? 'I guide your thinking through questions — not just answers.' : '通过追问引导你深入思考，而非仅仅给出答案。'}
+                                </p>
+                                <div className="flex items-center gap-2 mb-10">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                    <span className="text-xs font-medium" style={{ color: colors.primary }}>{isEN ? 'Ready to explore' : '随时开始探索'}</span>
+                                </div>
 
+                                {/* Quick Prompts */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl w-full mb-8">
                                     {quickPrompts.map((prompt, idx) => (
-                                        <button key={idx} onClick={() => { setInputValue(prompt.text); textareaRef.current?.focus(); }} className="p-4 rounded-xl border transition-all hover:scale-105 cursor-pointer" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
-                                            <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 mx-auto bg-emerald-500/10 text-emerald-500">{prompt.icon}</div>
-                                            <h3 className="font-semibold text-xs" style={{ color: colors.text }}>{prompt.text.slice(0, 15)}...</h3>
+                                        <button
+                                            key={idx}
+                                            onClick={() => { setInputValue(prompt.text); textareaRef.current?.focus(); }}
+                                            className="p-4 rounded-2xl border text-left transition-all hover:scale-[1.03] hover:shadow-lg hover:shadow-emerald-500/5 active:scale-[0.98] group"
+                                            style={{ backgroundColor: colors.card, borderColor: colors.border }}
+                                        >
+                                            <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500/20 transition-colors">
+                                                {prompt.icon}
+                                            </div>
+                                            <h3 className="font-semibold text-xs leading-snug" style={{ color: colors.text }}>{prompt.text}</h3>
                                         </button>
                                     ))}
                                 </div>
 
+                                {/* Suggestion Pills */}
                                 <div className="flex flex-wrap items-center justify-center gap-2">
-                                    <span className="text-xs" style={{ color: colors.textSecondary }}>{isEN ? 'Try asking:' : '试试询问：'}</span>
+                                    <span className="text-xs" style={{ color: colors.textSecondary }}>{isEN ? 'Try:' : '试试：'}</span>
                                     {suggestionPrompts.map((suggestion, idx) => (
-                                        <button key={idx} onClick={() => { setInputValue(suggestion); textareaRef.current?.focus(); }} className="px-3 py-1.5 rounded-full text-xs transition-all hover:scale-105" style={{ backgroundColor: isDark ? '#292524' : '#f5f5f4', color: colors.text }}>
+                                        <button
+                                            key={idx}
+                                            onClick={() => { setInputValue(suggestion); textareaRef.current?.focus(); }}
+                                            className="px-3.5 py-1.5 rounded-full text-xs transition-all hover:scale-105 border"
+                                            style={{ backgroundColor: isDark ? 'rgba(16,185,129,0.06)' : '#f1f5f9', color: colors.text, borderColor: colors.border }}
+                                        >
                                             {suggestion}
                                         </button>
                                     ))}
@@ -463,11 +489,18 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                         {loading && (
                             <div className="flex items-start gap-3 animate-in fade-in">
                                 <AITutorAvatar size="lg" theme={theme} animate />
-                                <div className="px-4 py-3 rounded-2xl rounded-tl-none border shadow-sm max-w-2xl" style={{ backgroundColor: colors.card, borderColor: colors.border, color: colors.text }}>
+                                <div className="px-5 py-4 rounded-2xl rounded-tl-none border shadow-sm max-w-2xl" style={{ backgroundColor: colors.card, borderColor: colors.border, color: colors.text }}>
                                     {streamingContent ? (
                                         <div className="text-sm whitespace-pre-wrap leading-relaxed">{streamingContent}</div>
                                     ) : (
-                                        <div className="flex items-center gap-2 text-sm"><Loader2 size={14} className="animate-spin text-emerald-500" /> <span style={{ color: colors.textSecondary }}>{isEN ? 'Thinking...' : '思考中...'}</span></div>
+                                        <div className="flex items-center gap-3 text-sm">
+                                            <div className="flex gap-1">
+                                                {[0, 1, 2].map(i => (
+                                                    <div key={i} className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                                                ))}
+                                            </div>
+                                            <span style={{ color: colors.textSecondary }}>{isEN ? 'Thinking...' : '思考中...'}</span>
+                                        </div>
                                     )}
                                 </div>
                             </div>
