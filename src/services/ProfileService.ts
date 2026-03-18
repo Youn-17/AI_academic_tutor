@@ -93,15 +93,37 @@ export async function getStats(): Promise<UserStats> {
     const user = session?.user;
     if (!user) return { total_conversations: 0, total_messages: 0, ai_interactions: 0, last_active_time: null };
 
-    const { count } = await supabase
+    // Get conversation IDs for the user first, then count messages
+    const { data: convData, count: convCount } = await supabase
         .from('conversations')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact' })
         .eq('user_id', user.id);
 
+    const convIds = (convData || []).map(c => c.id);
+
+    let totalMessages = 0;
+    let aiInteractions = 0;
+
+    if (convIds.length > 0) {
+        const [msgsResult, aiMsgsResult] = await Promise.all([
+            supabase
+                .from('messages')
+                .select('*', { count: 'exact', head: true })
+                .in('conversation_id', convIds),
+            supabase
+                .from('messages')
+                .select('*', { count: 'exact', head: true })
+                .in('conversation_id', convIds)
+                .eq('sender', 'ai'),
+        ]);
+        totalMessages = msgsResult.count || 0;
+        aiInteractions = aiMsgsResult.count || 0;
+    }
+
     return {
-        total_conversations: count || 0,
-        total_messages: 0, // Placeholder
-        ai_interactions: 0, // Placeholder
+        total_conversations: convCount || 0,
+        total_messages: totalMessages,
+        ai_interactions: aiInteractions,
         last_active_time: new Date().toISOString()
     };
 }

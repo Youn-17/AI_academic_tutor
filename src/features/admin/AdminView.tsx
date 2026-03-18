@@ -174,11 +174,14 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
             .select('student_id, profiles!student_id(nickname, email)')
             .eq('class_id', consentForm.class_id)
             .then(({ data }) => {
-                const students = (data || []).map((m: { student_id: string; profiles: { nickname: string | null; email: string } | null }) => ({
-                    id: m.student_id,
-                    nickname: m.profiles?.nickname || null,
-                    email: m.profiles?.email || '',
-                }));
+                const students = (data || []).map((m: { student_id: string; profiles: { nickname: string | null; email: string } | { nickname: string | null; email: string }[] | null }) => {
+                    const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
+                    return {
+                        id: m.student_id,
+                        nickname: p?.nickname || null,
+                        email: p?.email || '',
+                    };
+                });
                 setStudentsForClass(students);
             });
     }, [consentForm.class_id]);
