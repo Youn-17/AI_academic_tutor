@@ -471,8 +471,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
             <div className="relative">
               <div className="rounded-3xl overflow-hidden shadow-2xl">
                 <img
-                  src="/images/hero_bg.png"
-                  alt="Research platform"
+                  src="/images/Home1.png"
+                  alt="HAKHub Scholar Platform"
                   className="w-full h-auto object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
