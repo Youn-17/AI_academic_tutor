@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  ArrowRight, Sun, Moon, BrainCircuit, Eye, MessageSquare,
+  ArrowRight, BrainCircuit, Eye, MessageSquare,
   Users, ShieldCheck, BookOpen, ChevronRight, AlertTriangle,
   BarChart2, GitBranch, Microscope, FileText
 } from 'lucide-react';
@@ -23,15 +23,15 @@ if (!document.head.querySelector('[href*="Noto+Serif"]')) document.head.appendCh
 // ── Copy ─────────────────────────────────────────────────────────────────────
 const T = {
   'zh-CN': {
-    brand: 'HAKIF',
+    brand: 'HAKHub Scholar',
     brand_full: '人机知识互动论坛',
     nav_how: '工作原理',
     nav_supervisor: '导师端',
     nav_principles: '设计原则',
 
     hero_eyebrow: '面向研究型高校的学术督导平台',
-    hero_title: '让每位学生的研究进展对导师真正可见',
-    hero_sub: '两次例会之间，导师往往看不到学生真实的研究状态——谁还卡在原地，谁已悄悄走偏，谁其实需要你帮一把。HAKIF 让学生在研究的每个阶段都能与 AI 持续对话，同时把值得关注的动态及时传递给导师，让你的督导不再只发生在会议室里。',
+    hero_title: '让科研进展可见、可对话、可干预',
+    hero_sub: '一个面向学生、AI 与导师三元协同的科研支持平台，通过苏格拉底式引导、证据增强检索、研究进展分析与导师介入机制，支持持续性的学术监督与思维发展。',
     hero_cta: '进入平台',
     hero_cta_2: '了解工作原理',
 
@@ -90,20 +90,20 @@ const T = {
     cta_btn: '申请访问',
     cta_btn2: '预约演示',
 
-    footer_copy: '© 2026 ICET Lab · HAKIF 人机知识互动研究平台',
+    footer_copy: '© 2026 HAKHub Team · HAKHub Scholar',
     footer_note: '本平台为学术研究工具，不适用于K-12或职业培训场景。',
   },
 
   'en': {
-    brand: 'HAKIF',
+    brand: 'HAKHub Scholar',
     brand_full: 'Human–AI Knowledge Interaction Forum',
     nav_how: 'How It Works',
     nav_supervisor: 'Supervisor View',
     nav_principles: 'Design Principles',
 
     hero_eyebrow: 'Academic supervision infrastructure for research institutions',
-    hero_title: 'Make each student\'s research process genuinely visible to their supervisor',
-    hero_sub: 'Between scheduled meetings, supervisors often have no real view of a student\'s research state — who is stuck, who has quietly lost direction, who actually needs your help. HAKIF builds continuous AI-supported dialogue into every stage of a student\'s research, while surfacing the signals that matter most to the supervisor — so your oversight extends beyond the meeting room.',
+    hero_title: 'Make Research Progress Visible, Dialogic, and Actionable',
+    hero_sub: 'A research support platform for triadic collaboration between students, AI, and supervisors. Through Socratic guidance, evidence-enhanced retrieval, research progress analysis, and supervisor intervention mechanisms, we enable continuous academic supervision and intellectual development.',
     hero_cta: 'Enter Platform',
     hero_cta_2: 'See How It Works',
 
@@ -162,12 +162,12 @@ const T = {
     cta_btn: 'Request Access',
     cta_btn2: 'Book a Demo',
 
-    footer_copy: '© 2026 ICET Lab · HAKIF Human–AI Knowledge Interaction Platform',
+    footer_copy: '© 2026 HAKHub Team · HAKHub Scholar',
     footer_note: 'This platform is designed for academic research supervision. It is not intended for K–12 or vocational training contexts.',
   },
 
   'zh-TW': {
-    brand: 'HAKIF',
+    brand: 'HAKHub Scholar',
     brand_full: '人機知識互動論壇',
     nav_how: '運作原理',
     nav_supervisor: '導師端',
@@ -447,23 +447,25 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-6">
-            {[t.nav_how, t.nav_supervisor, t.nav_principles].map((item, i) => (
-              <a key={i} href={`#section-${i}`} className={`text-xs font-medium transition-colors hover:text-blue-500 ${textMuted}`}>{item}</a>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setLocale(localeProp === 'en' ? 'zh-CN' : localeProp === 'zh-CN' ? 'zh-TW' : 'en')}
-              className={`text-xs font-medium px-2.5 py-1 rounded border transition-colors ${borderColor} ${textMuted} hover:text-blue-500`}
+          <div className="flex items-center gap-2">
+            <select
+              value={localeProp}
+              onChange={e => setLocale(e.target.value as Locale)}
+              className={`text-xs font-medium px-2.5 py-1.5 rounded border appearance-none cursor-pointer transition-colors outline-none focus:ring-1 focus:ring-blue-500 ${borderColor} ${isDark ? 'bg-[#060E1E] text-slate-300' : 'bg-white text-slate-600'}`}
               style={{ fontFamily: 'JetBrains Mono, monospace' }}
             >
-              {localeProp === 'en' ? 'EN' : localeProp === 'zh-CN' ? '简' : '繁'}
-            </button>
-            <button onClick={() => setTheme(isDark ? 'light' : 'dark')} className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${textMuted} hover:text-blue-500`}>
-              {isDark ? <Sun size={14} /> : <Moon size={14} />}
-            </button>
+              <option value="zh-CN">简体中文</option>
+              <option value="zh-TW">繁體中文</option>
+              <option value="en">English</option>
+            </select>
+            <select
+              value={theme}
+              onChange={e => setTheme(e.target.value as Theme)}
+              className={`text-xs font-medium px-2.5 py-1.5 rounded border appearance-none cursor-pointer transition-colors outline-none focus:ring-1 focus:ring-blue-500 ${borderColor} ${isDark ? 'bg-[#060E1E] text-slate-300' : 'bg-white text-slate-600'}`}
+            >
+              <option value="light">{isEN ? 'Light' : '浅色'}</option>
+              <option value="dark">{isEN ? 'Dark' : '深色'}</option>
+            </select>
             <button
               onClick={onEnter}
               className="px-4 py-1.5 rounded text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors"
