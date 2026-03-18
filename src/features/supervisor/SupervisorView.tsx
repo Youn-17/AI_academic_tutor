@@ -732,27 +732,39 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                     )}
 
                     {/* New config form */}
-                    <div className="space-y-3">
-                      {/* Provider selector */}
+                    <div className="space-y-4">
+                      {/* Provider selector — 4 cards */}
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">服务商</label>
-                        <div className="grid grid-cols-3 gap-2">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">选择服务商</label>
+                        <div className="grid grid-cols-2 gap-2">
                           {[
-                            { value: 'dmxapi', label: 'DMXAPI', sub: '推荐 · 300+ 模型' },
-                            { value: 'deepseek', label: 'DeepSeek', sub: '直连' },
-                            { value: 'zhipu', label: '智谱 AI', sub: '直连' },
+                            { value: 'dmxapi',   label: 'DMXAPI',      sub: '300+ 模型聚合',   badge: '推荐', color: 'emerald', docUrl: 'https://doc.dmxapi.cn/jichu.html',                      placeholder: 'sk-...' },
+                            { value: 'deepseek', label: 'DeepSeek',    sub: 'V3 / R1 直连',   badge: '免费', color: 'sky',     docUrl: 'https://platform.deepseek.com/api-docs',               placeholder: 'sk-...' },
+                            { value: 'zhipu',    label: '智谱 GLM',    sub: 'GLM-4.7 / Z1',   badge: null,   color: 'teal',    docUrl: 'https://open.bigmodel.cn/dev/api',                      placeholder: '填入 API Key' },
+                            { value: 'moonshot', label: 'Kimi',        sub: 'Moonshot 直连',  badge: null,   color: 'violet',  docUrl: 'https://platform.moonshot.cn/docs/api/chat',            placeholder: 'sk-...' },
                           ].map(p => (
                             <button key={p.value} type="button"
-                              onClick={() => setApiForm(f => ({ ...f, provider: p.value, model: p.value === 'dmxapi' ? 'deepseek-chat' : p.value === 'deepseek' ? 'deepseek-chat' : 'glm-4-flash' }))}
-                              className={`p-2.5 rounded-xl border text-left transition-all ${apiForm.provider === p.value ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-slate-300'}`}>
-                              <p className={`text-xs font-bold ${apiForm.provider === p.value ? 'text-emerald-700' : 'text-slate-700'}`}>{p.label}</p>
-                              <p className="text-[10px] text-slate-400 mt-0.5">{p.sub}</p>
+                              onClick={() => {
+                                const defaultModel = p.value === 'deepseek' ? 'deepseek-chat' : p.value === 'zhipu' ? 'glm-4-flash' : p.value === 'moonshot' ? 'moonshot-v1-32k' : 'deepseek-chat';
+                                setApiForm(f => ({ ...f, provider: p.value, model: defaultModel }));
+                              }}
+                              className={`p-3 rounded-xl border text-left transition-all ${apiForm.provider === p.value ? `border-${p.color}-400 bg-${p.color}-50` : 'border-slate-200 hover:border-slate-300 bg-white'}`}>
+                              <div className="flex items-center justify-between mb-1">
+                                <p className={`text-xs font-bold ${apiForm.provider === p.value ? `text-${p.color}-700` : 'text-slate-700'}`}>{p.label}</p>
+                                {p.badge && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${p.color === 'emerald' ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700'}`}>{p.badge}</span>}
+                              </div>
+                              <p className="text-[10px] text-slate-400">{p.sub}</p>
+                              <a href={p.docUrl} target="_blank" rel="noopener noreferrer"
+                                onClick={e => e.stopPropagation()}
+                                className={`text-[10px] mt-1.5 flex items-center gap-1 ${apiForm.provider === p.value ? `text-${p.color}-500` : 'text-slate-300 hover:text-slate-500'} transition-colors`}>
+                                API 文档 <ExternalLink size={9} />
+                              </a>
                             </button>
                           ))}
                         </div>
                       </div>
 
-                      {/* Model selector */}
+                      {/* Model selector — per provider */}
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">默认模型</label>
                         {apiForm.provider === 'dmxapi' ? (
@@ -763,7 +775,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                               <ChevronDown size={14} className={`text-slate-400 transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
                             </button>
                             {showModelDropdown && (
-                              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1.5 max-h-60 overflow-y-auto">
+                              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1.5 max-h-64 overflow-y-auto">
                                 {DMXAPI_MODELS.map(group => (
                                   <div key={group.group}>
                                     <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{group.group}</div>
@@ -780,12 +792,45 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                               </div>
                             )}
                           </div>
-                        ) : (
+                        ) : apiForm.provider === 'deepseek' ? (
                           <select value={apiForm.model} onChange={e => setApiForm(f => ({ ...f, model: e.target.value }))} className={inputCls}>
-                            {apiForm.provider === 'deepseek'
-                              ? <><option value="deepseek-chat">deepseek-chat</option><option value="deepseek-reasoner">deepseek-reasoner</option></>
-                              : <><option value="glm-4-flash">glm-4-flash</option><option value="glm-4-plus">glm-4-plus</option></>
-                            }
+                            <option value="deepseek-chat">deepseek-chat（DeepSeek V3）</option>
+                            <option value="deepseek-reasoner">deepseek-reasoner（DeepSeek R1）</option>
+                          </select>
+                        ) : apiForm.provider === 'zhipu' ? (
+                          <select value={apiForm.model} onChange={e => setApiForm(f => ({ ...f, model: e.target.value }))} className={inputCls}>
+                            <optgroup label="GLM-4 系列">
+                              <option value="glm-4-flash">glm-4-flash（免费极速）</option>
+                              <option value="glm-4-flashx">glm-4-flashx</option>
+                              <option value="glm-4-air">glm-4-air</option>
+                              <option value="glm-4-airx">glm-4-airx</option>
+                              <option value="glm-4-plus">glm-4-plus</option>
+                              <option value="glm-4">glm-4</option>
+                              <option value="glm-4-long">glm-4-long（128K）</option>
+                              <option value="glm-4v">glm-4v（视觉）</option>
+                              <option value="glm-4v-flash">glm-4v-flash（视觉·免费）</option>
+                            </optgroup>
+                            <optgroup label="GLM-4.7 系列">
+                              <option value="glm-4.7">glm-4.7</option>
+                              <option value="glm-4.7v">glm-4.7v（视觉）</option>
+                            </optgroup>
+                            <optgroup label="GLM-Z1 推理系列">
+                              <option value="glm-z1-flash">glm-z1-flash（推理·免费）</option>
+                              <option value="glm-z1-air">glm-z1-air</option>
+                              <option value="glm-z1-airx">glm-z1-airx</option>
+                              <option value="glm-z1">glm-z1</option>
+                            </optgroup>
+                            <optgroup label="最新">
+                              <option value="glm-5">glm-5</option>
+                            </optgroup>
+                          </select>
+                        ) : (
+                          /* moonshot / kimi */
+                          <select value={apiForm.model} onChange={e => setApiForm(f => ({ ...f, model: e.target.value }))} className={inputCls}>
+                            <option value="moonshot-v1-8k">moonshot-v1-8k（8K 上下文）</option>
+                            <option value="moonshot-v1-32k">moonshot-v1-32k（32K 上下文）</option>
+                            <option value="moonshot-v1-128k">moonshot-v1-128k（128K 超长）</option>
+                            <option value="kimi-latest">kimi-latest（最新版）</option>
                           </select>
                         )}
                       </div>
@@ -801,11 +846,19 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
 
                       {/* API Key */}
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">API Key</label>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                          API Key
+                          <span className="ml-2 text-[10px] normal-case tracking-normal font-normal text-slate-400">
+                            {apiForm.provider === 'dmxapi' && '— dmxapi.cn 工作台 → 令牌'}
+                            {apiForm.provider === 'deepseek' && '— platform.deepseek.com → API keys'}
+                            {apiForm.provider === 'zhipu' && '— open.bigmodel.cn → API 密钥'}
+                            {apiForm.provider === 'moonshot' && '— platform.moonshot.cn → API keys'}
+                          </span>
+                        </label>
                         <div className="relative">
                           <input type={showKey ? 'text' : 'password'} value={apiForm.api_key}
                             onChange={e => setApiForm(f => ({ ...f, api_key: e.target.value }))}
-                            placeholder="sk-xxxx…"
+                            placeholder={apiForm.provider === 'zhipu' ? '填入智谱 API Key' : 'sk-xxxx…'}
                             className={`${inputCls} pr-10 font-mono`} />
                           <button type="button" onClick={() => setShowKey(v => !v)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
@@ -818,7 +871,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">备注名称（可选）</label>
                         <input value={apiForm.label} onChange={e => setApiForm(f => ({ ...f, label: e.target.value }))}
-                          placeholder="如：研究生班专用 DMXAPI"
+                          placeholder={`如：研究生班 ${apiForm.provider === 'dmxapi' ? 'DMXAPI' : apiForm.provider === 'deepseek' ? 'DeepSeek' : apiForm.provider === 'zhipu' ? 'GLM' : 'Kimi'} Key`}
                           className={inputCls} />
                       </div>
 

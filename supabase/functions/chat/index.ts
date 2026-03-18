@@ -8,17 +8,19 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const DMXAPI_URL    = 'https://www.dmxapi.cn/v1/chat/completions';
 const DEEPSEEK_URL  = 'https://api.deepseek.com/v1/chat/completions';
 const ZHIPU_URL     = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+const MOONSHOT_URL  = 'https://api.moonshot.cn/v1/chat/completions';
 
 // ── Platform API Keys (env fallbacks) ─────────────────────
-const DMXAPI_API_KEY   = Deno.env.get('DMXAPI_API_KEY')   || '';
-const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY') || '';
-const ZHIPU_API_KEY    = Deno.env.get('ZHIPU_API_KEY')    || '';
+const DMXAPI_API_KEY    = Deno.env.get('DMXAPI_API_KEY')    || '';
+const DEEPSEEK_API_KEY  = Deno.env.get('DEEPSEEK_API_KEY')  || '';
+const ZHIPU_API_KEY     = Deno.env.get('ZHIPU_API_KEY')     || '';
+const MOONSHOT_API_KEY  = Deno.env.get('MOONSHOT_API_KEY')  || '';
 
 const SUPABASE_URL              = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY         = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-const SUPPORTED_PROVIDERS = ['dmxapi', 'deepseek', 'zhipu'] as const;
+const SUPPORTED_PROVIDERS = ['dmxapi', 'deepseek', 'zhipu', 'moonshot', 'kimi'] as const;
 type Provider = typeof SUPPORTED_PROVIDERS[number];
 
 const corsHeaders = {
@@ -58,16 +60,16 @@ const MAX_MESSAGES_COUNT = 50;
 
 // ── Resolve provider endpoint & API key ───────────────────
 function resolveEndpoint(provider: Provider): string {
-  if (provider === 'dmxapi')   return DMXAPI_URL;
-  if (provider === 'deepseek') return DEEPSEEK_URL;
-  if (provider === 'zhipu')    return ZHIPU_URL;
-  return DMXAPI_URL;
+  if (provider === 'deepseek')              return DEEPSEEK_URL;
+  if (provider === 'zhipu')                 return ZHIPU_URL;
+  if (provider === 'moonshot' || provider === 'kimi') return MOONSHOT_URL;
+  return DMXAPI_URL; // dmxapi + all others
 }
 
 function resolvePlatformKey(provider: Provider): string {
-  if (provider === 'dmxapi')   return DMXAPI_API_KEY;
-  if (provider === 'deepseek') return DEEPSEEK_API_KEY;
-  if (provider === 'zhipu')    return ZHIPU_API_KEY;
+  if (provider === 'deepseek')              return DEEPSEEK_API_KEY;
+  if (provider === 'zhipu')                 return ZHIPU_API_KEY;
+  if (provider === 'moonshot' || provider === 'kimi') return MOONSHOT_API_KEY;
   return DMXAPI_API_KEY;
 }
 
@@ -130,12 +132,14 @@ serve(async (req: Request) => {
       }
     }
 
-    // Normalise provider: openai/anthropic/google all route via dmxapi
+    // Normalise provider
     let provider: Provider;
     if (rawProvider === 'deepseek') {
       provider = 'deepseek';
     } else if (rawProvider === 'zhipu') {
       provider = 'zhipu';
+    } else if (rawProvider === 'moonshot' || rawProvider === 'kimi') {
+      provider = 'moonshot';
     } else {
       // dmxapi, openai, anthropic, google, or anything else → all use DMXAPI
       provider = 'dmxapi';
@@ -156,9 +160,11 @@ serve(async (req: Request) => {
       if (membership?.length) {
         const classIds = membership.map((m: { class_id: string }) => m.class_id);
 
-        // Look for a key matching either the exact provider, or 'dmxapi' for any non-direct provider
+        // Match key by provider; dmxapi also catches openai/anthropic/google
         const providerFilter = provider === 'dmxapi'
           ? ['dmxapi', 'openai', 'anthropic', 'google']
+          : provider === 'moonshot'
+          ? ['moonshot', 'kimi']
           : [provider];
 
         const { data: teacherKey } = await serviceClient
@@ -177,6 +183,8 @@ serve(async (req: Request) => {
       if (!resolvedApiKey) {
         const providerFilter = provider === 'dmxapi'
           ? ['dmxapi', 'openai', 'anthropic', 'google']
+          : provider === 'moonshot'
+          ? ['moonshot', 'kimi']
           : [provider];
 
         const { data: adminKey } = await serviceClient
