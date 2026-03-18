@@ -301,7 +301,6 @@ const FadeIn: React.FC<{ children: React.ReactNode; delay?: number; className?: 
       </div>
     );
   };
-};
 
 const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, setLocale, theme, setTheme }) => {
   const t = T[localeProp] as typeof T['en'];
