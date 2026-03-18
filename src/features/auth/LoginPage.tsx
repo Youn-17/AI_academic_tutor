@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthProvider';
 import { supabase } from '@/lib/supabase';
 import {
   Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, BrainCircuit,
-  AlertTriangle, Globe, ArrowLeft, BookOpen, ShieldCheck, Home
+  AlertTriangle, Globe, ArrowLeft, BookOpen, ShieldCheck, Home,
+  GraduationCap, Sparkles, Quote
 } from 'lucide-react';
 
 interface LoginPageProps {
@@ -35,25 +36,31 @@ const NATURE_COLORS = {
   }
 };
 
-// Academic quotes for right panel
+// Academic quotes for right panel - cinematic style
 const ACADEMIC_QUOTES = {
   'zh-CN': [
-    { quote: '学生开始把机器生成的输出当作认知权威。', topic: 'AI & 认知权威' },
-    { quote: '批判性信任——既对 AI 的可能性保持开放，也对其边界保持警惕。', topic: '批判性信任' },
-    { quote: '学生真实的想法与认知主体性应被强调。', topic: '认知主体性' },
-    { quote: '高质量监督提供的是安全的对话空间。', topic: '对话式督导' },
+    { quote: '教育的目的不是注满一桶水，而是点燃一把火。', author: '叶芝', source: '哲学思考' },
+    { quote: '学而不思则罔，思而不学则殆。', author: '孔子', source: '论语·为政' },
+    { quote: 'AI 的角色是促进思考，而非替代思考。', author: 'HAKHub', source: '苏格拉底式教学法' },
+    { quote: '有效的学术成长依赖于监控、反馈与调整的不间断运行。', author: 'Zimmerman', source: '自我调节学习' },
+    { quote: '导师必须保持在环可见与可干预。', author: 'Mosqueira-Rey', source: '人在环治理' },
+    { quote: '让研究过程更加透明，让学术支持更加连续，让思维发展更加可见。', author: 'HAKHub', source: '平台愿景' },
   ],
   'zh-TW': [
-    { quote: '學生開始把機器生成的輸出當作認知權威。', topic: 'AI & 認知權威' },
-    { quote: '批判性信任——既對 AI 的可能性保持開放，也對其邊界保持警惕。', topic: '批判性信任' },
-    { quote: '學生真實的想法與認知主體性應被強調。', topic: '認知主體性' },
-    { quote: '高品質監督提供的是安全的對話空間。', topic: '對話式督導' },
+    { quote: '教育的目的不是注滿一桶水，而是點燃一把火。', author: '葉芝', source: '哲學思考' },
+    { quote: '學而不思則罔，思而不學則殆。', author: '孔子', source: '論語·為政' },
+    { quote: 'AI 的角色是促進思考，而非替代思考。', author: 'HAKHub', source: '蘇格拉底式教學法' },
+    { quote: '有效的學術成長依賴於監控、反饋與調整的不間斷運行。', author: 'Zimmerman', source: '自我調節學習' },
+    { quote: '導師必須保持在環可見與可干預。', author: 'Mosqueira-Rey', source: '人在環治理' },
+    { quote: '讓研究過程更加透明，讓學術支持更加連續，讓思維發展更加可見。', author: 'HAKHub', source: '平台願景' },
   ],
   'en': [
-    { quote: 'Students begin treating machine-generated outputs as epistemic authorities.', topic: 'AI & Epistemic Authority' },
-    { quote: 'Critical trust—open to affordances, yet cautious about limits.', topic: 'Critical Trust' },
-    { quote: 'Students\' authentic ideas and epistemic agency are emphasized.', topic: 'Epistemic Agency' },
-    { quote: 'Good supervision provides safe dialogic spaces.', topic: 'Dialogic Supervision' },
+    { quote: 'Education is not the filling of a pail, but the lighting of a fire.', author: 'William Butler Yeats', source: 'Philosophy' },
+    { quote: 'Learning without thought is labor lost; thought without learning is perilous.', author: 'Confucius', source: 'The Analects' },
+    { quote: 'AI should promote thinking, not replace it.', author: 'HAKHub', source: 'Socratic Method' },
+    { quote: 'Effective academic growth depends on uninterrupted cycles of monitoring, feedback, and adjustment.', author: 'Zimmerman', source: 'Self-Regulated Learning' },
+    { quote: 'Supervisors must remain visible and intervenable.', author: 'Mosqueira-Rey', source: 'Human-in-the-Loop' },
+    { quote: 'Make research processes more transparent, academic support more continuous, and thinking development more visible.', author: 'HAKHub', source: 'Platform Vision' },
   ],
 };
 
@@ -105,11 +112,11 @@ const LoginPage: React.FC<LoginPageProps> = ({
   const isEN = loginLocale === 'en';
   const isDark = theme === 'dark';
 
-  // Auto-rotate quotes and values
+  // Auto-rotate quotes and values - cinematic timing
   useEffect(() => {
     const quoteInterval = setInterval(() => {
       setCurrentQuoteIndex((prev) => (prev + 1) % quotes.length);
-    }, 6000);
+    }, 7000); // Slower for cinematic feel
     const valueInterval = setInterval(() => {
       setCurrentValueIndex((prev) => (prev + 1) % values.length);
     }, 5000);
@@ -149,38 +156,74 @@ const LoginPage: React.FC<LoginPageProps> = ({
   const inputBg = isDark ? 'bg-[#0B1416] border-slate-700 focus:border-emerald-500/50 focus:bg-slate-800' : 'bg-white border-slate-200 focus:border-emerald-500 focus:bg-slate-50';
   const cardBg = isDark ? 'bg-[#0F2937]' : 'bg-white';
 
-  // Quote Carousel Component
-  const QuoteCarousel: React.FC = () => {
-    const quote = quotes[currentQuoteIndex];
+  // Cinematic Quote Carousel - movie credits style
+  const CinematicQuoteCarousel: React.FC = () => {
+    const [isAnimating, setIsAnimating] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      setIsAnimating(true);
+      const timer = setTimeout(() => setIsAnimating(false), 800);
+      return () => clearTimeout(timer);
+    }, [currentQuoteIndex]);
+
+    const currentQuote = quotes[currentQuoteIndex];
+    const prevQuoteIndex = currentQuoteIndex === 0 ? quotes.length - 1 : currentQuoteIndex - 1;
+    const nextQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
 
     return (
-      <div className="relative">
-        <div className={`p-5 rounded-xl border-2 ${cardBg} transition-all duration-200`}
-             style={{ borderColor: isDark ? 'rgba(16, 185, 129, 0.2)' : NATURE_COLORS.bgLight }}>
-          <BookOpen size={18} className="mb-3" style={{ color: NATURE_COLORS.primary }} />
-          <p className="text-sm leading-relaxed italic mb-3" style={{ fontFamily: 'Crimson Pro, Georgia, serif', color: isDark ? '#E0F2FE' : NATURE_COLORS.text }}>
-            "{quote.quote}"
-          </p>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="px-2.5 py-1 rounded-md font-medium" style={{ background: NATURE_COLORS.bgLight, color: NATURE_COLORS.text }}>
-              {quote.topic}
-            </span>
+      <div className="relative overflow-hidden rounded-2xl" style={{ background: isDark ? 'linear-gradient(135deg, rgba(5, 150, 105, 0.08) 0%, rgba(16, 185, 129, 0.03) 100%)' : 'linear-gradient(135deg, #ECFDF5 0%, #F0FDFA 100%)' }}>
+        {/* Top decorative line */}
+        <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, transparent, ${NATURE_COLORS.primary}, transparent)` }} />
+
+        {/* Main quote display */}
+        <div className="p-6 text-center" ref={containerRef}>
+          {/* Quote icon */}
+          <div className="flex justify-center mb-4">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDark ? 'bg-emerald-500/10' : 'bg-emerald-100'}`}>
+              <Quote size={18} style={{ color: NATURE_COLORS.primary }} />
+            </div>
+          </div>
+
+          {/* Quote text with animation */}
+          <div className={`transition-all duration-700 ${isAnimating ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
+            <p className="text-base leading-relaxed mb-4" style={{ fontFamily: 'Crimson Pro, Georgia, serif', color: isDark ? '#E0F2FE' : NATURE_COLORS.text, fontStyle: 'italic' }}>
+              "{currentQuote.quote}"
+            </p>
+
+            {/* Author and source */}
+            <div className="flex items-center justify-center gap-3 text-xs">
+              <span className={`px-3 py-1 rounded-full font-medium ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
+                {currentQuote.author}
+              </span>
+              <span className={textMuted}>·</span>
+              <span className={textMuted}>{currentQuote.source}</span>
+            </div>
+          </div>
+
+          {/* Cinematic progress bar */}
+          <div className="mt-5 flex justify-center gap-1.5">
+            {quotes.map((_, i) => (
+              <div
+                key={i}
+                className={`h-1 rounded-full transition-all duration-500 ${
+                  i === currentQuoteIndex ? 'w-8' : i === prevQuoteIndex || i === nextQuoteIndex ? 'w-3' : 'w-1.5'
+                }`}
+                style={{
+                  background: i === currentQuoteIndex ? NATURE_COLORS.primary : (i === prevQuoteIndex || i === nextQuoteIndex) ? `${NATURE_COLORS.primary}60` : `${NATURE_COLORS.primary}25`,
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Position indicator */}
+          <div className={`mt-3 text-xs font-mono ${textMuted}`}>
+            {String(currentQuoteIndex + 1).padStart(2, '0')} / {String(quotes.length).padStart(2, '0')}
           </div>
         </div>
 
-        {/* Navigation dots */}
-        <div className="flex justify-center gap-2 mt-3">
-          {quotes.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentQuoteIndex(i)}
-              className={`w-1.5 h-1.5 rounded-full transition-all duration-200 cursor-pointer ${
-                i === currentQuoteIndex ? 'scale-150' : 'opacity-40 hover:opacity-60'
-              }`}
-              style={{ background: i === currentQuoteIndex ? NATURE_COLORS.primary : NATURE_COLORS.slate[400] }}
-            />
-          ))}
-        </div>
+        {/* Bottom decorative line */}
+        <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, transparent, ${NATURE_COLORS.primary}, transparent)` }} />
       </div>
     );
   };
@@ -216,34 +259,49 @@ const LoginPage: React.FC<LoginPageProps> = ({
     );
   };
 
-  // Triadic Mini Diagram
+  // Triadic Mini Diagram - with better icons
   const TriadicMini: React.FC = () => (
-    <div className="flex items-center justify-center gap-4 py-6">
+    <div className="flex items-center justify-center gap-3 py-8">
       {/* Student */}
       <div className="flex flex-col items-center">
-        <div className={`w-11 h-11 rounded-full flex items-center justify-center ${isDark ? 'bg-blue-500/20 border-blue-500/40' : 'bg-blue-100 border-blue-300'} border`}>
-          <Globe size={16} className={isDark ? 'text-blue-400' : 'text-blue-600'} />
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-transform hover:scale-110 ${isDark ? 'bg-gradient-to-br from-blue-500/20 to-blue-600/20 border-blue-500/30' : 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200'} border-2`}>
+          <GraduationCap size={20} className={isDark ? 'text-blue-400' : 'text-blue-600'} />
         </div>
-        <span className={`text-xs mt-2 ${textSubtle}`}>
+        <span className={`text-xs mt-2.5 font-medium ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
           {isEN ? 'Student' : '学生'}
         </span>
       </div>
 
-      {/* Connection */}
-      <div className="flex items-center gap-1">
-        <div className={`w-5 h-px ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />
-        <div className={`w-7 h-7 rounded-full flex items-center justify-center ${isDark ? 'bg-emerald-500/20 border-emerald-500/40' : 'bg-emerald-100 border-emerald-300'} border`}>
-          <BrainCircuit size={12} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
+      {/* Connection - Student to AI */}
+      <div className="flex items-center gap-0.5">
+        <div className={`w-6 h-0.5 ${isDark ? 'bg-gradient-to-r from-blue-500/50 to-emerald-500/50' : 'bg-gradient-to-r from-blue-300 to-emerald-300'}`} />
+        <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: NATURE_COLORS.primary }} />
+      </div>
+
+      {/* AI - Center */}
+      <div className="flex flex-col items-center">
+        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg transition-transform hover:scale-110 ${isDark ? 'bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-emerald-500/40' : 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200'} border-2 relative`}>
+          <BrainCircuit size={24} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
+          {/* Glow effect */}
+          <div className="absolute inset-0 rounded-2xl bg-emerald-500/10 animate-pulse" />
         </div>
-        <div className={`w-5 h-px ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />
+        <span className={`text-xs mt-2.5 font-medium ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
+          {isEN ? 'AI' : 'AI'}
+        </span>
+      </div>
+
+      {/* Connection - AI to Supervisor */}
+      <div className="flex items-center gap-0.5">
+        <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: NATURE_COLORS.accent }} />
+        <div className={`w-6 h-0.5 ${isDark ? 'bg-gradient-to-r from-emerald-500/50 to-amber-500/50' : 'bg-gradient-to-r from-emerald-300 to-amber-300'}`} />
       </div>
 
       {/* Supervisor */}
       <div className="flex flex-col items-center">
-        <div className={`w-11 h-11 rounded-full flex items-center justify-center ${isDark ? 'bg-amber-500/20 border-amber-500/40' : 'bg-amber-100 border-amber-300'} border`}>
-          <ShieldCheck size={16} className={isDark ? 'text-amber-400' : 'text-amber-600'} />
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-transform hover:scale-110 ${isDark ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-amber-500/30' : 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200'} border-2`}>
+          <ShieldCheck size={20} className={isDark ? 'text-amber-400' : 'text-amber-600'} />
         </div>
-        <span className={`text-xs mt-2 ${textSubtle}`}>
+        <span className={`text-xs mt-2.5 font-medium ${isDark ? 'text-amber-300' : 'text-amber-700'}`}>
           {isEN ? 'Supervisor' : '导师'}
         </span>
       </div>
@@ -472,13 +530,13 @@ const LoginPage: React.FC<LoginPageProps> = ({
             </p>
           </div>
 
-          {/* Academic Quotes */}
+          {/* Academic Quotes - Cinematic Style */}
           <div>
             <h3 className={`text-xs font-bold uppercase tracking-wide mb-3 flex items-center gap-2 ${textSubtle}`}>
-              <BookOpen size={13} />
-              {isEN ? 'Research Foundation' : '研究基础'}
+              <Sparkles size={13} style={{ color: NATURE_COLORS.accent }} />
+              {isEN ? 'Wisdom & Inspiration' : '智慧与灵感'}
             </h3>
-            <QuoteCarousel />
+            <CinematicQuoteCarousel />
           </div>
 
           {/* Platform Values */}
