@@ -525,7 +525,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
               {/* Floating SVG Badge */}
               <div className="absolute -bottom-6 -left-6 p-4 rounded-2xl shadow-xl backdrop-blur-sm"
                    style={{ background: isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)' }}>
-                <img src="/SVG/人工智能 2.svg" alt="AI" className="w-16 h-16" />
+                <img src="/SVG/ai-2.svg" alt="AI" className="w-16 h-16" />
                 <p className="text-xs font-medium mt-2 text-slate-600 dark:text-slate-400">
                   {isEN ? 'AI-Powered' : 'AI 驱动'}
                 </p>
@@ -552,12 +552,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { icon: MessageSquare, title: t.features_1_title, desc: t.features_1_desc, svg: '/SVG/人工智能 1.svg' },
-              { icon: FileText, title: t.features_2_title, desc: t.features_2_desc, svg: '/SVG/学生档案.svg' },
-              { icon: Eye, title: t.features_3_title, desc: t.features_3_desc, svg: '/SVG/教师工作台.svg' },
-              { icon: Search, title: t.features_4_title, desc: t.features_4_desc, svg: '/SVG/资源协作.svg' },
-              { icon: BarChart3, title: t.features_5_title, desc: t.features_5_desc, svg: '/SVG/流转,协作,循环,环形,协同.svg' },
-              { icon: Users, title: t.features_6_title, desc: t.features_6_desc, svg: '/SVG/团队.svg' },
+              { icon: MessageSquare, title: t.features_1_title, desc: t.features_1_desc, svg: '/SVG/ai-1.svg' },
+              { icon: FileText, title: t.features_2_title, desc: t.features_2_desc, svg: '/SVG/student-profile.svg' },
+              { icon: Eye, title: t.features_3_title, desc: t.features_3_desc, svg: '/SVG/teacher-dashboard.svg' },
+              { icon: Search, title: t.features_4_title, desc: t.features_4_desc, svg: '/SVG/resource-collaboration.svg' },
+              { icon: BarChart3, title: t.features_5_title, desc: t.features_5_desc, svg: '/SVG/workflow-cycle.svg' },
+              { icon: Users, title: t.features_6_title, desc: t.features_6_desc, svg: '/SVG/team.svg' },
             ].map((feature, i) => (
               <FadeIn key={i} delay={i * 100}>
                 <div
@@ -602,7 +602,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
               <div className="absolute bottom-0 left-0 right-0 p-8">
                 <div className="max-w-2xl">
                   <div className="flex items-center gap-3 mb-3">
-                    <img src="/SVG/协作性.svg" alt="Collaboration" className="w-10 h-10" />
+                    <img src="/SVG/collaboration.svg" alt="Collaboration" className="w-10 h-10" />
                     <p className="text-white/90 text-sm font-medium">{isEN ? 'Connected Research Ecosystem' : '互联的研究生态'}</p>
                   </div>
                   <p className="text-white text-lg font-semibold">
@@ -620,7 +620,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
         <div className="max-w-5xl mx-auto">
           <FadeIn>
             <div className="text-center mb-16">
-              <img src="/SVG/流转,协作,循环,环形,协同.svg" alt="Workflow" className="w-16 h-16 mx-auto mb-4" />
+              <img src="/SVG/workflow-cycle.svg" alt="Workflow" className="w-16 h-16 mx-auto mb-4" />
               <h2 className="text-3xl md:text-4xl font-bold mb-3" style={{ fontFamily: 'Crimson Pro, Georgia, serif', color: COLORS.primary }}>
                 {t.how_title}
               </h2>
@@ -632,9 +632,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
             <div className="hidden md:block absolute top-20 left-1/4 right-1/4 h-0.5 bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-500 opacity-30" />
 
             {[
-              { step: t.how_1_step, title: t.how_1_title, desc: t.how_1_desc, svg: '/SVG/学生管理-01.svg' },
-              { step: t.how_2_step, title: t.how_2_title, desc: t.how_2_desc, svg: '/SVG/人工智能 2.svg' },
-              { step: t.how_3_step, title: t.how_3_title, desc: t.how_3_desc, svg: '/SVG/教师反馈.svg' },
+              { step: t.how_1_step, title: t.how_1_title, desc: t.how_1_desc, svg: '/SVG/student-management.svg' },
+              { step: t.how_2_step, title: t.how_2_title, desc: t.how_2_desc, svg: '/SVG/ai-2.svg' },
+              { step: t.how_3_step, title: t.how_3_title, desc: t.how_3_desc, svg: '/SVG/teacher-feedback.svg' },
             ].map((item, i) => (
               <FadeIn key={i} delay={i * 150}>
                 <div className="relative text-center">
@@ -714,8 +714,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: localeProp, 
 
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { title: t.philosophy_1_title, desc: t.philosophy_1_desc, svg: '/SVG/人工智能 1.svg' },
-              { title: t.philosophy_2_title, desc: t.philosophy_2_desc, svg: '/SVG/增加学生-01.svg' },
+              { title: t.philosophy_1_title, desc: t.philosophy_1_desc, svg: '/SVG/ai-1.svg' },
+              { title: t.philosophy_2_title, desc: t.philosophy_2_desc, svg: '/SVG/add-student.svg' },
               { title: t.philosophy_3_title, desc: t.philosophy_3_desc, svg: '/SVG/Student2.svg' },
             ].map((item, i) => (
               <FadeIn key={i} delay={i * 100}>
