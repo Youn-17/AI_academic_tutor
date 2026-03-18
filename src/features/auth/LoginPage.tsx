@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthProvider';
 import {
   Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, BrainCircuit,
-  AlertTriangle, ArrowLeft, BookOpen, ShieldCheck,
-  GraduationCap, Quote, Globe, ChevronDown, Check, Network
+  AlertTriangle, ArrowLeft, ShieldCheck,
+  GraduationCap, Quote, Globe, ChevronDown, Check,
 } from 'lucide-react';
 
 type Lang = 'zh-CN' | 'zh-TW' | 'en';
@@ -15,11 +15,9 @@ interface LoginPageProps {
   theme: 'light' | 'dark';
 }
 
-// ── Design tokens (match landing page) ──────────
 const em  = '#059669';
 const emL = '#10B981';
 
-// ── i18n ────────────────────────────────────────
 const QUOTES: Record<Lang, { text: string; author: string; source: string }[]> = {
   'zh-CN': [
     { text: '教育的目的不是注满一桶水，而是点燃一把火。', author: '叶芝', source: '哲学思考' },
@@ -89,14 +87,48 @@ const LANGS: { code: Lang; label: string; sub: string }[] = [
   { code: 'en',    label: 'English',  sub: 'English' },
 ];
 
-// ── Globe Dropdown ───────────────────────────────
+// ── CSS Keyframes ────────────────────────────────
+const AnimStyles = () => (
+  <style>{`
+    @keyframes quoteIn {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes quoteOut {
+      from { opacity: 1; transform: translateY(0); }
+      to   { opacity: 0; transform: translateY(-12px); }
+    }
+    @keyframes quoteProgress {
+      from { width: 0%; }
+      to   { width: 100%; }
+    }
+    @keyframes spinSlow {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to   { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    @keyframes floatAI {
+      0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
+      50%       { transform: translate(-50%, -50%) translateY(-8px); }
+    }
+    @keyframes floatStu {
+      0%, 100% { transform: translate(-50%, -50%) translateY(-4px); }
+      50%       { transform: translate(-50%, -50%) translateY(5px); }
+    }
+    @keyframes floatSup {
+      0%, 100% { transform: translate(-50%, -50%) translateY(3px); }
+      50%       { transform: translate(-50%, -50%) translateY(-6px); }
+    }
+  `}</style>
+);
+
+// ── Globe Dropdown ────────────────────────────────
 const LangDropdown: React.FC<{ lang: Lang; onChange: (l: Lang) => void; isDark: boolean }> = ({ lang, onChange, isDark }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const bg      = isDark ? '#0D1E2C' : '#FFFFFF';
-  const border  = isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0';
-  const textBase= isDark ? '#E8F1F8' : '#0F172A';
-  const textMuted=isDark ? '#7A9BB0' : '#64748B';
+  const bg       = isDark ? '#0D1E2C' : '#FFFFFF';
+  const border   = isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0';
+  const textBase = isDark ? '#E8F1F8' : '#0F172A';
+  const textMuted= isDark ? '#7A9BB0' : '#64748B';
 
   useEffect(() => {
     const fn = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
@@ -124,7 +156,7 @@ const LangDropdown: React.FC<{ lang: Lang; onChange: (l: Lang) => void; isDark: 
                 borderTop: i > 0 ? `1px solid ${border}` : 'none',
               }}
               onMouseEnter={e => { if (lang !== code) (e.currentTarget as HTMLButtonElement).style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'; }}
-              onMouseLeave={e => { if (lang !== code) (e.currentTarget as HTMLButtonElement).style.background = lang === code ? `${em}12` : 'transparent'; }}>
+              onMouseLeave={e => { if (lang !== code) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}>
               <div>
                 <p className="text-sm font-medium" style={{ color: lang === code ? emL : textBase }}>{label}</p>
                 <p className="text-xs" style={{ color: textMuted }}>{sub}</p>
@@ -134,6 +166,203 @@ const LangDropdown: React.FC<{ lang: Lang; onChange: (l: Lang) => void; isDark: 
           ))}
         </div>
       )}
+    </div>
+  );
+};
+
+// ── Triadic Animated Scene ────────────────────────
+const TriadicScene: React.FC<{
+  isDark: boolean;
+  s: Record<string, string>;
+  surface: string;
+  border: string;
+  textMuted: string;
+}> = ({ isDark, s, surface, border, textMuted }) => {
+  // ViewBox 380×310, node centers:
+  // AI: (190, 52), Student: (68, 255), Supervisor: (312, 255)
+  const colAI  = em;
+  const colSTU = '#3B82F6';
+  const colSUP = '#F59E0B';
+
+  const nodeBg = isDark ? 'rgba(255,255,255,0.92)' : '#FFFFFF';
+
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', border: `1px solid ${border}` }}>
+      <div className="px-5 pt-4 pb-1 flex items-center justify-between">
+        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: textMuted, letterSpacing: '0.1em' }}>
+          {s.triadic}
+        </p>
+        <div className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: emL }} />
+          <span className="text-xs" style={{ color: textMuted, opacity: 0.6 }}>live</span>
+        </div>
+      </div>
+
+      {/* Scene container — fixed height, full width */}
+      <div style={{ position: 'relative', height: 310, overflow: 'hidden', margin: '0 16px 8px' }}>
+
+        {/* Background: workflow-cycle.svg slowly spinning */}
+        <img
+          src="/SVG/workflow-cycle.svg"
+          alt=""
+          style={{
+            position: 'absolute', left: '50%', top: '50%',
+            width: 260, height: 260, opacity: 0.04,
+            animation: 'spinSlow 32s linear infinite',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* SVG layer — connections + flowing dots */}
+        <svg
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+          viewBox="0 0 380 310"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            {/* Paths used by animateMotion */}
+            <path id="lp-ai-stu"  d="M 170 82 C 115 155 80 200 88 225" />
+            <path id="lp-stu-sup" d="M 105 255 C 160 278 222 278 275 255" />
+            <path id="lp-sup-ai"  d="M 292 225 C 308 172 258 118 210 82" />
+          </defs>
+
+          {/* Static dashed lines */}
+          <use href="#lp-ai-stu"  fill="none" stroke={`${colAI}28`}  strokeWidth="1.5" strokeDasharray="5 4" />
+          <use href="#lp-stu-sup" fill="none" stroke={`${colSTU}28`} strokeWidth="1.5" strokeDasharray="5 4" />
+          <use href="#lp-sup-ai"  fill="none" stroke={`${colSUP}28`} strokeWidth="1.5" strokeDasharray="5 4" />
+
+          {/* Pulse rings */}
+          <circle cx="190" cy="52" r="40" fill="none" stroke={colAI} strokeWidth="1.2">
+            <animate attributeName="r"       values="36;45;36" dur="3s"   repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.28;0.07;0.28" dur="3s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="68" cy="255" r="40" fill="none" stroke={colSTU} strokeWidth="1.2">
+            <animate attributeName="r"       values="36;45;36" dur="3.6s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.28;0.07;0.28" dur="3.6s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="312" cy="255" r="40" fill="none" stroke={colSUP} strokeWidth="1.2">
+            <animate attributeName="r"       values="36;45;36" dur="4.2s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.28;0.07;0.28" dur="4.2s" repeatCount="indefinite" />
+          </circle>
+
+          {/* AI → Student (emerald dots) */}
+          <circle r="4.5" fill={emL}>
+            <animateMotion dur="2.9s" repeatCount="indefinite" begin="0s"><mpath href="#lp-ai-stu" /></animateMotion>
+            <animate attributeName="opacity" values="0;0.95;0.95;0" keyTimes="0;0.08;0.88;1" dur="2.9s" repeatCount="indefinite" begin="0s" />
+          </circle>
+          <circle r="4.5" fill={emL}>
+            <animateMotion dur="2.9s" repeatCount="indefinite" begin="1.45s"><mpath href="#lp-ai-stu" /></animateMotion>
+            <animate attributeName="opacity" values="0;0.95;0.95;0" keyTimes="0;0.08;0.88;1" dur="2.9s" repeatCount="indefinite" begin="1.45s" />
+          </circle>
+          {/* Student → AI (reverse, small) */}
+          <circle r="3" fill={emL} opacity="0.5">
+            <animateMotion dur="3.8s" repeatCount="indefinite" keyPoints="1;0" keyTimes="0;1" calcMode="linear" begin="0.9s"><mpath href="#lp-ai-stu" /></animateMotion>
+            <animate attributeName="opacity" values="0;0.45;0.45;0" keyTimes="0;0.1;0.9;1" dur="3.8s" repeatCount="indefinite" begin="0.9s" />
+          </circle>
+
+          {/* Student → Supervisor (blue dots) */}
+          <circle r="4.5" fill={colSTU}>
+            <animateMotion dur="3.1s" repeatCount="indefinite" begin="0.5s"><mpath href="#lp-stu-sup" /></animateMotion>
+            <animate attributeName="opacity" values="0;0.95;0.95;0" keyTimes="0;0.08;0.88;1" dur="3.1s" repeatCount="indefinite" begin="0.5s" />
+          </circle>
+          <circle r="4.5" fill={colSTU}>
+            <animateMotion dur="3.1s" repeatCount="indefinite" begin="2.05s"><mpath href="#lp-stu-sup" /></animateMotion>
+            <animate attributeName="opacity" values="0;0.95;0.95;0" keyTimes="0;0.08;0.88;1" dur="3.1s" repeatCount="indefinite" begin="2.05s" />
+          </circle>
+
+          {/* Supervisor → AI (amber dots) */}
+          <circle r="4.5" fill={colSUP}>
+            <animateMotion dur="2.7s" repeatCount="indefinite" begin="0.2s"><mpath href="#lp-sup-ai" /></animateMotion>
+            <animate attributeName="opacity" values="0;0.95;0.95;0" keyTimes="0;0.08;0.88;1" dur="2.7s" repeatCount="indefinite" begin="0.2s" />
+          </circle>
+          <circle r="4.5" fill={colSUP}>
+            <animateMotion dur="2.7s" repeatCount="indefinite" begin="1.55s"><mpath href="#lp-sup-ai" /></animateMotion>
+            <animate attributeName="opacity" values="0;0.95;0.95;0" keyTimes="0;0.08;0.88;1" dur="2.7s" repeatCount="indefinite" begin="1.55s" />
+          </circle>
+        </svg>
+
+        {/* AI node — top center */}
+        <div style={{
+          position: 'absolute', left: `${190/380*100}%`, top: `${52/310*100}%`,
+          transform: 'translate(-50%, -50%)',
+          animation: 'floatAI 4.2s ease-in-out infinite',
+          textAlign: 'center',
+          zIndex: 2,
+        }}>
+          <div style={{
+            width: 70, height: 70, borderRadius: 20,
+            background: nodeBg,
+            border: `2px solid ${colAI}55`,
+            boxShadow: `0 4px 22px ${colAI}28, 0 0 0 4px ${colAI}12`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <img src="/SVG/ai-1.svg" style={{ width: 52, height: 52, objectFit: 'contain' }} alt="AI" />
+          </div>
+          <div style={{ marginTop: 7 }}>
+            <span style={{
+              display: 'inline-block', padding: '2px 10px', borderRadius: 8,
+              background: `${colAI}18`, color: emL,
+              fontSize: 11, fontWeight: 700, letterSpacing: '0.02em',
+            }}>{s.ai}</span>
+          </div>
+        </div>
+
+        {/* Student node — bottom left */}
+        <div style={{
+          position: 'absolute', left: `${68/380*100}%`, top: `${255/310*100}%`,
+          transform: 'translate(-50%, -50%)',
+          animation: 'floatStu 5s ease-in-out infinite',
+          textAlign: 'center',
+          zIndex: 2,
+        }}>
+          <div style={{
+            width: 70, height: 70, borderRadius: 20,
+            background: nodeBg,
+            border: `2px solid ${colSTU}55`,
+            boxShadow: `0 4px 22px ${colSTU}28, 0 0 0 4px ${colSTU}12`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <img src="/SVG/Student.svg" style={{ width: 50, height: 50, objectFit: 'contain' }} alt="Student" />
+          </div>
+          <div style={{ marginTop: 7 }}>
+            <span style={{
+              display: 'inline-block', padding: '2px 10px', borderRadius: 8,
+              background: `${colSTU}18`, color: colSTU,
+              fontSize: 11, fontWeight: 700, letterSpacing: '0.02em',
+            }}>{s.student}</span>
+          </div>
+        </div>
+
+        {/* Supervisor node — bottom right */}
+        <div style={{
+          position: 'absolute', left: `${312/380*100}%`, top: `${255/310*100}%`,
+          transform: 'translate(-50%, -50%)',
+          animation: 'floatSup 4.7s ease-in-out infinite',
+          textAlign: 'center',
+          zIndex: 2,
+        }}>
+          <div style={{
+            width: 70, height: 70, borderRadius: 20,
+            background: nodeBg,
+            border: `2px solid ${colSUP}55`,
+            boxShadow: `0 4px 22px ${colSUP}28, 0 0 0 4px ${colSUP}12`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <img src="/SVG/teacher-dashboard.svg" style={{ width: 50, height: 50, objectFit: 'contain' }} alt="Supervisor" />
+          </div>
+          <div style={{ marginTop: 7 }}>
+            <span style={{
+              display: 'inline-block', padding: '2px 10px', borderRadius: 8,
+              background: `${colSUP}18`, color: colSUP,
+              fontSize: 11, fontWeight: 700, letterSpacing: '0.02em',
+            }}>{s.supervisor}</span>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-xs text-center pb-4 px-5" style={{ color: textMuted, opacity: 0.65 }}>
+        {s.triadic_note}
+      </p>
     </div>
   );
 };
@@ -149,29 +378,46 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister, onSwitchToFor
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [lang, setLang]         = useState<Lang>('zh-CN');
-  const [quoteIdx, setQuoteIdx] = useState(0);
-  const [quoteAnim, setQuoteAnim] = useState(false);
 
-  const s = STR[lang];
+  // Quote state
+  const [quoteIdx, setQuoteIdx]     = useState(0);
+  const [quoteAnim, setQuoteAnim]   = useState<'in' | 'out'>('in');
+  const quoteIdxRef = useRef(0);
+
+  const s      = STR[lang];
   const quotes = QUOTES[lang];
 
   // Design tokens
-  const bg      = isDark ? '#07111A' : '#F8FAFC';
-  const surface = isDark ? '#0D1E2C' : '#FFFFFF';
-  const border  = isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0';
-  const textBase= isDark ? '#E8F1F8' : '#0F172A';
-  const textMuted=isDark ? '#7A9BB0' : '#64748B';
-  const inputBg = isDark
-    ? 'rgba(255,255,255,0.04)'
-    : 'rgba(0,0,0,0.02)';
+  const bg       = isDark ? '#07111A' : '#F8FAFC';
+  const surface  = isDark ? '#0D1E2C' : '#FFFFFF';
+  const border   = isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0';
+  const textBase = isDark ? '#E8F1F8' : '#0F172A';
+  const textMuted= isDark ? '#7A9BB0' : '#64748B';
+  const inputBg  = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
 
+  // Quote auto-advance
   useEffect(() => {
     const id = setInterval(() => {
-      setQuoteAnim(true);
-      setTimeout(() => { setQuoteIdx(i => (i + 1) % quotes.length); setQuoteAnim(false); }, 400);
-    }, 7000);
+      setQuoteAnim('out');
+      setTimeout(() => {
+        const next = (quoteIdxRef.current + 1) % quotes.length;
+        quoteIdxRef.current = next;
+        setQuoteIdx(next);
+        setQuoteAnim('in');
+      }, 370);
+    }, 6800);
     return () => clearInterval(id);
   }, [quotes.length]);
+
+  const handleDotClick = (i: number) => {
+    if (i === quoteIdx) return;
+    setQuoteAnim('out');
+    setTimeout(() => {
+      quoteIdxRef.current = i;
+      setQuoteIdx(i);
+      setQuoteAnim('in');
+    }, 250);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,11 +439,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister, onSwitchToFor
 
   return (
     <div className="min-h-screen flex" style={{ background: bg, fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <AnimStyles />
 
       {/* ── LEFT — Form panel ── */}
       <div className="w-full lg:w-[46%] flex flex-col justify-center px-8 md:px-14 lg:px-16 py-10 relative">
 
-        {/* Top bar: back + language */}
+        {/* Top bar */}
         <div className="flex items-center justify-between mb-10">
           <button onClick={handleBackToLanding}
             className="flex items-center gap-2 text-sm font-medium transition-colors duration-200 cursor-pointer"
@@ -223,7 +470,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister, onSwitchToFor
           </div>
 
           {/* Headline */}
-          <h2 className="font-bold mb-2 leading-tight" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: '2rem', color: textBase }}>
+          <h2 className="font-bold mb-2 leading-tight"
+            style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: '2rem', color: textBase }}>
             {lang === 'en' ? 'Welcome back' : '欢迎回来'}
           </h2>
           <p className="text-sm leading-relaxed mb-8" style={{ color: textMuted }}>{s.tagline}</p>
@@ -239,28 +487,21 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister, onSwitchToFor
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: textMuted }}>
                 {s.email}
               </label>
-              <div className="relative group">
-                <Mail size={15} className="absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-200"
-                  style={{ color: textMuted }} />
+              <div className="relative">
+                <Mail size={15} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: textMuted }} />
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="name@university.edu" required autoComplete="email"
                   className="w-full pl-11 pr-4 py-3.5 rounded-xl text-sm outline-none transition-all duration-200"
-                  style={{
-                    background: inputBg,
-                    border: `1px solid ${border}`,
-                    color: textBase,
-                  }}
+                  style={{ background: inputBg, border: `1px solid ${border}`, color: textBase }}
                   onFocus={e => (e.currentTarget.style.border = `1px solid ${emL}80`)}
                   onBlur={e => (e.currentTarget.style.border = `1px solid ${border}`)} />
               </div>
             </div>
 
-            {/* Password */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: textMuted }}>
@@ -289,7 +530,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister, onSwitchToFor
               </div>
             </div>
 
-            {/* Submit */}
             <button type="submit" disabled={loading}
               className="w-full py-3.5 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed mt-2"
               style={{ background: `linear-gradient(135deg, ${em}, ${emL})`, boxShadow: `0 6px 20px ${em}40` }}
@@ -299,7 +539,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister, onSwitchToFor
             </button>
           </form>
 
-          {/* Switch to register */}
           <p className="mt-6 text-center text-sm" style={{ color: textMuted }}>
             {s.no_account}{' '}
             <button onClick={onSwitchToRegister}
@@ -309,7 +548,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister, onSwitchToFor
             </button>
           </p>
 
-          {/* Footer links */}
           <div className="mt-8 flex flex-wrap gap-4 justify-center text-xs" style={{ color: textMuted, opacity: 0.6 }}>
             {[s.privacy, s.ethics, s.about].map((l, i) => (
               <React.Fragment key={i}>
@@ -325,90 +563,93 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister, onSwitchToFor
       <div className="hidden lg:block w-px flex-shrink-0" style={{ background: border }} />
 
       {/* ── RIGHT — Brand showcase panel ── */}
-      <div className="hidden lg:flex flex-1 flex-col justify-center px-14 xl:px-20 py-10 relative overflow-hidden"
+      <div className="hidden lg:flex flex-1 flex-col justify-center px-12 xl:px-16 py-10 relative overflow-hidden"
         style={{ background: isDark ? '#0A1825' : '#F0FDF4' }}>
 
-        {/* Ambient orb */}
+        {/* Ambient orbs */}
         <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full pointer-events-none"
-          style={{ background: `radial-gradient(circle, ${em}18 0%, transparent 70%)` }} />
+          style={{ background: `radial-gradient(circle, ${em}16 0%, transparent 70%)` }} />
         <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full pointer-events-none"
-          style={{ background: `radial-gradient(circle, #0EA5E918 0%, transparent 70%)` }} />
+          style={{ background: `radial-gradient(circle, #0EA5E914 0%, transparent 70%)` }} />
 
-        <div className="relative max-w-sm w-full">
+        <div className="relative max-w-md w-full">
           {/* Title */}
-          <div className="mb-8">
+          <div className="mb-6">
             <ShieldCheck size={20} className="mb-3" style={{ color: emL }} />
-            <h2 className="font-bold mb-3 leading-tight" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: '1.8rem', color: textBase }}>
+            <h2 className="font-bold mb-2 leading-tight"
+              style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: '1.75rem', color: textBase }}>
               {s.right_title}
             </h2>
             <p className="text-sm leading-relaxed" style={{ color: textMuted }}>{s.right_desc}</p>
           </div>
 
-          {/* Triadic diagram */}
-          <div className="p-6 rounded-2xl mb-6" style={{ background: surface, border: `1px solid ${border}` }}>
-            <p className="text-xs font-bold uppercase tracking-widest mb-5" style={{ color: textMuted, letterSpacing: '0.1em' }}>
-              {s.triadic}
-            </p>
-            <div className="flex items-center justify-between gap-2">
-              {[
-                { label: s.student, icon: GraduationCap, color: '#3B82F6' },
-                { label: s.ai,       icon: BrainCircuit,  color: em },
-                { label: s.supervisor, icon: ShieldCheck, color: '#F59E0B' },
-              ].map(({ label, icon: Icon, color }, i) => (
-                <React.Fragment key={label}>
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                      style={{ background: `${color}15`, border: `1px solid ${color}30` }}>
-                      <Icon size={22} style={{ color }} />
-                    </div>
-                    <span className="text-xs font-medium" style={{ color }}>{label}</span>
-                  </div>
-                  {i < 2 && (
-                    <div className="flex-1 flex items-center gap-1">
-                      <div className="flex-1 h-px" style={{ background: `linear-gradient(90deg, ${i === 0 ? '#3B82F6' : em}60, ${i === 0 ? em : '#F59E0B'}60)` }} />
-                      <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: i === 0 ? emL : '#F59E0B' }} />
-                    </div>
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-            <p className="text-xs text-center mt-4" style={{ color: textMuted, opacity: 0.7 }}>{s.triadic_note}</p>
-          </div>
+          {/* Animated triadic scene */}
+          <TriadicScene isDark={isDark} s={s} surface={surface} border={border} textMuted={textMuted} />
 
-          {/* Rotating quotes */}
-          <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${border}` }}>
+          {/* Quote carousel */}
+          <div className="mt-5 rounded-2xl overflow-hidden" style={{ border: `1px solid ${border}` }}>
             <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, transparent, ${em}, transparent)` }} />
-            <div className="p-6" style={{ background: surface }}>
-              <div className="flex items-center gap-2 mb-4">
-                <Quote size={14} style={{ color: emL }} />
-                <span className="text-xs font-bold uppercase tracking-widest" style={{ color: textMuted, letterSpacing: '0.1em' }}>{s.wisdom}</span>
+            <div className="p-5" style={{ background: surface }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Quote size={13} style={{ color: emL }} />
+                <span className="text-xs font-bold uppercase tracking-widest" style={{ color: textMuted, letterSpacing: '0.1em' }}>
+                  {s.wisdom}
+                </span>
               </div>
-              <div className={`transition-all duration-400 ${quoteAnim ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}>
-                <p className="text-sm leading-relaxed mb-4 italic"
+
+              {/* Animated quote body */}
+              <div
+                key={`${quoteIdx}-${quoteAnim}`}
+                style={{
+                  animation: quoteAnim === 'in'
+                    ? 'quoteIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+                    : 'quoteOut 0.32s ease-in forwards',
+                }}
+              >
+                <p className="leading-relaxed mb-3 italic"
                   style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: '1.05rem', color: textBase }}>
                   "{quotes[quoteIdx].text}"
                 </p>
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="px-2.5 py-1 rounded-lg font-medium" style={{ background: `${em}15`, color: emL }}>
+                  <span className="px-2.5 py-1 rounded-lg font-medium"
+                    style={{ background: `${em}15`, color: emL }}>
                     {quotes[quoteIdx].author}
                   </span>
                   <span style={{ color: textMuted }}>· {quotes[quoteIdx].source}</span>
                 </div>
               </div>
+
+              {/* Progress bar */}
+              <div style={{ height: 2, background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', borderRadius: 1, marginTop: 14, overflow: 'hidden' }}>
+                <div
+                  key={quoteIdx}
+                  style={{
+                    height: '100%',
+                    background: `linear-gradient(90deg, ${em}, ${emL})`,
+                    borderRadius: 1,
+                    animation: 'quoteProgress 6.8s linear forwards',
+                  }}
+                />
+              </div>
+
               {/* Dots */}
-              <div className="flex gap-1.5 mt-5">
+              <div className="flex gap-1.5 mt-3">
                 {quotes.map((_, i) => (
-                  <button key={i} onClick={() => setQuoteIdx(i)}
-                    className="rounded-full transition-all duration-300 cursor-pointer"
-                    style={{ width: i === quoteIdx ? '24px' : '6px', height: '6px', background: i === quoteIdx ? emL : `${textMuted}40` }} />
+                  <button key={i} onClick={() => handleDotClick(i)}
+                    className="rounded-full transition-all duration-300 cursor-pointer border-0 p-0"
+                    style={{
+                      width: i === quoteIdx ? '22px' : '6px',
+                      height: '6px',
+                      background: i === quoteIdx ? emL : `${textMuted}40`,
+                    }}
+                  />
                 ))}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <p className="absolute bottom-6 left-14 text-xs" style={{ color: textMuted, opacity: 0.5 }}>
+        <p className="absolute bottom-6 left-12 text-xs" style={{ color: textMuted, opacity: 0.5 }}>
           © 2026 HAKHub Team · HAKHub Scholar
         </p>
       </div>

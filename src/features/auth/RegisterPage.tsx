@@ -2,15 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthProvider';
 import {
   Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, BrainCircuit,
-  AlertCircle, User, CheckCircle, GraduationCap, BookOpen,
+  AlertCircle, User, CheckCircle,
   Building2, Award, ArrowLeft, Globe, ChevronDown, Check,
-  ShieldCheck, Network
+  GraduationCap, BookOpen,
 } from 'lucide-react';
 
 type Lang = 'zh-CN' | 'zh-TW' | 'en';
 type StudentIdentity = 'undergraduate' | 'master' | 'phd' | 'other';
 
-// ── Design tokens ────────────────────────────────
 const em  = '#059669';
 const emL = '#10B981';
 
@@ -41,6 +40,14 @@ const STR: Record<Lang, Record<string, string | Record<string, string>>> = {
     to_login: '返回登录',
     identity: { undergraduate: '本科生', master: '硕士生', phd: '博士生', other: '其他' },
     titles: ['教授', '副教授', '讲师', '助理讲师', '研究员', '其他'],
+    right_title: '加入科研社区',
+    right_desc: '与导师连接，与 AI 协作，让您的科研旅程可见、可追踪、有支持。',
+    feat_stu_title: '面向学生',
+    feat_stu_desc: 'AI 苏格拉底式引导，发展认知主体性。',
+    feat_sup_title: '面向导师',
+    feat_sup_desc: '监控进展，在恰当时机精准介入。',
+    feat_res_title: '证据增强研究',
+    feat_res_desc: '接入学术数据库，AI 回应附文献来源。',
   },
   'zh-TW': {
     back: '返回首頁', title: '創建帳號', subtitle: '加入 HAKHub Scholar 學術社區',
@@ -67,6 +74,14 @@ const STR: Record<Lang, Record<string, string | Record<string, string>>> = {
     to_login: '返回登入',
     identity: { undergraduate: '本科生', master: '碩士生', phd: '博士生', other: '其他' },
     titles: ['教授', '副教授', '講師', '助理講師', '研究員', '其他'],
+    right_title: '加入科研社區',
+    right_desc: '與導師連接，與 AI 協作，讓您的科研旅程可見、可追蹤、有支持。',
+    feat_stu_title: '面向學生',
+    feat_stu_desc: 'AI 蘇格拉底式引導，發展認知主體性。',
+    feat_sup_title: '面向導師',
+    feat_sup_desc: '監控進展，在恰當時機精準介入。',
+    feat_res_title: '證據增強研究',
+    feat_res_desc: '接入學術數據庫，AI 回應附文獻來源。',
   },
   'en': {
     back: 'Back to Home', title: 'Create Account', subtitle: 'Join the HAKHub Scholar community',
@@ -93,6 +108,14 @@ const STR: Record<Lang, Record<string, string | Record<string, string>>> = {
     to_login: 'Back to Login',
     identity: { undergraduate: 'Undergraduate', master: "Master's", phd: 'PhD', other: 'Other' },
     titles: ['Professor', 'Associate Professor', 'Lecturer', 'Assistant Lecturer', 'Researcher', 'Other'],
+    right_title: 'Join the Research Community',
+    right_desc: 'Connect with supervisors, collaborate with AI, and make your research journey visible, trackable, and supported.',
+    feat_stu_title: 'For Students',
+    feat_stu_desc: 'Develop epistemic agency through Socratic AI guidance.',
+    feat_sup_title: 'For Supervisors',
+    feat_sup_desc: 'Monitor progress and intervene at the right moment.',
+    feat_res_title: 'Evidence-Based Research',
+    feat_res_desc: 'Semantic Scholar integration for cited AI responses.',
   },
 };
 
@@ -108,9 +131,34 @@ interface RegisterPageProps {
   theme: 'light' | 'dark';
 }
 
-// ── Globe Dropdown ───────────────────────────────
-const LangDropdown: React.FC<{ lang: Lang; onChange: (l: Lang) => void; isDark: boolean; surface: string; border: string; textBase: string; textMuted: string }> =
-  ({ lang, onChange, isDark, surface, border, textBase, textMuted }) => {
+// ── CSS Keyframes ─────────────────────────────────
+const AnimStyles = () => (
+  <style>{`
+    @keyframes heroFloat {
+      0%, 100% { transform: translateY(0px) scale(1); }
+      50%       { transform: translateY(-10px) scale(1.01); }
+    }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes spinSlow {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to   { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    @keyframes collaFloat {
+      0%, 100% { transform: translateX(0px) translateY(0px); }
+      33%       { transform: translateX(6px) translateY(-8px); }
+      66%       { transform: translateX(-4px) translateY(4px); }
+    }
+  `}</style>
+);
+
+// ── Globe Dropdown ────────────────────────────────
+const LangDropdown: React.FC<{
+  lang: Lang; onChange: (l: Lang) => void; isDark: boolean;
+  surface: string; border: string; textBase: string; textMuted: string;
+}> = ({ lang, onChange, isDark, surface, border, textBase, textMuted }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -134,7 +182,7 @@ const LangDropdown: React.FC<{ lang: Lang; onChange: (l: Lang) => void; isDark: 
           style={{ background: surface, border: `1px solid ${border}` }}>
           {LANGS.map(({ code, label, sub }, i) => (
             <button key={code} onClick={() => { onChange(code); setOpen(false); }}
-              className="w-full px-4 py-3 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+              className="w-full px-4 py-3 text-left flex items-center justify-between gap-2 cursor-pointer"
               style={{ background: lang === code ? `${em}12` : 'transparent', borderTop: i > 0 ? `1px solid ${border}` : 'none' }}
               onMouseEnter={e => { if (lang !== code) (e.currentTarget as HTMLButtonElement).style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'; }}
               onMouseLeave={e => { if (lang !== code) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}>
@@ -151,45 +199,82 @@ const LangDropdown: React.FC<{ lang: Lang; onChange: (l: Lang) => void; isDark: 
   );
 };
 
+// ── Reusable form field wrapper ───────────────────
+const Field: React.FC<{
+  label: string; required?: boolean;
+  textMuted: string; children: React.ReactNode;
+}> = ({ label, required, textMuted, children }) => (
+  <div>
+    <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: textMuted }}>
+      {label} {required && <span style={{ color: '#F87171' }}>*</span>}
+    </label>
+    <div className="relative">{children}</div>
+  </div>
+);
+
+// ── Right panel feature item ──────────────────────
+const FeatureRow: React.FC<{
+  svgSrc: string; color: string; title: string; desc: string;
+  surface: string; border: string; textBase: string; textMuted: string;
+  delay?: string;
+}> = ({ svgSrc, color, title, desc, surface, border, textBase, textMuted, delay = '0s' }) => (
+  <div
+    style={{
+      display: 'flex', alignItems: 'flex-start', gap: 12,
+      padding: '10px 14px', borderRadius: 14,
+      background: surface, border: `1px solid ${border}`,
+      animation: `fadeSlideIn 0.5s cubic-bezier(0.16,1,0.3,1) ${delay} both`,
+    }}
+  >
+    <div style={{
+      width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+      background: 'rgba(255,255,255,0.92)',
+      border: `1.5px solid ${color}40`,
+      boxShadow: `0 2px 10px ${color}20`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <img src={svgSrc} style={{ width: 32, height: 32, objectFit: 'contain' }} alt={title} />
+    </div>
+    <div>
+      <p style={{ fontSize: 13, fontWeight: 600, color: textBase, marginBottom: 2 }}>{title}</p>
+      <p style={{ fontSize: 12, color: textMuted, lineHeight: 1.5 }}>{desc}</p>
+    </div>
+  </div>
+);
+
 // ── Main Component ────────────────────────────────
 const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess, theme }) => {
   const { signUp } = useAuth();
   const isDark = theme === 'dark';
 
-  const [lang, setLang]     = useState<Lang>('zh-CN');
-  const [role, setRole]     = useState<'student' | 'supervisor'>('student');
-  const [email, setEmail]   = useState('');
-  const [password, setPassword]         = useState('');
-  const [confirmPassword, setConfirm]   = useState('');
-  const [school, setSchool]             = useState('');
-  const [showPwd, setShowPwd]           = useState(false);
-  const [fullName, setFullName]         = useState('');
-  const [titleVal, setTitleVal]         = useState('');
-  const [nickname, setNickname]         = useState('');
-  const [identity, setIdentity]         = useState<StudentIdentity>('undergraduate');
-  const [loading, setLoading]           = useState(false);
-  const [error, setError]               = useState<string | null>(null);
-  const [success, setSuccess]           = useState(false);
+  const [lang, setLang]               = useState<Lang>('zh-CN');
+  const [role, setRole]               = useState<'student' | 'supervisor'>('student');
+  const [email, setEmail]             = useState('');
+  const [password, setPassword]       = useState('');
+  const [confirmPassword, setConfirm] = useState('');
+  const [school, setSchool]           = useState('');
+  const [showPwd, setShowPwd]         = useState(false);
+  const [fullName, setFullName]       = useState('');
+  const [titleVal, setTitleVal]       = useState('');
+  const [nickname, setNickname]       = useState('');
+  const [identity, setIdentity]       = useState<StudentIdentity>('undergraduate');
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState<string | null>(null);
+  const [success, setSuccess]         = useState(false);
 
   // Design tokens
-  const bg      = isDark ? '#07111A' : '#F8FAFC';
-  const surface = isDark ? '#0D1E2C' : '#FFFFFF';
-  const border  = isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0';
-  const textBase= isDark ? '#E8F1F8' : '#0F172A';
-  const textMuted=isDark ? '#7A9BB0' : '#64748B';
-  const inputBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
+  const bg       = isDark ? '#07111A' : '#F8FAFC';
+  const surface  = isDark ? '#0D1E2C' : '#FFFFFF';
+  const border   = isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0';
+  const textBase = isDark ? '#E8F1F8' : '#0F172A';
+  const textMuted= isDark ? '#7A9BB0' : '#64748B';
+  const inputBg  = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
 
-  const s = STR[lang] as Record<string, string>;
+  const s              = STR[lang] as Record<string, string>;
   const identityLabels = (STR[lang].identity as Record<string, string>);
   const titleOptions   = (STR[lang].titles as unknown as string[]);
 
-  const inputCls = {
-    background: inputBg,
-    border: `1px solid ${border}`,
-    color: textBase,
-    outline: 'none',
-  };
-
+  const inputCls = { background: inputBg, border: `1px solid ${border}`, color: textBase, outline: 'none' };
   const handleFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) =>
     (e.target.style.border = `1px solid ${emL}80`);
   const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -221,17 +306,19 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
     window.location.reload();
   };
 
-  // ── Success state ──
+  // ── Success state ──────────────────────────────
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6" style={{ background: bg, fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div className="min-h-screen flex items-center justify-center p-6"
+        style={{ background: bg, fontFamily: 'Inter, system-ui, sans-serif' }}>
         <div className="w-full max-w-md p-10 rounded-3xl text-center"
           style={{ background: surface, border: `1px solid ${border}`, boxShadow: isDark ? '0 24px 60px rgba(0,0,0,0.4)' : '0 24px 60px rgba(0,0,0,0.08)' }}>
           <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
             style={{ background: `${em}15` }}>
             <CheckCircle size={30} style={{ color: emL }} />
           </div>
-          <h2 className="font-bold mb-3" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: '1.8rem', color: textBase }}>
+          <h2 className="font-bold mb-3"
+            style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: '1.8rem', color: textBase }}>
             {s.success_title}
           </h2>
           <p className="text-sm leading-relaxed mb-8" style={{ color: textMuted }}>
@@ -250,6 +337,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
 
   return (
     <div className="min-h-screen flex" style={{ background: bg, fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <AnimStyles />
 
       {/* ── LEFT — Form ── */}
       <div className="w-full lg:w-[52%] flex flex-col justify-center px-8 md:px-14 lg:px-16 py-10 relative">
@@ -263,7 +351,8 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
             onMouseLeave={e => (e.currentTarget.style.color = textMuted)}>
             <ArrowLeft size={15} /> {s.back}
           </button>
-          <LangDropdown lang={lang} onChange={setLang} isDark={isDark} surface={surface} border={border} textBase={textBase} textMuted={textMuted} />
+          <LangDropdown lang={lang} onChange={setLang} isDark={isDark}
+            surface={surface} border={border} textBase={textBase} textMuted={textMuted} />
         </div>
 
         <div className="w-full max-w-sm mx-auto lg:mx-0">
@@ -276,7 +365,8 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
             <span className="font-bold text-lg" style={{ color: textBase }}>HAKHub Scholar</span>
           </div>
 
-          <h2 className="font-bold mb-1 leading-tight" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: '2rem', color: textBase }}>
+          <h2 className="font-bold mb-1 leading-tight"
+            style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: '2rem', color: textBase }}>
             {s.title}
           </h2>
           <p className="text-sm mb-6" style={{ color: textMuted }}>{s.subtitle}</p>
@@ -302,7 +392,8 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
           </div>
 
           {role === 'supervisor' && (
-            <div className="mb-4 px-4 py-3 rounded-xl text-xs" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', color: '#F59E0B' }}>
+            <div className="mb-4 px-4 py-3 rounded-xl text-xs"
+              style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', color: '#F59E0B' }}>
               ⚠ {s.role_hint}
             </div>
           )}
@@ -316,16 +407,16 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
           )}
 
           <form onSubmit={handleSubmit} className="space-y-3">
-            {/* Supervisor: name + title */}
             {role === 'supervisor' && (
               <>
-                <Field label={s.name} required isDark={isDark} border={border} textBase={textBase} textMuted={textMuted}>
+                <Field label={s.name} required textMuted={textMuted}>
                   <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: textMuted }} />
                   <input type="text" value={fullName} onChange={e => setFullName(e.target.value)}
-                    placeholder={s.name_ph} required className="w-full pl-11 pr-4 py-3 rounded-xl text-sm transition-all duration-200"
+                    placeholder={s.name_ph} required
+                    className="w-full pl-11 pr-4 py-3 rounded-xl text-sm transition-all duration-200"
                     style={inputCls} onFocus={handleFocus} onBlur={handleBlur} />
                 </Field>
-                <Field label={s.title_label} required isDark={isDark} border={border} textBase={textBase} textMuted={textMuted}>
+                <Field label={s.title_label} required textMuted={textMuted}>
                   <Award size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none z-10" style={{ color: textMuted }} />
                   <select value={titleVal} onChange={e => setTitleVal(e.target.value)} required
                     className="w-full pl-11 pr-4 py-3 rounded-xl text-sm transition-all duration-200 appearance-none cursor-pointer"
@@ -337,13 +428,13 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
               </>
             )}
 
-            {/* Student: nickname + identity */}
             {role === 'student' && (
               <>
-                <Field label={s.nickname} required isDark={isDark} border={border} textBase={textBase} textMuted={textMuted}>
+                <Field label={s.nickname} required textMuted={textMuted}>
                   <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: textMuted }} />
                   <input type="text" value={nickname} onChange={e => setNickname(e.target.value)}
-                    placeholder={s.nickname_ph} required className="w-full pl-11 pr-4 py-3 rounded-xl text-sm transition-all duration-200"
+                    placeholder={s.nickname_ph} required
+                    className="w-full pl-11 pr-4 py-3 rounded-xl text-sm transition-all duration-200"
                     style={inputCls} onFocus={handleFocus} onBlur={handleBlur} />
                 </Field>
                 <div>
@@ -367,36 +458,39 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
               </>
             )}
 
-            {/* Shared: school, email, password, confirm */}
-            <Field label={s.school} required isDark={isDark} border={border} textBase={textBase} textMuted={textMuted}>
+            <Field label={s.school} required textMuted={textMuted}>
               <Building2 size={14} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: textMuted }} />
               <input type="text" value={school} onChange={e => setSchool(e.target.value)}
-                placeholder={s.school_ph} required className="w-full pl-11 pr-4 py-3 rounded-xl text-sm transition-all duration-200"
+                placeholder={s.school_ph} required
+                className="w-full pl-11 pr-4 py-3 rounded-xl text-sm transition-all duration-200"
                 style={inputCls} onFocus={handleFocus} onBlur={handleBlur} />
             </Field>
 
-            <Field label={s.email} required isDark={isDark} border={border} textBase={textBase} textMuted={textMuted}>
+            <Field label={s.email} required textMuted={textMuted}>
               <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: textMuted }} />
               <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder={s.email_ph} required className="w-full pl-11 pr-4 py-3 rounded-xl text-sm transition-all duration-200"
+                placeholder={s.email_ph} required
+                className="w-full pl-11 pr-4 py-3 rounded-xl text-sm transition-all duration-200"
                 style={inputCls} onFocus={handleFocus} onBlur={handleBlur} />
             </Field>
 
             <div className="grid grid-cols-2 gap-2">
-              <Field label={s.password} required isDark={isDark} border={border} textBase={textBase} textMuted={textMuted}>
+              <Field label={s.password} required textMuted={textMuted}>
                 <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: textMuted }} />
                 <input type={showPwd ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder={s.password_ph} required minLength={8} className="w-full pl-11 pr-10 py-3 rounded-xl text-sm transition-all duration-200"
+                  placeholder={s.password_ph} required minLength={8}
+                  className="w-full pl-11 pr-10 py-3 rounded-xl text-sm transition-all duration-200"
                   style={inputCls} onFocus={handleFocus} onBlur={handleBlur} />
                 <button type="button" onClick={() => setShowPwd(!showPwd)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer" style={{ color: textMuted }}>
                   {showPwd ? <EyeOff size={13} /> : <Eye size={13} />}
                 </button>
               </Field>
-              <Field label={s.confirm} required isDark={isDark} border={border} textBase={textBase} textMuted={textMuted}>
+              <Field label={s.confirm} required textMuted={textMuted}>
                 <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: textMuted }} />
                 <input type={showPwd ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirm(e.target.value)}
-                  placeholder={s.confirm_ph} required className="w-full pl-11 pr-4 py-3 rounded-xl text-sm transition-all duration-200"
+                  placeholder={s.confirm_ph} required
+                  className="w-full pl-11 pr-4 py-3 rounded-xl text-sm transition-all duration-200"
                   style={inputCls} onFocus={handleFocus} onBlur={handleBlur} />
               </Field>
             </div>
@@ -422,73 +516,104 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
       {/* ── DIVIDER ── */}
       <div className="hidden lg:block w-px flex-shrink-0" style={{ background: border }} />
 
-      {/* ── RIGHT — Brand panel ── */}
-      <div className="hidden lg:flex flex-1 flex-col justify-center px-14 xl:px-20 py-10 relative overflow-hidden"
+      {/* ── RIGHT — Community panel ── */}
+      <div className="hidden lg:flex flex-1 flex-col justify-center px-12 xl:px-16 py-10 relative overflow-hidden"
         style={{ background: isDark ? '#0A1825' : '#F0FDF4' }}>
 
-        {/* Ambient */}
+        {/* Ambient orbs */}
         <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full pointer-events-none"
-          style={{ background: `radial-gradient(circle, ${em}18 0%, transparent 70%)` }} />
+          style={{ background: `radial-gradient(circle, ${em}16 0%, transparent 70%)` }} />
+        <div className="absolute -bottom-24 -left-20 w-72 h-72 rounded-full pointer-events-none"
+          style={{ background: `radial-gradient(circle, #3B82F614 0%, transparent 70%)` }} />
 
-        <div className="relative max-w-sm w-full">
-          <div className="mb-8">
-            <Network size={22} className="mb-4" style={{ color: emL }} />
-            <h2 className="font-bold mb-3 leading-tight" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: '2rem', color: textBase }}>
-              {lang === 'en' ? 'Join the Research Community' : lang === 'zh-TW' ? '加入科研社區' : '加入科研社区'}
-            </h2>
-            <p className="text-sm leading-relaxed" style={{ color: textMuted }}>
-              {lang === 'en'
-                ? 'Connect with supervisors, collaborate with AI, and make your research journey visible, trackable, and supported.'
-                : lang === 'zh-TW'
-                  ? '與導師連接，與 AI 協作，讓您的科研旅程可見、可追蹤、有支持。'
-                  : '与导师连接，与 AI 协作，让您的科研旅程可见、可追踪、有支持。'}
-            </p>
+        {/* Background: collaboration.svg drifting */}
+        <img src="/SVG/collaboration.svg" alt="" style={{
+          position: 'absolute', right: -30, bottom: 50, width: 220, opacity: 0.04,
+          animation: 'collaFloat 14s ease-in-out infinite', pointerEvents: 'none',
+        }} />
+
+        {/* Background: workflow-cycle.svg spinning */}
+        <img src="/SVG/workflow-cycle.svg" alt="" style={{
+          position: 'absolute', left: '50%', top: '44%',
+          width: 320, height: 320, opacity: 0.025,
+          animation: 'spinSlow 40s linear infinite', pointerEvents: 'none',
+        }} />
+
+        <div style={{ position: 'relative', maxWidth: 380, width: '100%' }}>
+
+          {/* Hero SVG */}
+          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              background: isDark ? 'rgba(59,130,246,0.07)' : 'rgba(59,130,246,0.06)',
+              border: `1px solid ${isDark ? 'rgba(59,130,246,0.18)' : '#BFDBFE'}`,
+              borderRadius: 28, padding: 20,
+              animation: 'heroFloat 5.5s ease-in-out infinite',
+              boxShadow: `0 8px 32px rgba(59,130,246,0.12)`,
+            }}>
+              <img src="/SVG/team.svg" style={{ width: 130, height: 130, objectFit: 'contain' }} alt="Research Team" />
+            </div>
           </div>
 
-          {/* Feature highlights */}
-          {[
-            { icon: GraduationCap, color: '#3B82F6', title: lang === 'en' ? 'For Students' : '面向学生', desc: lang === 'en' ? 'Develop epistemic agency through Socratic AI guidance.' : 'AI 苏格拉底式引导，发展认知主体性。' },
-            { icon: ShieldCheck, color: '#F59E0B', title: lang === 'en' ? 'For Supervisors' : '面向导师', desc: lang === 'en' ? 'Monitor progress and intervene at the right moment.' : '监控进展，在恰当时机精准介入。' },
-            { icon: BookOpen, color: em, title: lang === 'en' ? 'Evidence-Based' : '证据增强', desc: lang === 'en' ? 'Semantic Scholar integration for cited AI responses.' : '接入学术数据库，AI 回应附文献来源。' },
-          ].map(({ icon: Icon, color, title, desc }) => (
-            <div key={title} className="flex items-start gap-4 p-4 rounded-2xl mb-3 transition-all duration-200"
-              style={{ background: surface, border: `1px solid ${border}` }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: `${color}15` }}>
-                <Icon size={18} style={{ color }} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold mb-0.5" style={{ color: textBase }}>{title}</p>
-                <p className="text-xs leading-relaxed" style={{ color: textMuted }}>{desc}</p>
-              </div>
+          {/* Title */}
+          <h2 style={{
+            fontFamily: 'Crimson Pro, Georgia, serif', fontSize: '1.85rem',
+            fontWeight: 700, lineHeight: 1.3, color: textBase, marginBottom: 8,
+          }}>
+            {s.right_title}
+          </h2>
+          <p style={{ fontSize: 14, color: textMuted, lineHeight: 1.65, marginBottom: 20 }}>
+            {s.right_desc}
+          </p>
+
+          {/* Feature rows with staggered entrance */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <FeatureRow
+              svgSrc="/SVG/Student.svg" color="#3B82F6"
+              title={s.feat_stu_title} desc={s.feat_stu_desc}
+              surface={surface} border={border} textBase={textBase} textMuted={textMuted}
+              delay="0.05s"
+            />
+            <FeatureRow
+              svgSrc="/SVG/teacher.svg" color="#F59E0B"
+              title={s.feat_sup_title} desc={s.feat_sup_desc}
+              surface={surface} border={border} textBase={textBase} textMuted={textMuted}
+              delay="0.15s"
+            />
+            <FeatureRow
+              svgSrc="/SVG/resource-collaboration.svg" color={em}
+              title={s.feat_res_title} desc={s.feat_res_desc}
+              surface={surface} border={border} textBase={textBase} textMuted={textMuted}
+              delay="0.25s"
+            />
+          </div>
+
+          {/* Add student SVG accent */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 18, paddingTop: 18, borderTop: `1px solid ${border}` }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: isDark ? 'rgba(255,255,255,0.88)' : '#FFFFFF',
+              border: `1.5px solid ${em}35`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <img src="/SVG/add-student.svg" style={{ width: 26, height: 26, objectFit: 'contain' }} alt="" />
             </div>
-          ))}
+            <p style={{ fontSize: 12, color: textMuted, lineHeight: 1.5 }}>
+              {lang === 'en'
+                ? 'Join a growing community of researchers and educators.'
+                : lang === 'zh-TW'
+                  ? '加入不斷成長的研究者與教育者社群。'
+                  : '加入不断成长的研究者与教育者社群。'}
+            </p>
+          </div>
         </div>
 
-        <p className="absolute bottom-6 left-14 text-xs" style={{ color: textMuted, opacity: 0.5 }}>
+        <p style={{ position: 'absolute', bottom: 24, left: 48, fontSize: 12, color: textMuted, opacity: 0.5 }}>
           © 2026 HAKHub Team · HAKHub Scholar
         </p>
       </div>
     </div>
   );
 };
-
-// ── Reusable form field wrapper ──────────────────
-const Field: React.FC<{
-  label: string;
-  required?: boolean;
-  isDark: boolean;
-  border: string;
-  textBase: string;
-  textMuted: string;
-  children: React.ReactNode;
-}> = ({ label, required, textMuted, children }) => (
-  <div>
-    <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: textMuted }}>
-      {label} {required && <span style={{ color: '#F87171' }}>*</span>}
-    </label>
-    <div className="relative">{children}</div>
-  </div>
-);
 
 export default RegisterPage;
