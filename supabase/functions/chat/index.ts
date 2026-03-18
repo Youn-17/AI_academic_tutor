@@ -9,18 +9,20 @@ const DMXAPI_URL    = 'https://www.dmxapi.cn/v1/chat/completions';
 const DEEPSEEK_URL  = 'https://api.deepseek.com/v1/chat/completions';
 const ZHIPU_URL     = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
 const MOONSHOT_URL  = 'https://api.moonshot.cn/v1/chat/completions';
+const GOOGLE_URL    = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
 
 // ── Platform API Keys (env fallbacks) ─────────────────────
 const DMXAPI_API_KEY    = Deno.env.get('DMXAPI_API_KEY')    || '';
 const DEEPSEEK_API_KEY  = Deno.env.get('DEEPSEEK_API_KEY')  || '';
 const ZHIPU_API_KEY     = Deno.env.get('ZHIPU_API_KEY')     || '';
 const MOONSHOT_API_KEY  = Deno.env.get('MOONSHOT_API_KEY')  || '';
+const GOOGLE_API_KEY    = Deno.env.get('GOOGLE_API_KEY')    || '';
 
 const SUPABASE_URL              = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY         = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-const SUPPORTED_PROVIDERS = ['dmxapi', 'deepseek', 'zhipu', 'moonshot', 'kimi'] as const;
+const SUPPORTED_PROVIDERS = ['dmxapi', 'deepseek', 'zhipu', 'moonshot', 'kimi', 'google'] as const;
 type Provider = typeof SUPPORTED_PROVIDERS[number];
 
 const corsHeaders = {
@@ -60,16 +62,18 @@ const MAX_MESSAGES_COUNT = 50;
 
 // ── Resolve provider endpoint & API key ───────────────────
 function resolveEndpoint(provider: Provider): string {
-  if (provider === 'deepseek')              return DEEPSEEK_URL;
-  if (provider === 'zhipu')                 return ZHIPU_URL;
+  if (provider === 'deepseek')                       return DEEPSEEK_URL;
+  if (provider === 'zhipu')                          return ZHIPU_URL;
   if (provider === 'moonshot' || provider === 'kimi') return MOONSHOT_URL;
+  if (provider === 'google')                         return GOOGLE_URL;
   return DMXAPI_URL; // dmxapi + all others
 }
 
 function resolvePlatformKey(provider: Provider): string {
-  if (provider === 'deepseek')              return DEEPSEEK_API_KEY;
-  if (provider === 'zhipu')                 return ZHIPU_API_KEY;
+  if (provider === 'deepseek')                       return DEEPSEEK_API_KEY;
+  if (provider === 'zhipu')                          return ZHIPU_API_KEY;
   if (provider === 'moonshot' || provider === 'kimi') return MOONSHOT_API_KEY;
+  if (provider === 'google')                         return GOOGLE_API_KEY;
   return DMXAPI_API_KEY;
 }
 
@@ -140,8 +144,10 @@ serve(async (req: Request) => {
       provider = 'zhipu';
     } else if (rawProvider === 'moonshot' || rawProvider === 'kimi') {
       provider = 'moonshot';
+    } else if (rawProvider === 'google') {
+      provider = 'google';
     } else {
-      // dmxapi, openai, anthropic, google, or anything else → all use DMXAPI
+      // dmxapi, openai, anthropic, or anything else → use DMXAPI
       provider = 'dmxapi';
     }
 
@@ -179,10 +185,30 @@ serve(async (req: Request) => {
         if (teacherKey?.api_key) resolvedApiKey = teacherKey.api_key;
       }
 
-      // Priority 2: platform-wide admin key
+      // Priority 2: user's own configured key (teacher using their own AI chat)
+      if (!resolvedApiKey) {
+        const providerFilter2 = provider === 'dmxapi'
+          ? ['dmxapi', 'openai', 'anthropic']
+          : provider === 'moonshot'
+          ? ['moonshot', 'kimi']
+          : [provider];
+
+        const { data: ownKey } = await serviceClient
+          .from('ai_api_configs')
+          .select('api_key')
+          .in('provider', providerFilter2)
+          .eq('owner_id', user.id)
+          .eq('is_active', true)
+          .limit(1)
+          .single();
+
+        if (ownKey?.api_key) resolvedApiKey = ownKey.api_key;
+      }
+
+      // Priority 3: platform-wide admin key
       if (!resolvedApiKey) {
         const providerFilter = provider === 'dmxapi'
-          ? ['dmxapi', 'openai', 'anthropic', 'google']
+          ? ['dmxapi', 'openai', 'anthropic']
           : provider === 'moonshot'
           ? ['moonshot', 'kimi']
           : [provider];
@@ -200,7 +226,7 @@ serve(async (req: Request) => {
       }
     } catch (_) { /* fall through to env key */ }
 
-    // Priority 3: environment variable
+    // Priority 4: environment variable
     if (!resolvedApiKey) {
       resolvedApiKey = resolvePlatformKey(provider);
     }
