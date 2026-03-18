@@ -294,6 +294,23 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
             theme={theme}
             onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
             locale={locale}
+            onLocaleChange={setLocale}
+            onClearChat={async () => {
+              if (confirm('清空此对话？')) {
+                await ConversationService.deleteConversation(activeChatId);
+                setActiveChatId('');
+                setViewMode('dashboard');
+              }
+            }}
+            onExportChat={async () => {
+              const content = messages.map(m => `${m.sender === Role.STUDENT ? 'Student' : 'AI'}: ${m.content}`).join('\n\n');
+              const blob = new Blob([content], { type: 'text/plain' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `${activeChat.title}_${new Date().toISOString().slice(0, 10)}.txt`;
+              a.click();
+            }}
           />
         )}
       </div>
