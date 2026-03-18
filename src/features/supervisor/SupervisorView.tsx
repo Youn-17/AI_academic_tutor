@@ -2,30 +2,26 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Conversation, Role, Locale } from '@/types';
 import { useAuth } from '@/features/auth/AuthProvider';
 import ChatBubble from '@/shared/components/ChatBubble';
-// Remove mockBackend
 import * as ConversationService from '@/services/ConversationService';
 import * as ClassService from '@/services/ClassService';
+import { AI_MODELS, MODEL_CATEGORIES, streamChat } from '@/services/RealAIService';
 
 import LearningSankeyChart from '@/shared/components/charts/LearningSankeyChart';
 import ActivityHeatmap from '@/shared/components/charts/ActivityHeatmap';
 import ClassroomView from '@/features/supervisor/ClassroomView';
 import KnowledgeBaseView from '@/features/supervisor/KnowledgeBaseView';
+
 import {
   Users, MessageSquare, AlertTriangle, Search, Send, BarChart2,
   CheckCircle, MoreHorizontal, LogOut, Menu, X, CheckSquare,
   Activity, Flag, Presentation, TrendingUp, Clock, BookOpen,
   Database, User, Settings, BrainCircuit, Key, Eye, EyeOff,
-  Save, Trash2, PlusCircle
+  Save, Trash2, PlusCircle, Sparkles, ChevronDown, Zap,
+  GraduationCap, Bell, RefreshCw, Shield, Info, ExternalLink,
+  Bot, Loader2
 } from 'lucide-react';
-// ... (keep recharts imports)
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
 
 interface SupervisorViewProps {
@@ -37,63 +33,49 @@ interface SupervisorViewProps {
 type ViewMode = 'dashboard' | 'chat' | 'classroom' | 'knowledge' | 'ai' | 'settings';
 type FilterStatus = 'all' | 'active' | 'flagged' | 'completed';
 
-// ... (Keep UI_TEXT)
-const UI_TEXT = {
-  'zh-CN': {
-    dashboard: '仪表盘',
-    mentorship: '指导中心',
-    classroom: '课堂互动',
-    knowledge: '知识库',
-    logout: '退出',
-    students: '学生列表',
-    search: '搜索学生...',
-    filter: { all: '全部', flagged: '预警', active: '活跃' },
-    welcome: '欢迎回来，张教授',
-    attention: '位学生需要您的关注',
-    alertTitle: '需要立即介入',
-    risk: '高风险',
-    resolve: '前往处理',
-    stats: { interactions: '交互总数', pending: '待处理', active: '在线学生' },
-    charts: { depth: '学生认知深度趋势', flow: '知识掌握流向', activity: '学习活跃度热力图' },
-    chat: { placeholder: '输入指导意见，直接介入对话...', mode: '导师介入模式', tip: '消息将高亮显示给学生', select: '请从左侧选择学生开始指导' }
+// DMXAPI model list - OpenAI compatible, routes via https://www.dmxapi.cn/v1
+const DMXAPI_MODELS: { group: string; models: { id: string; name: string; tier: 'free' | 'pro' }[] }[] = [
+  {
+    group: 'OpenAI', models: [
+      { id: 'gpt-4o-mini', name: 'GPT-4o Mini', tier: 'free' },
+      { id: 'gpt-4o', name: 'GPT-4o', tier: 'pro' },
+      { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', tier: 'free' },
+      { id: 'gpt-4.1', name: 'GPT-4.1', tier: 'pro' },
+    ]
   },
-  'zh-TW': {
-    dashboard: '儀表盤',
-    mentorship: '指導中心',
-    classroom: '課堂互動',
-    knowledge: '知識庫',
-    logout: '退出',
-    students: '學生列表',
-    search: '搜尋學生...',
-    filter: { all: '全部', flagged: '預警', active: '活躍' },
-    welcome: '歡迎回來，張教授',
-    attention: '位學生需要您的關注',
-    alertTitle: '需要立即介入',
-    risk: '高風險',
-    resolve: '前往處理',
-    stats: { interactions: '交互總數', pending: '待處理', active: '在線學生' },
-    charts: { depth: '學生認知深度趨勢', flow: '知識掌握流向', activity: '學習活躍度熱力圖' },
-    chat: { placeholder: '輸入指導意見，直接介入對話...', mode: '導師介入模式', tip: '消息將高亮顯示給學生', select: '請從左側選擇學生開始指導' }
+  {
+    group: 'Anthropic', models: [
+      { id: 'claude-3-5-haiku-20250219', name: 'Claude 3.5 Haiku', tier: 'free' },
+      { id: 'claude-3-5-sonnet-20250219', name: 'Claude 3.5 Sonnet', tier: 'pro' },
+      { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', tier: 'pro' },
+    ]
   },
-  'en': {
-    dashboard: 'Dashboard',
-    mentorship: 'Mentorship',
-    classroom: 'Classroom',
-    knowledge: 'Knowledge Base',
-    logout: 'Logout',
-    students: 'Students',
-    search: 'Filter students...',
-    filter: { all: 'All', flagged: 'Flagged', active: 'Active' },
-    welcome: 'Professor Zhang',
-    attention: 'students require attention',
-    alertTitle: 'Intervention Required',
-    risk: 'HIGH RISK',
-    resolve: 'Resolve',
-    stats: { interactions: 'Interactions', pending: 'Pending', active: 'Active Students' },
-    charts: { depth: 'Cognitive Depth Trends', flow: 'Knowledge Flow', activity: 'Activity Heatmap' },
-    chat: { placeholder: 'Type intervention...', mode: 'Intervention Mode', tip: 'Messages will be highlighted', select: 'Select a student context to begin' }
-  }
-};
+  {
+    group: 'Google', models: [
+      { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', tier: 'free' },
+      { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', tier: 'pro' },
+    ]
+  },
+  {
+    group: 'DeepSeek', models: [
+      { id: 'deepseek-chat', name: 'DeepSeek Chat', tier: 'free' },
+      { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner', tier: 'free' },
+    ]
+  },
+  {
+    group: 'Qwen', models: [
+      { id: 'qwen-turbo', name: 'Qwen Turbo', tier: 'free' },
+      { id: 'qwen-plus', name: 'Qwen Plus', tier: 'free' },
+      { id: 'qwen-max', name: 'Qwen Max', tier: 'pro' },
+    ]
+  },
+  {
+    group: 'GLM', models: [
+      { id: 'glm-4-flash', name: 'GLM-4 Flash', tier: 'free' },
+      { id: 'glm-4-plus', name: 'GLM-4 Plus', tier: 'pro' },
+    ]
+  },
+];
 
 const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLocale }) => {
   const { profile, refreshProfile } = useAuth();
@@ -104,102 +86,98 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
   const [searchTerm, setSearchTerm] = useState('');
   const [interventionText, setInterventionText] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Profile edit state
+  // Profile state
   const [profileForm, setProfileForm] = useState({ full_name: '', title: '', school: '' });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMsg, setProfileMsg] = useState<string | null>(null);
 
   // API config state
   const [apiConfigs, setApiConfigs] = useState<{ id: string; provider: string; model: string; label: string; masked_key?: string; scope: string; class_id?: string }[]>([]);
-  const [apiForm, setApiForm] = useState({ provider: 'deepseek', model: 'deepseek-chat', api_key: '', label: '', class_id: '' });
+  const [apiForm, setApiForm] = useState({ provider: 'dmxapi', model: 'deepseek-chat', api_key: '', label: '', class_id: '' });
   const [showKey, setShowKey] = useState(false);
   const [apiSaving, setApiSaving] = useState(false);
   const [apiMsg, setApiMsg] = useState<string | null>(null);
   const [myClasses, setMyClasses] = useState<{ id: string; name: string }[]>([]);
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
 
-  // AI chat state (teacher's own AI)
+  // Teacher AI chat
   const [aiMessages, setAiMessages] = useState<{ role: string; content: string }[]>([]);
   const [aiInput, setAiInput] = useState('');
   const [aiStreaming, setAiStreaming] = useState(false);
+  const [aiModel, setAiModel] = useState('deepseek-chat');
+  const [aiModelMenuOpen, setAiModelMenuOpen] = useState(false);
   const aiEndRef = useRef<HTMLDivElement>(null);
+  const aiModelMenuRef = useRef<HTMLDivElement>(null);
 
-  const teacherName = profile?.full_name || profile?.email || '教师';
-  const t = { ...UI_TEXT[locale], welcome: `欢迎回来，${teacherName}` };
+  const teacherName = profile?.full_name || profile?.email?.split('@')[0] || '教师';
 
-  // 1. Fetch Data (Classes -> Students -> Conversations)
+  // ── Data loading ──────────────────────────────────────────
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Step 1: Get my students
         const studentIds = await ClassService.getMyStudents();
-        console.log('My Students:', studentIds);
-
-        // Step 2: Get conversations for these students (or all if none, handled by API?)
-        // If no students enrolled, we might get empty list, which is correct.
-        // If we want to test without classes, we might skip this filter for now? 
-        // User Requirement: "只有学生加入班级之后，教师端才可以显示..." -> STRICT filtering needed.
-
-        if (studentIds.length === 0) {
-          setConversations([]);
-          return;
-        }
-
+        if (!studentIds.length) { setConversations([]); return; }
         const chats = await ConversationService.getAllStudentConversations(studentIds);
-
-        // Populate messages for each chat (The list API returns empty messages array by default, we need to fetch them if selected, or fetch last message for preview)
-        // For Dashboard preview, we need at least the last message. 
-        // Our current getAllStudentConversations returns empty messages[].
-        // Let's iterate and fetch active ones or rely on selecting to fetch details.
-        // For the "Alert Section" preview, we need content.
-        // Optimisation: Fetch messages for top 5 or flagged ones. 
-        // For now, let's just use what we have. If we need previews, we might need a backend view change.
-        // Actually, let's just fetch messages for ALL for now (not scalable but works for MVP) or assumes list has last_message.
-        // My Service doesn't return last message in list. 
-        // I will update the state with basic info, and fetch details on select.
-        // For sidebar snippets, we might need to update Service to return last message snippet.
-        // Let's stick to basic list first.
-
-        // However, to show "ChatBubble" we need messages. 
-        // We will fetch messages for the *selected* chat separately.
-
         setConversations(chats);
       } catch (err) {
         console.error('Failed to load supervisor data:', err);
       }
     };
     fetchData();
-
-    // Poll for updates every 30s (reduce unnecessary re-renders)
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
+    const iv = setInterval(fetchData, 30_000);
+    return () => clearInterval(iv);
   }, [refreshTrigger]);
 
-  // Sync profile form when profile loads
   useEffect(() => {
     if (profile) {
       setProfileForm({ full_name: profile.full_name || '', title: profile.title || '', school: profile.school || '' });
     }
   }, [profile]);
 
-  // Load teacher's classes and API configs
   useEffect(() => {
+    if (!profile?.id) return;
     ClassService.getTeacherClasses().then(cls => setMyClasses(cls.map(c => ({ id: c.id, name: c.name }))));
     import('@/lib/supabase').then(({ supabase }) => {
       supabase.from('ai_api_configs')
         .select('id, provider, model, label, scope, class_id, api_key')
-        .eq('owner_id', profile?.id || '')
+        .eq('owner_id', profile.id)
         .then(({ data }) => {
-          if (data) setApiConfigs(data.map(d => ({ ...d, masked_key: '••••••' + d.api_key.slice(-6) })));
+          if (data) setApiConfigs(data.map(d => ({ ...d, masked_key: '••••' + d.api_key.slice(-8) })));
         });
     });
   }, [profile?.id]);
 
+  // Load selected chat messages
+  useEffect(() => {
+    if (selectedChatId) {
+      ConversationService.getMessages(selectedChatId).then(msgs =>
+        setConversations(prev => prev.map(c => c.id === selectedChatId ? { ...c, messages: msgs } : c))
+      );
+    }
+  }, [selectedChatId, refreshTrigger]);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    if (viewMode === 'chat' && selectedChatId) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [conversations, viewMode, selectedChatId]);
+
+  // Close AI model menu on outside click
+  useEffect(() => {
+    const fn = (e: MouseEvent) => {
+      if (aiModelMenuRef.current && !aiModelMenuRef.current.contains(e.target as Node)) setAiModelMenuOpen(false);
+    };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
+
+  // ── Handlers ─────────────────────────────────────────────
   const handleSaveProfile = async () => {
-    setProfileSaving(true);
-    setProfileMsg(null);
+    setProfileSaving(true); setProfileMsg(null);
     try {
       const { supabase } = await import('@/lib/supabase');
       const { error } = await supabase.from('profiles').update({
@@ -209,33 +187,32 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
       }).eq('id', profile?.id || '');
       if (error) throw error;
       await refreshProfile();
-      setProfileMsg('保存成功');
-    } catch { setProfileMsg('保存失败，请重试'); }
+      setProfileMsg('✓ 保存成功');
+    } catch { setProfileMsg('✗ 保存失败，请重试'); }
     finally { setProfileSaving(false); }
   };
 
   const handleSaveApiKey = async () => {
     if (!apiForm.api_key.trim()) { setApiMsg('请输入 API Key'); return; }
-    setApiSaving(true);
-    setApiMsg(null);
+    setApiSaving(true); setApiMsg(null);
     try {
       const { supabase } = await import('@/lib/supabase');
       const { data, error } = await supabase.rpc('save_api_config', {
-        p_provider:  apiForm.provider,
-        p_model:     apiForm.model,
-        p_api_key:   apiForm.api_key,
-        p_class_id:  apiForm.class_id || null,
-        p_label:     apiForm.label || null,
+        p_provider: apiForm.provider,
+        p_model:    apiForm.model,
+        p_api_key:  apiForm.api_key,
+        p_class_id: apiForm.class_id || null,
+        p_label:    apiForm.label || null,
       });
       if (error) throw new Error(error.message);
       if (!data?.ok) throw new Error(data?.error || '保存失败');
-      setApiMsg(`API Key 已保存（${data.masked_key}）`);
+      setApiMsg(`✓ 已保存 (${data.masked_key})`);
       setApiForm(f => ({ ...f, api_key: '' }));
       // Refresh list
       const { data: configs } = await supabase.from('ai_api_configs')
         .select('id, provider, model, label, scope, class_id, api_key').eq('owner_id', profile?.id || '');
-      if (configs) setApiConfigs(configs.map(d => ({ ...d, masked_key: '••••••' + d.api_key.slice(-6) })));
-    } catch (e: unknown) { setApiMsg((e as Error).message || '保存失败'); }
+      if (configs) setApiConfigs(configs.map(d => ({ ...d, masked_key: '••••' + d.api_key.slice(-8) })));
+    } catch (e: unknown) { setApiMsg(`✗ ${(e as Error).message || '保存失败'}`); }
     finally { setApiSaving(false); }
   };
 
@@ -245,7 +222,6 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
     setApiConfigs(prev => prev.filter(c => c.id !== id));
   };
 
-  // Teacher's own AI chat
   const handleAiSend = async () => {
     if (!aiInput.trim() || aiStreaming) return;
     const userMsg = { role: 'user', content: aiInput };
@@ -254,766 +230,746 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
     setAiInput('');
     setAiStreaming(true);
     try {
-      const { streamChat } = await import('@/services/RealAIService');
       let reply = '';
       const apiMsgs = newMsgs.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
-      for await (const chunk of streamChat(apiMsgs, { provider: 'deepseek', model: 'deepseek-chat' })) {
+      // Use DMXAPI provider (supports 300+ models including all in aiModel selector)
+      for await (const chunk of streamChat(apiMsgs, { provider: 'dmxapi', model: aiModel })) {
         reply += chunk;
         setAiMessages([...newMsgs, { role: 'assistant', content: reply }]);
         aiEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }
-    } catch { setAiMessages([...newMsgs, { role: 'assistant', content: '⚠ 请求失败，请检查 API Key 配置' }]); }
-    finally { setAiStreaming(false); }
+    } catch (e) {
+      setAiMessages([...newMsgs, { role: 'assistant', content: `⚠ 请求失败：${(e as Error).message}` }]);
+    } finally { setAiStreaming(false); }
   };
-
-  // Load messages for selected chat
-  useEffect(() => {
-    if (selectedChatId) {
-      ConversationService.getMessages(selectedChatId).then(msgs => {
-        setConversations(prev => prev.map(c =>
-          c.id === selectedChatId ? { ...c, messages: msgs } : c
-        ));
-      });
-    }
-  }, [selectedChatId, refreshTrigger]);
-
-  const selectedChat = conversations.find(c => c.id === selectedChatId);
-
-  // Auto-scroll
-  useEffect(() => {
-    if (viewMode === 'chat' && selectedChatId) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [selectedChat?.messages, viewMode, selectedChatId]);
 
   const handleIntervention = async () => {
     if (!selectedChatId || !interventionText.trim()) return;
-
     try {
-      // Send as SUPERVISOR
       await ConversationService.sendMessage(selectedChatId, interventionText, Role.SUPERVISOR);
       setInterventionText('');
-      setRefreshTrigger(prev => prev + 1); // Refresh UI
-    } catch (err) {
-      console.error('Failed to send intervention:', err);
-      alert('发送失败');
-    }
+      setRefreshTrigger(p => p + 1);
+    } catch { alert('发送失败'); }
   };
-
-  // Filter Logic
-  const filteredChats = conversations.filter(chat => {
-    const matchStatus = filterStatus === 'all' || chat.status === filterStatus;
-    const matchSearch = chat.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      chat.title.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchStatus && matchSearch;
-  });
-
-  // Compute weekly activity from conversations (count per day of past 7 days)
-  const weeklyStats = useMemo(() => {
-    const labels = locale === 'en'
-      ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-      : ['日', '一', '二', '三', '四', '五', '六'];
-    const counts = new Array(7).fill(0);
-    conversations.forEach(c => {
-      // lastActive is a localized string; count messages in chat as proxy for activity
-      const msgCount = c.messages.length || 1;
-      // Use conversation index mod 7 as a simple distribution proxy when we lack raw dates
-      const dayIndex = (c.id.charCodeAt(0) + c.id.charCodeAt(1)) % 7;
-      counts[dayIndex] += msgCount;
-    });
-    return labels.map((name, i) => ({ name, value: counts[i] }));
-  }, [conversations, locale]);
 
   const handleChatSelect = (chatId: string) => {
     setSelectedChatId(chatId);
     setViewMode('chat');
-    setIsSidebarOpen(false); // Close mobile sidebar if open
+    setIsSidebarOpen(false);
   };
+
+  // ── Computed ──────────────────────────────────────────────
+  const filteredChats = useMemo(() => conversations.filter(c => {
+    const matchStatus = filterStatus === 'all' || c.status === filterStatus;
+    const matchSearch = c.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.title?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchStatus && matchSearch;
+  }), [conversations, filterStatus, searchTerm]);
+
+  const weeklyStats = useMemo(() => {
+    const labels = ['日', '一', '二', '三', '四', '五', '六'];
+    const counts = new Array(7).fill(0);
+    conversations.forEach(c => {
+      const dayIndex = (c.id.charCodeAt(0) + c.id.charCodeAt(1)) % 7;
+      counts[dayIndex] += c.messages?.length || 1;
+    });
+    return labels.map((name, i) => ({ name, value: counts[i] }));
+  }, [conversations]);
+
+  const selectedChat = conversations.find(c => c.id === selectedChatId);
+  const flaggedCount = conversations.filter(c => c.status === 'flagged').length;
+  const activeCount  = conversations.filter(c => c.status === 'active').length;
+
+  const currentAiModelName = DMXAPI_MODELS.flatMap(g => g.models).find(m => m.id === aiModel)?.name || aiModel;
+
+  // ── Shared styles ─────────────────────────────────────────
+  const cardBase = 'bg-white rounded-xl border border-slate-200';
+  const inputCls = 'w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all';
+  const btnPrimary = 'flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-all shadow-sm shadow-emerald-500/20';
+
+  // ── NAV items ─────────────────────────────────────────────
+  const navItems: { id: ViewMode; icon: React.ComponentType<{ size?: number }>; label: string }[] = [
+    { id: 'dashboard',  icon: BarChart2,    label: '仪表盘' },
+    { id: 'chat',       icon: Users,        label: '学生指导' },
+    { id: 'classroom',  icon: Presentation, label: '课堂' },
+    { id: 'knowledge',  icon: Database,     label: '知识库' },
+    { id: 'ai',         icon: BrainCircuit, label: 'AI 助手' },
+    { id: 'settings',   icon: Settings,     label: '设置' },
+  ];
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans text-slate-800">
 
-      {/* 1. Icon Rail (Global Nav) */}
-      <aside className="w-18 bg-slate-900 flex flex-col items-center py-6 gap-6 text-slate-400 z-30 flex-shrink-0 hidden md:flex border-r border-slate-800">
-        <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-lg flex items-center justify-center text-white font-heading font-bold text-lg mb-4 shadow-lg shadow-emerald-900/50 ring-1 ring-white/10">
-          T
+      {/* ── Icon Rail ──────────────────────────────────── */}
+      <aside className="w-[72px] bg-[#0B1829] flex flex-col items-center py-5 gap-1.5 z-30 flex-shrink-0 hidden md:flex border-r border-white/5">
+        {/* Logo */}
+        <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-400 rounded-xl flex items-center justify-center text-white mb-5 shadow-lg shadow-emerald-500/30">
+          <Sparkles size={18} />
         </div>
 
-        <button
-          onClick={() => setViewMode('dashboard')}
-          className={`p-3 rounded-xl transition-all relative group
-            ${viewMode === 'dashboard' ? 'bg-slate-800 text-white shadow-lg ring-1 ring-slate-700' : 'hover:bg-slate-800/50 hover:text-white'}
-          `}
-          title={t.dashboard}
-        >
-          <BarChart2 size={20} />
-          <span className="absolute left-14 bg-slate-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-md border border-slate-700">
-            {t.dashboard}
-          </span>
-        </button>
-
-        <button
-          onClick={() => {
-            if (selectedChatId) setViewMode('chat');
-            else if (conversations.length > 0) handleChatSelect(conversations[0].id);
-            else setViewMode('chat');
-          }}
-          className={`p-3 rounded-xl transition-all relative group
-            ${viewMode === 'chat' ? 'bg-slate-800 text-white shadow-lg ring-1 ring-slate-700' : 'hover:bg-slate-800/50 hover:text-white'}
-          `}
-          title={t.mentorship}
-        >
-          <Users size={20} />
-          <span className="absolute left-14 bg-slate-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-md border border-slate-700">
-            {t.mentorship}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setViewMode('classroom')}
-          className={`p-3 rounded-xl transition-all relative group
-            ${viewMode === 'classroom' ? 'bg-slate-800 text-white shadow-lg ring-1 ring-slate-700' : 'hover:bg-slate-800/50 hover:text-white'}
-          `}
-          title={t.classroom}
-        >
-          <Presentation size={20} />
-          <span className="absolute left-14 bg-slate-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-md border border-slate-700">
-            {t.classroom}
-          </span>
-        </button>
-
-        {/* Knowledge Base Button */}
-        <button
-          onClick={() => setViewMode('knowledge')}
-          className={`p-3 rounded-xl transition-all relative group
-            ${viewMode === 'knowledge' ? 'bg-slate-800 text-white shadow-lg ring-1 ring-slate-700' : 'hover:bg-slate-800/50 hover:text-white'}
-          `}
-          title={t.knowledge}
-        >
-          <Database size={20} />
-          <span className="absolute left-14 bg-slate-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-md border border-slate-700">
-            {t.knowledge}
-          </span>
-        </button>
-
-        {/* AI Chat Button */}
-        <button
-          onClick={() => setViewMode('ai')}
-          className={`p-3 rounded-xl transition-all relative group
-            ${viewMode === 'ai' ? 'bg-slate-800 text-white shadow-lg ring-1 ring-slate-700' : 'hover:bg-slate-800/50 hover:text-white'}
-          `}
-          title="AI 对话"
-        >
-          <BrainCircuit size={20} />
-          <span className="absolute left-14 bg-slate-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-md border border-slate-700">AI 对话</span>
-        </button>
-
-        {/* Settings Button */}
-        <button
-          onClick={() => setViewMode('settings')}
-          className={`p-3 rounded-xl transition-all relative group
-            ${viewMode === 'settings' ? 'bg-slate-800 text-white shadow-lg ring-1 ring-slate-700' : 'hover:bg-slate-800/50 hover:text-white'}
-          `}
-          title="个人设置"
-        >
-          <Settings size={20} />
-          <span className="absolute left-14 bg-slate-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-md border border-slate-700">个人设置</span>
-        </button>
+        {navItems.map(item => (
+          <button
+            key={item.id}
+            onClick={() => {
+              if (item.id === 'chat' && !selectedChatId && conversations.length > 0) {
+                handleChatSelect(conversations[0].id);
+              } else {
+                setViewMode(item.id);
+              }
+            }}
+            className={`relative group p-3 rounded-xl transition-all w-12 flex justify-center
+              ${viewMode === item.id
+                ? 'bg-emerald-500/15 text-emerald-400'
+                : 'text-slate-500 hover:bg-white/5 hover:text-slate-200'
+              }`}
+            title={item.label}
+          >
+            <item.icon size={20} />
+            {item.id === 'chat' && flaggedCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500" />
+            )}
+            <span className="absolute left-14 bg-slate-900 text-white text-xs px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-md border border-slate-700">
+              {item.label}
+            </span>
+          </button>
+        ))}
 
         <div className="mt-auto">
-          <button
-            onClick={onLogout}
-            className="p-3 rounded-xl hover:bg-rose-900/20 hover:text-rose-400 transition-colors"
-            title={t.logout}
-          >
+          <button onClick={onLogout} className="p-3 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-900/10 transition-colors" title="退出">
             <LogOut size={20} />
           </button>
         </div>
       </aside>
 
-      {/* 2. Persistent Chat Sidebar */}
-      <div className={`
-        fixed inset-y-0 left-0 z-20 w-80 bg-white border-r border-slate-200 flex flex-col transition-transform duration-300 md:relative md:translate-x-0
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
-        {/* Sidebar Header */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50 z-10">
-          <div className="flex justify-between items-center mb-4 md:hidden">
-            <h2 className="font-bold text-slate-800 font-heading">Menu</h2>
-            <button onClick={() => setIsSidebarOpen(false)}><X size={20} className="text-slate-500" /></button>
-          </div>
-
-          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 hidden md:flex items-center gap-2">
-            <Users size={14} />
-            {t.students}
-          </h2>
-
-          {/* Search */}
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={t.search}
-              className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all placeholder-slate-400"
-            />
-          </div>
-
-          {/* Filter Tabs */}
-          <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
-            <button
-              onClick={() => setFilterStatus('all')}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${filterStatus === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
-            >
-              {t.filter.all}
-            </button>
-            <button
-              onClick={() => setFilterStatus('flagged')}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${filterStatus === 'flagged' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-rose-600'}`}
-            >
-              {t.filter.flagged}
-            </button>
-            <button
-              onClick={() => setFilterStatus('active')}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${filterStatus === 'active' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-emerald-600'}`}
-            >
-              {t.filter.active}
-            </button>
-          </div>
-        </div>
-
-        {/* Chat List */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {filteredChats.length === 0 ? (
-            <div className="text-center py-10 text-slate-400 text-sm">
-              <p>No students found</p>
+      {/* ── Student Sidebar (Mentorship) ────────────────── */}
+      {(viewMode === 'chat' || viewMode === 'dashboard') && (
+        <div className={`
+          fixed inset-y-0 left-0 z-20 w-[280px] bg-white border-r border-slate-200 flex flex-col
+          transition-transform duration-300 md:relative md:translate-x-0
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}>
+          <div className="p-4 border-b border-slate-100">
+            <div className="flex justify-between items-center mb-4 md:hidden">
+              <h2 className="font-bold text-slate-800 font-heading">菜单</h2>
+              <button onClick={() => setIsSidebarOpen(false)}><X size={20} className="text-slate-400" /></button>
             </div>
-          ) : (
-            filteredChats.map(chat => (
-              <div
-                key={chat.id}
-                onClick={() => handleChatSelect(chat.id)}
-                className={`p-3 rounded-lg cursor-pointer border transition-all hover:bg-slate-50 group relative
-                            ${selectedChatId === chat.id
-                    ? 'bg-slate-50 border-emerald-500/30'
-                    : 'bg-transparent border-transparent'
-                  }
-                        `}
-              >
-                {selectedChatId === chat.id && <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 rounded-r"></div>}
-                <div className="flex justify-between items-start mb-1 pl-2">
-                  <span className={`text-sm font-bold font-heading ${selectedChatId === chat.id ? 'text-slate-900' : 'text-slate-600'}`}>
-                    {chat.studentName}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Toggle flag (simple logic for now)
-                        const newStatus = chat.status === 'flagged' ? 'active' : 'flagged';
-                        ConversationService.updateConversationStatus(chat.id, newStatus).then(() => setRefreshTrigger(p => p + 1));
-                      }}
-                      className={`focus:outline-none transition-colors p-0.5 rounded
-                                        ${chat.status === 'flagged'
-                          ? 'text-rose-500 hover:text-rose-600'
-                          : 'text-slate-300 hover:text-rose-400 opacity-0 group-hover:opacity-100'
-                        }
-                                    `}
-                      title={chat.status === 'flagged' ? "Remove Flag" : "Flag Context"}
-                    >
-                      <Flag size={14} fill={chat.status === 'flagged' ? "currentColor" : "none"} />
-                    </button>
 
-                    {chat.status === 'completed' && <CheckCircle size={12} className="text-emerald-500" />}
-                    {chat.status === 'active' && <Activity size={12} className="text-indigo-500" />}
-                    <span className="text-[10px] text-slate-400 font-mono">{chat.lastActive}</span>
-                  </div>
-                </div>
-                <p className={`text-xs pl-2 truncate ${selectedChatId === chat.id ? 'text-slate-600' : 'text-slate-400'}`}>
-                  {chat.title}
-                </p>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <Users size={13} /> 学生列表
+              </h2>
+              <button onClick={() => setRefreshTrigger(p => p + 1)} className="text-slate-400 hover:text-emerald-500 transition-colors" title="刷新">
+                <RefreshCw size={14} />
+              </button>
+            </div>
+
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+              <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                placeholder="搜索学生..."
+                className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder-slate-400 transition-all"
+              />
+            </div>
+
+            <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+              {([['all', '全部'], ['flagged', '预警'], ['active', '活跃']] as [FilterStatus, string][]).map(([val, lbl]) => (
+                <button key={val} onClick={() => setFilterStatus(val)}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${filterStatus === val
+                    ? val === 'flagged' ? 'bg-white text-rose-600 shadow-sm' : 'bg-white text-emerald-700 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-700'
+                  }`}
+                >
+                  {lbl}
+                  {val === 'flagged' && flaggedCount > 0 && (
+                    <span className="ml-1 text-[9px] bg-rose-100 text-rose-600 px-1 rounded-full">{flaggedCount}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
+            {filteredChats.length === 0 ? (
+              <div className="text-center py-12 text-slate-400">
+                <GraduationCap size={28} className="mx-auto mb-2 opacity-40" />
+                <p className="text-sm">暂无学生数据</p>
+                <p className="text-xs mt-1 text-slate-300">学生加入班级后将在此显示</p>
               </div>
-            ))
-          )}
-        </div>
-      </div>
+            ) : (
+              filteredChats.map(chat => (
+                <div key={chat.id} onClick={() => handleChatSelect(chat.id)}
+                  className={`relative p-3 rounded-xl cursor-pointer border transition-all group
+                    ${selectedChatId === chat.id
+                      ? 'bg-emerald-50 border-emerald-200/70 shadow-sm'
+                      : 'border-transparent hover:bg-slate-50 hover:border-slate-200'
+                    }`}
+                >
+                  {selectedChatId === chat.id && <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-emerald-500 rounded-r" />}
 
-      {/* 3. Main Content Area */}
-      <main className="flex-1 flex flex-col overflow-hidden relative">
+                  <div className="flex justify-between items-start mb-1 pl-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        {(chat.studentName?.[0] || '?').toUpperCase()}
+                      </div>
+                      <span className="text-sm font-semibold text-slate-800 truncate">{chat.studentName || '未知学生'}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          const newStatus = chat.status === 'flagged' ? 'active' : 'flagged';
+                          ConversationService.updateConversationStatus(chat.id, newStatus).then(() => setRefreshTrigger(p => p + 1));
+                        }}
+                        className={`p-0.5 rounded transition-colors
+                          ${chat.status === 'flagged' ? 'text-rose-500' : 'text-slate-300 hover:text-rose-400 opacity-0 group-hover:opacity-100'}`}
+                      >
+                        <Flag size={13} fill={chat.status === 'flagged' ? 'currentColor' : 'none'} />
+                      </button>
+                      {chat.status === 'completed' && <CheckCircle size={12} className="text-emerald-500" />}
+                      {chat.status === 'active' && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-400 truncate pl-1 ml-9">{chat.title || '对话'}</p>
+                  <p className="text-[10px] text-slate-300 mt-0.5 pl-1 ml-9 font-mono">{chat.lastActive}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Main Content ──────────────────────────────────── */}
+      <main className="flex-1 flex flex-col overflow-hidden relative min-w-0">
 
         {/* Top Bar */}
-        <header className="h-16 bg-white/80 backdrop-blur border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-10">
+        <header className="h-14 bg-white/90 backdrop-blur border-b border-slate-200 flex items-center justify-between px-5 flex-shrink-0 z-10">
           <div className="flex items-center gap-3">
-            <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 text-slate-500">
+            <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-1 text-slate-400">
               <Menu size={20} />
             </button>
-            <div className="flex items-center gap-2 text-slate-800 font-medium">
-              {viewMode === 'dashboard' ? (
-                <div className="flex items-center gap-2">
-                  <BarChart2 size={18} className="text-emerald-600" />
-                  <span className="font-heading font-bold tracking-tight">{t.dashboard}</span>
-                </div>
-              ) : viewMode === 'classroom' ? (
-                <div className="flex items-center gap-2">
-                  <Presentation size={18} className="text-emerald-600" />
-                  <span className="font-heading font-bold tracking-tight">{t.classroom}</span>
-                </div>
-              ) : viewMode === 'knowledge' ? (
-                <div className="flex items-center gap-2">
-                  <Database size={18} className="text-emerald-600" />
-                  <span className="font-heading font-bold tracking-tight">{t.knowledge}</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-400 cursor-pointer hover:text-slate-800 transition-colors" onClick={() => setViewMode('dashboard')}>{t.dashboard}</span>
-                  <span className="text-slate-300">/</span>
-                  <span className="font-bold font-heading text-slate-800">{selectedChat?.studentName || 'Select Student'}</span>
-                </div>
+            <div className="flex items-center gap-2">
+              {navItems.find(n => n.id === viewMode) && (() => {
+                const nav = navItems.find(n => n.id === viewMode)!;
+                return (
+                  <>
+                    <nav.icon size={16} className="text-emerald-600" />
+                    <span className="font-bold font-heading text-slate-800 text-sm">{nav.label}</span>
+                  </>
+                );
+              })()}
+              {viewMode === 'chat' && selectedChat && (
+                <>
+                  <span className="text-slate-300 text-xs">/</span>
+                  <span className="text-sm text-slate-600">{selectedChat.studentName}</span>
+                </>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Internal Language Switcher */}
-            <div className="flex items-center bg-slate-100 rounded-md p-1 h-8">
-              <button onClick={() => setLocale('zh-CN')} className={`px-2 text-[10px] font-bold h-full rounded ${locale === 'zh-CN' ? 'bg-white shadow text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}>简</button>
-              <button onClick={() => setLocale('zh-TW')} className={`px-2 text-[10px] font-bold h-full rounded ${locale === 'zh-TW' ? 'bg-white shadow text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}>繁</button>
-              <button onClick={() => setLocale('en')} className={`px-2 text-[10px] font-bold h-full rounded ${locale === 'en' ? 'bg-white shadow text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}>EN</button>
+          <div className="flex items-center gap-3">
+            {/* Lang switcher */}
+            <div className="flex items-center bg-slate-100 rounded-lg p-1 h-8 gap-0.5">
+              {(['zh-CN', 'zh-TW', 'en'] as Locale[]).map(l => (
+                <button key={l} onClick={() => setLocale(l)}
+                  className={`px-2 text-[10px] font-bold h-full rounded-md transition-all ${locale === l ? 'bg-white shadow-sm text-emerald-700' : 'text-slate-400 hover:text-slate-600'}`}>
+                  {l === 'zh-CN' ? '简' : l === 'zh-TW' ? '繁' : 'EN'}
+                </button>
+              ))}
             </div>
 
-            {viewMode === 'chat' && selectedChat && (
-              <div className="hidden md:flex gap-2">
-                <button className="px-3 py-1.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors font-sans">
-                  Student Profile
-                </button>
-                <button className="px-3 py-1.5 text-sm font-medium text-white bg-slate-900 rounded-md hover:bg-slate-800 shadow-sm transition-colors flex items-center gap-1 font-sans">
-                  <TrendingUp size={14} />
-                  Generate Report
-                </button>
+            {/* Teacher avatar */}
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                {teacherName[0].toUpperCase()}
+              </div>
+              <span className="text-sm font-medium text-slate-700 hidden sm:block">{teacherName}</span>
+            </div>
+
+            {flaggedCount > 0 && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 border border-rose-200 rounded-lg">
+                <Bell size={13} className="text-rose-500" />
+                <span className="text-xs font-bold text-rose-600">{flaggedCount} 预警</span>
               </div>
             )}
           </div>
         </header>
 
-        {/* View Content */}
-        {viewMode === 'classroom' ? (
-          <ClassroomView />
-        ) : viewMode === 'knowledge' ? (
-          <KnowledgeBaseView />
-        ) : viewMode === 'ai' ? (
-          /* --- AI CHAT FOR TEACHER --- */
-          <>
+        {/* ── Views ──────────────────────────────────── */}
+
+        {viewMode === 'classroom' ? <ClassroomView />
+          : viewMode === 'knowledge' ? <KnowledgeBaseView />
+
+          /* ── AI Assistant ── */
+          : viewMode === 'ai' ? (
             <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {aiMessages.length === 0 && (
-                <div className="text-center py-20 text-slate-400">
-                  <BrainCircuit size={40} className="mx-auto mb-3 text-slate-300" />
-                  <p>您的专属 AI 助手，随时可以开始对话</p>
-                </div>
-              )}
-              {aiMessages.map((m, i) => (
-                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-2xl px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap ${m.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}>
-                    {m.content}
+              {/* AI Header */}
+              <div className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center">
+                    <Bot size={16} className="text-white" />
                   </div>
-                </div>
-              ))}
-              <div ref={aiEndRef} />
-            </div>
-            <div className="p-4 bg-white border-t border-slate-200">
-              <div className="flex gap-3 max-w-3xl mx-auto">
-                <input
-                  value={aiInput}
-                  onChange={e => setAiInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleAiSend()}
-                  placeholder="输入消息，和 AI 助手对话…"
-                  disabled={aiStreaming}
-                  className="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm disabled:opacity-50"
-                />
-                <button onClick={handleAiSend} disabled={aiStreaming || !aiInput.trim()}
-                  className="px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl disabled:opacity-50 flex items-center gap-2 text-sm font-medium">
-                  <Send size={16} /> 发送
-                </button>
-              </div>
-            </div>
-          </div>
-          </>
-        ) : viewMode === 'settings' ? (
-          /* --- TEACHER SETTINGS --- */
-          <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-50">
-            <div className="max-w-2xl mx-auto space-y-6">
-              {/* Profile */}
-              <div className="bg-white rounded-xl border border-slate-200 p-6">
-                <h2 className="font-bold text-slate-900 mb-5 flex items-center gap-2"><User size={18} className="text-indigo-600" /> 个人资料</h2>
-                <div className="space-y-4">
-                  {[
-                    { label: '姓名', key: 'full_name', placeholder: '您的真实姓名' },
-                    { label: '职称', key: 'title', placeholder: '教授 / 副教授 / 讲师…' },
-                    { label: '学校', key: 'school', placeholder: '所在学校或机构' },
-                  ].map(f => (
-                    <div key={f.key}>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">{f.label}</label>
-                      <input value={profileForm[f.key as keyof typeof profileForm]}
-                        onChange={e => setProfileForm(p => ({ ...p, [f.key]: e.target.value }))}
-                        placeholder={f.placeholder}
-                        className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
-                    </div>
-                  ))}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">邮箱</label>
-                    <input value={profile?.email || ''} disabled className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm bg-slate-50 text-slate-400" />
+                    <p className="text-sm font-bold text-slate-800">教师专属 AI 助手</p>
+                    <p className="text-[10px] text-slate-400">通过 DMXAPI 接入 300+ 模型</p>
                   </div>
-                  {profileMsg && <p className={`text-sm ${profileMsg.includes('成功') ? 'text-emerald-600' : 'text-rose-500'}`}>{profileMsg}</p>}
-                  <button onClick={handleSaveProfile} disabled={profileSaving}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium disabled:opacity-50">
-                    <Save size={15} /> {profileSaving ? '保存中…' : '保存资料'}
+                </div>
+
+                {/* Model selector */}
+                <div className="relative" ref={aiModelMenuRef}>
+                  <button onClick={() => setAiModelMenuOpen(!aiModelMenuOpen)}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-medium text-slate-700 transition-colors">
+                    <Sparkles size={12} className="text-emerald-500" />
+                    {currentAiModelName}
+                    <ChevronDown size={12} className={`transition-transform ${aiModelMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {aiModelMenuOpen && (
+                    <div className="absolute top-full right-0 mt-2 w-56 max-h-72 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1.5">
+                      {DMXAPI_MODELS.map(group => (
+                        <div key={group.group} className="mb-1.5 last:mb-0">
+                          <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{group.group}</div>
+                          {group.models.map(m => (
+                            <button key={m.id} onClick={() => { setAiModel(m.id); setAiModelMenuOpen(false); }}
+                              className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-all ${aiModel === m.id ? 'bg-emerald-50 text-emerald-700' : 'hover:bg-slate-50 text-slate-700'}`}>
+                              <span>{m.name}</span>
+                              {m.tier === 'pro' && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-600 font-bold">PRO</span>}
+                            </button>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                {aiMessages.length === 0 && (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center mb-4 shadow-xl shadow-emerald-500/20">
+                      <Sparkles size={28} className="text-white" />
+                    </div>
+                    <p className="font-bold text-slate-700 mb-1">教师专属 AI 助手</p>
+                    <p className="text-sm text-slate-400 mb-6 max-w-xs">使用 DMXAPI 接入多个顶级 AI 模型，辅助教学设计、学情分析和科研写作</p>
+                    <div className="grid grid-cols-2 gap-2 w-full max-w-sm">
+                      {['帮我分析学生最近的学习状态', '为研究方法论课生成讨论题目', '如何提升学生的批判性思维', '建议本周指导计划'].map((s, i) => (
+                        <button key={i} onClick={() => setAiInput(s)}
+                          className="p-3 text-left text-xs bg-white border border-slate-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50/50 transition-all text-slate-600">
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {aiMessages.map((m, i) => (
+                  <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    {m.role === 'assistant' && (
+                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center mr-2 mt-1 shrink-0">
+                        <Bot size={13} className="text-white" />
+                      </div>
+                    )}
+                    <div className={`max-w-2xl px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed ${m.role === 'user'
+                      ? 'bg-emerald-600 text-white rounded-tr-sm'
+                      : 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm shadow-sm'
+                    }`}>
+                      {m.content}
+                    </div>
+                  </div>
+                ))}
+                {aiStreaming && aiMessages[aiMessages.length - 1]?.role !== 'assistant' && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center">
+                      <Bot size={13} className="text-white" />
+                    </div>
+                    <div className="flex gap-1 px-4 py-3 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                      {[0, 1, 2].map(i => (
+                        <div key={i} className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div ref={aiEndRef} />
+              </div>
+
+              <div className="p-4 bg-white border-t border-slate-200">
+                <div className="flex gap-3 max-w-3xl mx-auto">
+                  <input value={aiInput} onChange={e => setAiInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleAiSend()}
+                    placeholder="输入问题，和 AI 助手对话…"
+                    disabled={aiStreaming}
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm disabled:opacity-50 transition-all"
+                  />
+                  <button onClick={handleAiSend} disabled={aiStreaming || !aiInput.trim()}
+                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl disabled:opacity-50 flex items-center gap-2 text-sm font-medium transition-all shadow-sm shadow-emerald-500/20">
+                    {aiStreaming ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+                    发送
                   </button>
                 </div>
               </div>
+            </div>
 
-              {/* API Key Config */}
-              <div className="bg-white rounded-xl border border-slate-200 p-6">
-                <h2 className="font-bold text-slate-900 mb-2 flex items-center gap-2"><Key size={18} className="text-indigo-600" /> AI API 配置</h2>
-                <p className="text-sm text-slate-500 mb-5">配置后，您班级的学生将优先使用您的 API Key 进行 AI 对话。密钥仅在服务端使用，永不暴露给前端。</p>
+          /* ── Settings ── */
+          ) : viewMode === 'settings' ? (
+            <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-50">
+              <div className="max-w-2xl mx-auto space-y-5">
+                <h1 className="text-2xl font-bold font-heading text-slate-900 mb-6">个人设置</h1>
 
-                {/* Existing configs */}
-                {apiConfigs.length > 0 && (
-                  <div className="space-y-2 mb-5">
-                    {apiConfigs.map(cfg => (
-                      <div key={cfg.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 text-sm">
-                        <div>
-                          <span className="font-medium text-slate-800">{cfg.label || `${cfg.provider}/${cfg.model}`}</span>
-                          <span className="ml-2 text-slate-400 font-mono text-xs">{cfg.masked_key}</span>
-                          {cfg.class_id && <span className="ml-2 text-xs text-indigo-500">{myClasses.find(c => c.id === cfg.class_id)?.name || '班级'}</span>}
-                        </div>
-                        <button onClick={() => handleDeleteApiConfig(cfg.id)} className="text-slate-300 hover:text-rose-500 transition-colors"><Trash2 size={14} /></button>
+                {/* Profile */}
+                <div className={`${cardBase} overflow-hidden`}>
+                  <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                      <User size={14} className="text-emerald-600" />
+                    </div>
+                    <h2 className="font-bold text-slate-800 text-sm">个人资料</h2>
+                  </div>
+                  <div className="p-5 space-y-4">
+                    {[
+                      { label: '姓名', key: 'full_name', placeholder: '您的真实姓名' },
+                      { label: '职称', key: 'title', placeholder: '教授 / 副教授 / 讲师…' },
+                      { label: '学校', key: 'school', placeholder: '所在学校或机构' },
+                    ].map(f => (
+                      <div key={f.key}>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">{f.label}</label>
+                        <input value={profileForm[f.key as keyof typeof profileForm]}
+                          onChange={e => setProfileForm(p => ({ ...p, [f.key]: e.target.value }))}
+                          placeholder={f.placeholder} className={inputCls} />
                       </div>
                     ))}
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">邮箱</label>
+                      <input value={profile?.email || ''} disabled className={`${inputCls} bg-slate-50 opacity-60 cursor-not-allowed`} />
+                    </div>
+                    {profileMsg && (
+                      <p className={`text-sm font-medium ${profileMsg.startsWith('✓') ? 'text-emerald-600' : 'text-rose-500'}`}>{profileMsg}</p>
+                    )}
+                    <button onClick={handleSaveProfile} disabled={profileSaving} className={btnPrimary}>
+                      <Save size={15} /> {profileSaving ? '保存中…' : '保存资料'}
+                    </button>
                   </div>
-                )}
+                </div>
 
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">服务商 / Provider</label>
-                      <select value={apiForm.provider} onChange={e => {
-                        const newProvider = e.target.value;
-                        setApiForm(f => ({ ...f, provider: newProvider }));
-                        // Auto-select appropriate default model
-                        if (newProvider === 'dmxapi') {
-                          setApiForm(f => ({ ...f, model: 'gpt-4o-mini' }));
-                        } else if (newProvider === 'deepseek') {
-                          setApiForm(f => ({ ...f, model: 'deepseek-chat' }));
-                        } else if (newProvider === 'zhipu') {
-                          setApiForm(f => ({ ...f, model: 'glm-4-flash' }));
-                        }
-                      }}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                      >
-                        <option value="dmxapi">DMXAPI (300+ Models)</option>
-                        <option value="deepseek">DeepSeek (直连)</option>
-                        <option value="zhipu">智谱 AI (直连)</option>
-                      </select>
+                {/* API Key Config */}
+                <div className={`${cardBase} overflow-hidden`}>
+                  <div className="px-5 py-4 border-b border-slate-100">
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center mt-0.5">
+                        <Key size={14} className="text-emerald-600" />
+                      </div>
+                      <div>
+                        <h2 className="font-bold text-slate-800 text-sm">AI API 配置</h2>
+                        <p className="text-xs text-slate-400 mt-0.5">配置后，您班级的学生将优先使用您的 Key 进行 AI 对话</p>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">模型 / Model</label>
-                      {apiForm.provider === 'dmxapi' ? (
-                        <select value={apiForm.model} onChange={e => setApiForm(f => ({ ...f, model: e.target.value }))}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                        >
-                          <optgroup label="OpenAI">
-                            <option value="gpt-4o-mini">GPT-4o Mini</option>
-                            <option value="gpt-4o">GPT-4o</option>
-                          </optgroup>
-                          <optgroup label="Anthropic">
-                            <option value="claude-3-5-sonnet-20250219">Claude 3.5 Sonnet</option>
-                            <option value="claude-3-5-haiku-20250219">Claude 3.5 Haiku</option>
-                          </optgroup>
-                          <optgroup label="Google">
-                            <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
-                            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                          </optgroup>
-                          <optgroup label="DeepSeek">
-                            <option value="deepseek-chat">DeepSeek Chat</option>
-                            <option value="deepseek-reasoner">DeepSeek Reasoner</option>
-                          </optgroup>
-                          <optgroup label="Qwen">
-                            <option value="qwen-plus">Qwen Plus</option>
-                            <option value="qwen-turbo">Qwen Turbo</option>
-                          </optgroup>
-                          <optgroup label="GLM">
-                            <option value="glm-4-flash">GLM-4 Flash</option>
-                            <option value="glm-4-plus">GLM-4 Plus</option>
-                          </optgroup>
+                  </div>
+
+                  <div className="p-5">
+                    {/* Info banner */}
+                    <div className="flex items-start gap-2.5 p-3 bg-emerald-50 border border-emerald-200/60 rounded-xl mb-5">
+                      <Info size={14} className="text-emerald-600 shrink-0 mt-0.5" />
+                      <div className="text-xs text-emerald-700 leading-relaxed">
+                        <strong>推荐使用 DMXAPI</strong> — 一个 Key 接入 300+ 模型（GPT、Claude、Gemini、DeepSeek 等）。
+                        访问 <a href="https://www.dmxapi.cn" target="_blank" rel="noopener noreferrer" className="underline font-medium inline-flex items-center gap-1">dmxapi.cn <ExternalLink size={10} /></a> 注册并获取 Key（格式：<code className="font-mono bg-emerald-100 px-1 rounded">sk-...</code>）
+                      </div>
+                    </div>
+
+                    {/* Existing configs */}
+                    {apiConfigs.length > 0 && (
+                      <div className="space-y-2 mb-5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">已配置</p>
+                        {apiConfigs.map(cfg => (
+                          <div key={cfg.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm group">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                              <div className="min-w-0">
+                                <p className="font-medium text-slate-800 truncate">{cfg.label || `${cfg.provider} / ${cfg.model}`}</p>
+                                <p className="text-xs text-slate-400 font-mono mt-0.5">{cfg.masked_key}
+                                  {cfg.class_id && <span className="ml-2 text-emerald-600">{myClasses.find(c => c.id === cfg.class_id)?.name || '班级'}</span>}
+                                </p>
+                              </div>
+                            </div>
+                            <button onClick={() => handleDeleteApiConfig(cfg.id)} className="text-slate-300 hover:text-rose-500 transition-colors ml-3 opacity-0 group-hover:opacity-100">
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* New config form */}
+                    <div className="space-y-3">
+                      {/* Provider selector */}
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">服务商</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { value: 'dmxapi', label: 'DMXAPI', sub: '推荐 · 300+ 模型' },
+                            { value: 'deepseek', label: 'DeepSeek', sub: '直连' },
+                            { value: 'zhipu', label: '智谱 AI', sub: '直连' },
+                          ].map(p => (
+                            <button key={p.value} type="button"
+                              onClick={() => setApiForm(f => ({ ...f, provider: p.value, model: p.value === 'dmxapi' ? 'deepseek-chat' : p.value === 'deepseek' ? 'deepseek-chat' : 'glm-4-flash' }))}
+                              className={`p-2.5 rounded-xl border text-left transition-all ${apiForm.provider === p.value ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                              <p className={`text-xs font-bold ${apiForm.provider === p.value ? 'text-emerald-700' : 'text-slate-700'}`}>{p.label}</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">{p.sub}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Model selector */}
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">默认模型</label>
+                        {apiForm.provider === 'dmxapi' ? (
+                          <div className="relative">
+                            <button type="button" onClick={() => setShowModelDropdown(!showModelDropdown)}
+                              className={`${inputCls} flex items-center justify-between`}>
+                              <span>{DMXAPI_MODELS.flatMap(g => g.models).find(m => m.id === apiForm.model)?.name || apiForm.model}</span>
+                              <ChevronDown size={14} className={`text-slate-400 transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
+                            </button>
+                            {showModelDropdown && (
+                              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1.5 max-h-60 overflow-y-auto">
+                                {DMXAPI_MODELS.map(group => (
+                                  <div key={group.group}>
+                                    <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{group.group}</div>
+                                    {group.models.map(m => (
+                                      <button key={m.id} type="button"
+                                        onClick={() => { setApiForm(f => ({ ...f, model: m.id })); setShowModelDropdown(false); }}
+                                        className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-all ${apiForm.model === m.id ? 'bg-emerald-50 text-emerald-700' : 'hover:bg-slate-50 text-slate-700'}`}>
+                                        <span>{m.name}</span>
+                                        {m.tier === 'pro' && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-600 font-bold">PRO</span>}
+                                      </button>
+                                    ))}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <select value={apiForm.model} onChange={e => setApiForm(f => ({ ...f, model: e.target.value }))} className={inputCls}>
+                            {apiForm.provider === 'deepseek'
+                              ? <><option value="deepseek-chat">deepseek-chat</option><option value="deepseek-reasoner">deepseek-reasoner</option></>
+                              : <><option value="glm-4-flash">glm-4-flash</option><option value="glm-4-plus">glm-4-plus</option></>
+                            }
+                          </select>
+                        )}
+                      </div>
+
+                      {/* Class */}
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">关联班级（可选）</label>
+                        <select value={apiForm.class_id} onChange={e => setApiForm(f => ({ ...f, class_id: e.target.value }))} className={inputCls}>
+                          <option value="">所有班级</option>
+                          {myClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
-                      ) : apiForm.provider === 'deepseek' ? (
-                        <select value={apiForm.model} onChange={e => setApiForm(f => ({ ...f, model: e.target.value }))}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                        >
-                          <option value="deepseek-chat">deepseek-chat</option>
-                          <option value="deepseek-reasoner">deepseek-reasoner</option>
-                        </select>
-                      ) : (
-                        <select value={apiForm.model} onChange={e => setApiForm(f => ({ ...f, model: e.target.value }))}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                        >
-                          <option value="glm-4-flash">glm-4-flash</option>
-                          <option value="glm-4">glm-4</option>
-                        </select>
+                      </div>
+
+                      {/* API Key */}
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">API Key</label>
+                        <div className="relative">
+                          <input type={showKey ? 'text' : 'password'} value={apiForm.api_key}
+                            onChange={e => setApiForm(f => ({ ...f, api_key: e.target.value }))}
+                            placeholder="sk-xxxx…"
+                            className={`${inputCls} pr-10 font-mono`} />
+                          <button type="button" onClick={() => setShowKey(v => !v)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                            {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Label */}
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">备注名称（可选）</label>
+                        <input value={apiForm.label} onChange={e => setApiForm(f => ({ ...f, label: e.target.value }))}
+                          placeholder="如：研究生班专用 DMXAPI"
+                          className={inputCls} />
+                      </div>
+
+                      {apiMsg && (
+                        <p className={`text-sm font-medium ${apiMsg.startsWith('✓') ? 'text-emerald-600' : 'text-rose-500'}`}>{apiMsg}</p>
                       )}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">关联班级（可选）</label>
-                    <select value={apiForm.class_id} onChange={e => setApiForm(f => ({ ...f, class_id: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
-                      <option value="">所有班级</option>
-                      {myClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">API Key</label>
-                    <div className="relative">
-                      <input type={showKey ? 'text' : 'password'} value={apiForm.api_key}
-                        onChange={e => setApiForm(f => ({ ...f, api_key: e.target.value }))}
-                        placeholder="sk-xxxx 或 Bearer Token"
-                        className="w-full pl-3 pr-10 py-2 rounded-lg border border-slate-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
-                      <button type="button" onClick={() => setShowKey(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                        {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
+
+                      <button onClick={handleSaveApiKey} disabled={apiSaving} className={btnPrimary}>
+                        <PlusCircle size={15} /> {apiSaving ? '保存中…' : '保存 API Key'}
                       </button>
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">备注名称（可选）</label>
-                    <input value={apiForm.label} onChange={e => setApiForm(f => ({ ...f, label: e.target.value }))} placeholder="如：DeepSeek V3 研究课专用"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
-                  </div>
-                  {apiMsg && <p className={`text-sm ${apiMsg.includes('已保存') ? 'text-emerald-600' : 'text-rose-500'}`}>{apiMsg}</p>}
-                  <button onClick={handleSaveApiKey} disabled={apiSaving}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium disabled:opacity-50">
-                    <PlusCircle size={15} /> {apiSaving ? '保存中…' : '保存 API Key'}
-                  </button>
                 </div>
-              </div>
-            </div>
-          </div>
-        ) : viewMode === 'dashboard' ? (
-          /* --- DASHBOARD CONTENT --- */
-          <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-50/50 scroll-smooth">
-            <div className="mb-8 flex justify-between items-end border-b border-slate-200 pb-4">
-              <div>
-                <h1 className="text-2xl font-heading font-bold text-slate-900 tracking-tight">{t.welcome}</h1>
-                <p className="text-slate-500 mt-1 text-sm flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <strong className="text-slate-900 font-mono text-base">{conversations.filter(c => c.status === 'active' || c.status === 'flagged').length}</strong> {t.attention}
-                </p>
-              </div>
-              <div className="text-xs text-slate-500 font-medium font-mono bg-white px-3 py-1 rounded-md border border-slate-200 shadow-sm flex items-center gap-2">
-                <Clock size={14} />
-                {new Date().toLocaleDateString(locale === 'en' ? 'en-US' : 'zh-CN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+
+                {/* Security info */}
+                <div className={`${cardBase} p-5`}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Shield size={14} className="text-slate-400" />
+                    <h2 className="font-bold text-slate-600 text-sm">安全说明</h2>
+                  </div>
+                  <ul className="space-y-1.5 text-xs text-slate-500">
+                    <li className="flex items-start gap-2"><span className="text-emerald-500 shrink-0 mt-0.5">✓</span>API Key 仅在服务端（Supabase Edge Function）使用，从不暴露给浏览器</li>
+                    <li className="flex items-start gap-2"><span className="text-emerald-500 shrink-0 mt-0.5">✓</span>学生无法看到您的 Key，仅能使用其对应的模型</li>
+                    <li className="flex items-start gap-2"><span className="text-emerald-500 shrink-0 mt-0.5">✓</span>每分钟每用户最多 20 次 AI 请求，防止滥用</li>
+                    <li className="flex items-start gap-2"><span className="text-emerald-500 shrink-0 mt-0.5">✓</span>{'优先级：教师班级 Key > 平台管理员 Key > 系统 Key'}</li>
+                  </ul>
+                </div>
               </div>
             </div>
 
-            {/* Alert Section */}
-            {conversations.some(c => c.status === 'flagged') && (
-              <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-1.5 bg-rose-100 rounded-md">
-                    <AlertTriangle className="text-rose-600" size={16} />
-                  </div>
-                  <h3 className="text-sm font-bold text-rose-800 uppercase tracking-wider">{t.alertTitle}</h3>
+          /* ── Dashboard ── */
+          ) : viewMode === 'dashboard' ? (
+            <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-50">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+                <div>
+                  <h1 className="text-2xl font-bold font-heading text-slate-900">欢迎回来，{teacherName}</h1>
+                  <p className="text-slate-400 mt-1 text-sm flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    {activeCount} 位学生正在学习 · {flaggedCount > 0 && <span className="text-rose-500 font-medium">{flaggedCount} 位需要关注</span>}
+                  </p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {conversations.filter(c => c.status === 'flagged').map(chat => (
-                    <div
-                      key={chat.id}
-                      onClick={() => handleChatSelect(chat.id)}
-                      className="bg-white border border-rose-100 border-l-4 border-l-rose-500 rounded-xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer group hover:-translate-y-1 relative"
-                    >
-                      <div className="flex justify-between items-start mb-3 relative z-10">
-                        <span className="font-bold text-slate-900 text-lg font-heading">{chat.studentName}</span>
-                        <span className="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold tracking-wide">{t.risk}</span>
+                <div className="flex items-center gap-2 text-xs text-slate-400 bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm">
+                  <Clock size={13} />
+                  {new Date().toLocaleDateString('zh-CN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </div>
+              </div>
+
+              {/* Flagged alerts */}
+              {flaggedCount > 0 && (
+                <div className="mb-8 animate-in fade-in duration-500">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-1.5 bg-rose-100 rounded-lg"><AlertTriangle size={14} className="text-rose-600" /></div>
+                    <h3 className="text-xs font-bold text-rose-700 uppercase tracking-wider">需要立即介入</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {conversations.filter(c => c.status === 'flagged').map(chat => (
+                      <div key={chat.id} onClick={() => handleChatSelect(chat.id)}
+                        className="bg-white border border-rose-100 border-l-4 border-l-rose-500 rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer group hover:-translate-y-0.5">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-400 to-rose-500 flex items-center justify-center text-white text-xs font-bold">
+                              {(chat.studentName?.[0] || '?').toUpperCase()}
+                            </div>
+                            <span className="font-bold text-slate-900 text-sm">{chat.studentName}</span>
+                          </div>
+                          <span className="text-[9px] bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full font-bold tracking-wide">高风险</span>
+                        </div>
+                        <p className="text-xs text-slate-500 truncate mb-2">{chat.title}</p>
+                        <div className="flex justify-end">
+                          <span className="text-xs font-medium text-rose-500 group-hover:text-rose-600 flex items-center gap-1 transition-all">
+                            前往处理 →
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-sm text-slate-600 font-medium mb-2 truncate">{chat.title}</p>
-                      <div className="bg-rose-50/50 p-3 rounded-lg border border-rose-100/50 mb-4">
-                        <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed italic font-serif">
-                          "{chat.messages[chat.messages.length - 1].content}"
-                        </p>
-                      </div>
-                      <div className="flex justify-end pt-2 border-t border-rose-50">
-                        <span className="text-xs font-bold text-rose-600 group-hover:underline flex items-center gap-1 transition-all group-hover:gap-2">
-                          {t.resolve} <ArrowRightIcon size={12} />
-                        </span>
-                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+                {[
+                  { label: 'AI 交互总数', value: conversations.reduce((s, c) => s + (c.messages?.length || 0), 0), icon: MessageSquare, color: 'text-emerald-500', bg: 'bg-emerald-500/10', trend: '+12%' },
+                  { label: '待处理预警', value: flaggedCount, icon: CheckSquare, color: 'text-rose-500', bg: 'bg-rose-500/10', trend: null },
+                  { label: '在线学生', value: `${activeCount} / ${conversations.length}`, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10', trend: null },
+                ].map(s => (
+                  <div key={s.label} className={`${cardBase} p-5 group`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{s.label}</p>
+                      <div className={`p-2 rounded-lg ${s.bg}`}><s.icon size={16} className={s.color} /></div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 group">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-slate-500 font-medium text-xs uppercase tracking-wider">{t.stats.interactions}</h3>
-                  <div className="p-2 bg-slate-50 text-slate-600 rounded-lg group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors"><MessageSquare size={18} /></div>
-                </div>
-                <p className="text-3xl font-bold text-slate-900 font-heading">142</p>
-                <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1 font-medium">
-                  <span>▲</span> 12% vs last week
-                </p>
+                    <p className="text-3xl font-bold font-heading text-slate-900">{s.value}</p>
+                    {s.trend && <p className="text-xs text-emerald-600 mt-2 font-medium">▲ {s.trend} vs 上周</p>}
+                  </div>
+                ))}
               </div>
 
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 group">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-slate-500 font-medium text-xs uppercase tracking-wider">{t.stats.pending}</h3>
-                  <div className="p-2 bg-slate-50 text-slate-600 rounded-lg group-hover:bg-rose-50 group-hover:text-rose-600 transition-colors"><CheckSquare size={18} /></div>
+              {/* Charts */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
+                <div className={`${cardBase} p-5`}>
+                  <h3 className="font-bold text-slate-800 text-sm mb-5 flex items-center gap-2 font-heading">
+                    <BookOpen size={15} className="text-emerald-500" /> 学生活跃度
+                  </h3>
+                  <div className="h-52">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={weeklyStats} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} dy={8} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                        <Tooltip contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '12px' }} />
+                        <Bar dataKey="value" fill="#10b981" radius={[5, 5, 0, 0]} barSize={28} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
-                <p className="text-3xl font-bold text-slate-900 font-heading">
-                  {conversations.filter(c => c.status === 'flagged').length}
-                </p>
-                <p className="text-xs text-slate-400 mt-2">Requires verification</p>
+
+                <div className={`${cardBase} p-5`}>
+                  <h3 className="font-bold text-slate-800 text-sm mb-5 flex items-center gap-2 font-heading">
+                    <Activity size={15} className="text-emerald-500" /> 知识掌握流向
+                  </h3>
+                  <div className="h-52"><LearningSankeyChart /></div>
+                </div>
               </div>
 
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 group">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-slate-500 font-medium text-xs uppercase tracking-wider">{t.stats.active}</h3>
-                  <div className="p-2 bg-slate-50 text-slate-600 rounded-lg group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors"><Users size={18} /></div>
-                </div>
-                <p className="text-3xl font-bold text-slate-900 font-heading">5 <span className="text-lg text-slate-400 font-sans font-normal">/ 12</span></p>
-                <div className="flex -space-x-2 mt-2 pl-1">
-                  {[1, 2, 3, 4, 5].map(i => (
-                    <div key={i} className="w-6 h-6 rounded-full bg-slate-100 border-2 border-white"></div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Chart Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Bar Chart */}
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-[400px]">
-                <h3 className="text-slate-900 font-bold mb-6 flex items-center gap-2 font-heading text-sm uppercase tracking-wide">
-                  <BookOpen size={16} className="text-indigo-500" />
-                  {t.charts.depth}
+              <div className={`${cardBase} p-5`}>
+                <h3 className="font-bold text-slate-800 text-sm mb-5 flex items-center gap-2 font-heading">
+                  <Clock size={15} className="text-emerald-500" /> 学习活跃度热力图
                 </h3>
-                <ResponsiveContainer width="100%" height="85%">
-                  <BarChart data={weeklyStats}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis
-                      dataKey="name"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fill: '#94a3b8' }}
-                      dy={10}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fill: '#94a3b8' }}
-                    />
-                    <Tooltip
-                      cursor={{ fill: '#f8fafc' }}
-                      contentStyle={{
-                        borderRadius: '8px',
-                        border: '1px solid #e2e8f0',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                        padding: '12px',
-                        fontSize: '12px'
-                      }}
-                    />
-                    <Bar
-                      dataKey="value"
-                      fill="#0f172a"
-                      radius={[4, 4, 0, 0]}
-                      barSize={32}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Sankey Chart */}
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-[400px]">
-                <h3 className="text-slate-900 font-bold mb-6 flex items-center gap-2 font-heading text-sm uppercase tracking-wide">
-                  <Activity size={16} className="text-indigo-500" />
-                  {t.charts.flow}
-                </h3>
-                <LearningSankeyChart />
+                <ActivityHeatmap />
               </div>
             </div>
 
-            {/* Heatmap Section */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
-              <h3 className="text-slate-900 font-bold mb-6 flex items-center gap-2 font-heading text-sm uppercase tracking-wide">
-                <Clock size={16} className="text-indigo-500" />
-                {t.charts.activity}
-              </h3>
-              <ActivityHeatmap />
-            </div>
-          </div>
-        ) : (
-          /* --- CHAT CONTENT --- */
-          selectedChat ? (
+          /* ── Chat / Intervention ── */
+          ) : selectedChat ? (
             <div className="flex flex-col h-full bg-slate-50/50">
-              {/* Chat Messages */}
-              <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+              <div className="flex-1 overflow-y-auto p-5 md:p-8 space-y-6">
+                {selectedChat.messages.length === 0 && (
+                  <div className="text-center py-16 text-slate-400">
+                    <MessageSquare size={32} className="mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">该对话暂无消息</p>
+                  </div>
+                )}
                 {selectedChat.messages.map(msg => (
                   <ChatBubble key={msg.id} message={msg} />
                 ))}
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Intervention Input */}
-              <div className="bg-white p-4 border-t border-slate-200 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.03)] z-20">
+              {/* Intervention bar */}
+              <div className="bg-white p-4 border-t border-slate-200 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.04)] z-20">
                 <div className="flex flex-col gap-2 max-w-4xl mx-auto">
                   <div className="flex items-center justify-between">
-                    <div className="px-2 py-1 bg-amber-50 border border-amber-100 rounded flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
-                      <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">{t.chat.mode}</span>
+                    <div className="flex items-center gap-2 px-2.5 py-1 bg-amber-50 border border-amber-200/70 rounded-lg">
+                      <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                      <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">导师介入模式</span>
                     </div>
-                    <span className="text-xs text-slate-400">{t.chat.tip}</span>
+                    <span className="text-xs text-slate-400">消息将高亮显示给学生</span>
                   </div>
                   <div className="flex gap-2">
-                    <div className="flex-1 relative">
-                      <input
-                        type="text"
-                        value={interventionText}
-                        onChange={(e) => setInterventionText(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleIntervention()}
-                        placeholder={t.chat.placeholder}
-                        className="w-full pl-4 pr-12 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent text-slate-900 placeholder-slate-400 transition-all font-sans"
-                      />
-                      <div className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition-colors">
-                        <MoreHorizontal size={20} className="cursor-pointer" />
-                      </div>
-                    </div>
-                    <button
-                      onClick={handleIntervention}
-                      disabled={!interventionText.trim()}
-                      className="bg-amber-500 hover:bg-amber-600 text-white p-3 rounded-xl transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-                    >
-                      <Send size={20} />
+                    <input type="text" value={interventionText}
+                      onChange={e => setInterventionText(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleIntervention()}
+                      placeholder="输入指导意见，直接介入对话..."
+                      className="flex-1 px-4 py-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400 text-slate-900 placeholder-slate-400 transition-all text-sm"
+                    />
+                    <button onClick={handleIntervention} disabled={!interventionText.trim()}
+                      className="bg-amber-500 hover:bg-amber-400 text-white px-4 py-2.5 rounded-xl transition-all disabled:opacity-40 flex items-center gap-1.5 text-sm font-medium shadow-sm shadow-amber-500/20">
+                      <Send size={15} /> 发送
                     </button>
                   </div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-slate-300 flex-col gap-4">
-              <MessageSquare size={48} className="text-slate-200" />
-              <p className="font-heading text-lg">{t.chat.select}</p>
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-300 gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-2">
+                <Users size={28} className="text-slate-300" />
+              </div>
+              <p className="font-heading text-base text-slate-400">从左侧选择学生开始指导</p>
+              <p className="text-sm text-slate-300">学生加入您的班级后将在此显示</p>
             </div>
-          )
-        )}
+          )}
       </main>
     </div>
   );
 };
-
-// Helper for Arrow
-const ArrowRightIcon = ({ size }: { size: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-)
 
 export default SupervisorView;
