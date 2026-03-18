@@ -964,10 +964,10 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
               {/* Charts */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
                 <div className={`${cardBase} p-5`}>
-                  <h3 className="font-bold text-slate-800 text-sm mb-5 flex items-center gap-2 font-heading">
+                  <h3 className="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2 font-heading">
                     <BookOpen size={15} className="text-emerald-500" /> 学生活跃度
                   </h3>
-                  <div className="h-52">
+                  <div className="h-56">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={weeklyStats} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -981,15 +981,15 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                 </div>
 
                 <div className={`${cardBase} p-5`}>
-                  <h3 className="font-bold text-slate-800 text-sm mb-5 flex items-center gap-2 font-heading">
+                  <h3 className="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2 font-heading">
                     <Activity size={15} className="text-emerald-500" /> 知识掌握流向
                   </h3>
-                  <div className="h-52"><LearningSankeyChart /></div>
+                  <div className="h-56"><LearningSankeyChart /></div>
                 </div>
               </div>
 
               <div className={`${cardBase} p-5`}>
-                <h3 className="font-bold text-slate-800 text-sm mb-5 flex items-center gap-2 font-heading">
+                <h3 className="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2 font-heading">
                   <Clock size={15} className="text-emerald-500" /> 学习活跃度热力图
                 </h3>
                 <ActivityHeatmap />

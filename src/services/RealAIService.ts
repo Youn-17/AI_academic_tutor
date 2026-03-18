@@ -57,7 +57,8 @@ function validateMessages(messages: ChatMessage[]): void {
 export async function* streamChat(
     messages: ChatMessage[],
     config: AIConfig,
-    systemPrompt?: string
+    systemPrompt?: string,
+    ragOptions?: { use_rag?: boolean; course_id?: string; layer_filter?: number[] }
 ): AsyncGenerator<string, void, unknown> {
     const fullMessages: ChatMessage[] = systemPrompt
         ? [{ role: 'system', content: systemPrompt }, ...messages]
@@ -76,6 +77,7 @@ export async function* streamChat(
             stream: true,
             api_key: config.apiKey,
             base_url: config.baseUrl,
+            ...(ragOptions?.use_rag ? ragOptions : {}),
         }),
     });
 

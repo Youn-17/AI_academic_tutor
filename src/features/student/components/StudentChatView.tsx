@@ -23,6 +23,8 @@ interface StudentChatViewProps {
     onEditMessage?: (messageId: string, newContent: string) => Promise<void>;
     selectedModel: string;
     onModelSelect: (modelId: string) => void;
+    useRag?: boolean;
+    onToggleRag?: () => void;
     theme: Theme;
     onToggleTheme: () => void;
     locale: Locale;
@@ -39,6 +41,7 @@ type FontSize = 'sm' | 'base' | 'lg';
 const StudentChatView: React.FC<StudentChatViewProps> = ({
     activeChat, messages, loading, streamingContent,
     onSendMessage, onEditMessage, selectedModel, onModelSelect,
+    useRag = false, onToggleRag,
     theme, onToggleTheme, locale, onLocaleChange, onClearChat, onExportChat
 }) => {
     const [inputValue, setInputValue] = useState('');
@@ -534,6 +537,16 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                 <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelect} />
                                 <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full transition-all hover:scale-110" style={{ color: colors.textSecondary }}><Plus size={20} /></button>
                                 <button onClick={() => setShowSearchInput(!showSearchInput)} className={`p-2 rounded-full transition-all hover:scale-110 ${showSearchInput ? 'text-emerald-500 bg-emerald-500/10' : ''}`} style={{ color: showSearchInput ? undefined : colors.textSecondary }}><Search size={20} /></button>
+                                {onToggleRag && (
+                                    <button
+                                        onClick={onToggleRag}
+                                        title={useRag ? '关闭知识库增强' : '开启知识库增强 (RAG)'}
+                                        className={`p-2 rounded-full transition-all hover:scale-110 ${useRag ? 'text-emerald-500 bg-emerald-500/10' : ''}`}
+                                        style={{ color: useRag ? undefined : colors.textSecondary }}
+                                    >
+                                        <BookOpen size={18} />
+                                    </button>
+                                )}
                             </div>
 
                             <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={handleKeyDown} placeholder={messages.length === 0 ? (isEN ? 'What would you like to explore?' : '今天想探索什么？') : (isEN ? 'Continue...' : '继续讨论...')} rows={1} className="flex-1 bg-transparent border-none focus:ring-0 px-3 py-3 min-h-[44px] max-h-[150px] resize-none text-sm outline-none leading-relaxed" style={{ color: colors.text }} disabled={loading} />
@@ -547,7 +560,9 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                     </div>
 
                     <div className="text-center mt-3 flex items-center justify-center gap-2 text-[10px]" style={{ color: colors.textSecondary }}>
-                        <span className="flex items-center gap-1"><SparklesIcon size={10} className="text-emerald-500" />{isEN ? 'Socratic tutoring' : '苏格拉底式'}</span>·<span>DeepSeek & Zhipu</span>·<span>{isEN ? 'For reference only' : '仅供参考'}</span>
+                        <span className="flex items-center gap-1"><SparklesIcon size={10} className="text-emerald-500" />{isEN ? 'Socratic tutoring' : '苏格拉底式'}</span>
+                        {useRag && <><span>·</span><span className="flex items-center gap-1 text-emerald-500"><BookOpen size={10} />{isEN ? 'RAG enabled' : '知识库已启用'}</span></>}
+                        <span>·</span><span>{isEN ? 'For reference only' : '仅供参考'}</span>
                     </div>
                 </div>
             </div>
