@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Conversation, Message, Role, Locale, Theme } from '@/types';
 import StudentClassroomView from '@/features/student/StudentClassroomView';
 import StudentDashboard from '@/features/student/components/StudentDashboard';
@@ -35,65 +35,52 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
   const [streamingContent, setStreamingContent] = useState('');
   const [selectedModel, setSelectedModel] = useState('deepseek-chat');
 
-  // Request ID tracking for race condition prevention
-  const requestIdRef = useRef(0);
+  // Model config map
+  const modelMap: Record<string, { provider: 'deepseek' | 'zhipu'; model: string }> = {
+    'deepseek-chat':     { provider: 'deepseek', model: 'deepseek-chat' },
+    'deepseek-reasoner': { provider: 'deepseek', model: 'deepseek-reasoner' },
+    'glm-4.7':           { provider: 'zhipu',    model: 'glm-4.7' },
+    'glm-4-flash':       { provider: 'zhipu',    model: 'glm-4-flash' },
+    'glm-4':             { provider: 'zhipu',    model: 'glm-4' },
+  };
 
-  // Model config map - memoized to avoid recreation
-  const modelMap = useMemo(() => ({
-    'deepseek-chat':     { provider: 'deepseek' as const, model: 'deepseek-chat' },
-    'deepseek-reasoner': { provider: 'deepseek' as const, model: 'deepseek-reasoner' },
-    'glm-4.7':           { provider: 'zhipu' as const,    model: 'glm-4.7' },
-    'glm-4-flash':       { provider: 'zhipu' as const,    model: 'glm-4-flash' },
-    'glm-4':             { provider: 'zhipu' as const,    model: 'glm-4' },
-  }), []);
-
-  // Find active chat (must be before other useMemo that uses it)
-  const activeChat = useMemo(() =>
-    conversations.find(c => c.id === activeChatId) || null,
-  [conversations, activeChatId]);
+  // Find active chat
+  const activeChat = conversations.find(c => c.id === activeChatId);
 
   // Load Conversations
-  const loadConversations = useCallback(async () => {
+  const loadConversations = async () => {
     try {
       const convs = await ConversationService.getConversations();
       setConversations(convs.slice(0, 50));
     } catch (err) {
       console.error('Failed to load conversations:', err);
     }
-  }, []);
+  };
 
   // Initial load
   useEffect(() => {
     loadConversations();
-  }, [loadConversations]);
+  }, []);
 
-  // Load Messages - with cleanup
+  // Load Messages
   useEffect(() => {
-    let cancelled = false;
-
     if (activeChatId) {
       const loadMessages = async () => {
         try {
           const msgs = await ConversationService.getMessages(activeChatId);
-          if (!cancelled) {
-            setMessages(msgs);
-            setViewMode('chat');
-          }
+          setMessages(msgs);
+          setViewMode('chat');
         } catch (err) {
-          if (!cancelled) console.error('Failed to load messages:', err);
+          console.error('Failed to load messages:', err);
         }
       };
       loadMessages();
     }
-
-    return () => {
-      cancelled = true;
-    };
   }, [activeChatId]);
 
   // --- Handlers ---
 
-  const handleCreateChat = useCallback(async () => {
+  const handleCreateChat = async () => {
     try {
       const title = locale === 'en' ? 'New Conversation' : '新对话';
       const newId = await ConversationService.createConversation(title);
@@ -102,9 +89,9 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
     } catch (err) {
       console.error('Failed to create chat:', err);
     }
-  }, [locale, loadConversations]);
+  };
 
-  const handleDeleteChat = useCallback(async (id: string) => {
+  const handleDeleteChat = async (id: string) => {
     if (!confirm('Are you sure you want to delete this chat?')) return;
     try {
       await ConversationService.deleteConversation(id);
@@ -116,9 +103,9 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
     } catch (err) {
       console.error('Failed to delete chat:', err);
     }
-  }, [activeChatId, loadConversations]);
+  };
 
-  const handleArchiveChat = useCallback(async (id: string) => {
+  const handleArchiveChat = async (id: string) => {
     try {
       await ConversationService.updateConversationStatus(id, 'archived');
       await loadConversations();
@@ -129,18 +116,18 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
     } catch (err) {
       console.error('Failed to archive chat:', err);
     }
-  }, [activeChatId, loadConversations]);
+  };
 
-  const handleRenameChat = useCallback(async (id: string, newTitle: string) => {
+  const handleRenameChat = async (id: string, newTitle: string) => {
     try {
       await ConversationService.updateConversationTitle(id, newTitle);
       await loadConversations();
     } catch (err) {
       console.error('Failed to rename chat:', err);
     }
-  }, [loadConversations]);
+  };
 
-  const handleSendMessage = useCallback(async (content: string, file?: File) => {
+  const handleSendMessage = async (content: string, file?: File) => {
     if (!activeChatId) return;
 
     let fullContent = content;
@@ -149,10 +136,8 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
       fullContent = `[Attachment: ${file.name}]\n\nContent:\n${fileContent}\n\nUser Question: ${content}`;
     }
 
-    const currentRequestId = ++requestIdRef.current;
-
     // Optimistic Update
-    const tempUserMsgId = `temp-${Date.now()}-${currentRequestId}`;
+    const tempUserMsgId = `temp-${Date.now()}`;
     const optimisticUserMsg: Message = {
       id: tempUserMsgId,
       sender: Role.STUDENT,
@@ -167,10 +152,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
 
     try {
       const userMessage = await ConversationService.sendMessage(activeChatId, fullContent, Role.STUDENT);
-
-      if (currentRequestId === requestIdRef.current) {
-        setMessages(prev => prev.map(m => m.id === tempUserMsgId ? userMessage : m));
-      }
+      setMessages(prev => prev.map(m => m.id === tempUserMsgId ? userMessage : m));
 
       const chatHistory: ChatMessage[] = messages.map(msg => ({
         role: msg.sender === Role.STUDENT ? 'user' : 'assistant',
@@ -183,49 +165,35 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
 
       try {
         for await (const chunk of streamChat(chatHistory, config, SYSTEM_PROMPTS.academic)) {
-          if (currentRequestId === requestIdRef.current) {
-            fullResponse += chunk;
-            setStreamingContent(fullResponse);
-          } else {
-            break;
-          }
+          fullResponse += chunk;
+          setStreamingContent(fullResponse);
         }
       } catch (aiError) {
-        if (currentRequestId === requestIdRef.current) {
-          fullResponse = `AI Error: ${(aiError as Error).message}`;
-        }
+        fullResponse = `AI Error: ${(aiError as Error).message}`;
       }
 
-      if (currentRequestId === requestIdRef.current) {
-        const aiMessage = await ConversationService.sendMessage(activeChatId, fullResponse, Role.AI, selectedModel);
-        setMessages(prev => [...prev, aiMessage]);
+      const aiMessage = await ConversationService.sendMessage(activeChatId, fullResponse, Role.AI, selectedModel);
+      setMessages(prev => [...prev, aiMessage]);
 
-        if (messages.length === 0) {
-          const newTitle = content.slice(0, 20) || 'New Chat';
-          ConversationService.updateConversationTitle(activeChatId, newTitle).then(loadConversations);
-        }
+      if (messages.length === 0) {
+        const newTitle = content.slice(0, 20) || 'New Chat';
+        ConversationService.updateConversationTitle(activeChatId, newTitle).then(loadConversations);
       }
 
     } catch (err) {
       console.error('Send failed:', err);
-      if (currentRequestId === requestIdRef.current) {
-        setMessages(prev => prev.filter(m => m.id !== tempUserMsgId));
-      }
+      setMessages(prev => prev.filter(m => m.id !== tempUserMsgId));
     } finally {
-      if (currentRequestId === requestIdRef.current) {
-        setIsThinking(false);
-        setStreamingContent('');
-      }
+      setIsThinking(false);
+      setStreamingContent('');
     }
-  }, [activeChatId, messages, selectedModel, modelMap, loadConversations]);
+  };
 
-  const handleEditMessage = useCallback(async (messageId: string, newContent: string) => {
+  const handleEditMessage = async (messageId: string, newContent: string) => {
     if (!activeChatId) return;
 
     const msgIndex = messages.findIndex(m => m.id === messageId);
     if (msgIndex === -1) return;
-
-    const currentRequestId = ++requestIdRef.current;
 
     const keptMessages = messages.slice(0, msgIndex);
 
@@ -253,43 +221,33 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
 
       try {
         for await (const chunk of streamChat(chatHistory, config, SYSTEM_PROMPTS.academic)) {
-          if (currentRequestId === requestIdRef.current) {
-            fullResponse += chunk;
-            setStreamingContent(fullResponse);
-          } else {
-            break;
-          }
+          fullResponse += chunk;
+          setStreamingContent(fullResponse);
         }
       } catch (aiError) {
-        if (currentRequestId === requestIdRef.current) {
-          fullResponse = `AI Error: ${(aiError as Error).message}`;
-        }
+        fullResponse = `AI Error: ${(aiError as Error).message}`;
       }
 
-      if (currentRequestId === requestIdRef.current) {
-        const aiMessage = await ConversationService.sendMessage(activeChatId, fullResponse, Role.AI, selectedModel);
-        setMessages(prev => [...prev, aiMessage]);
-      }
+      const aiMessage = await ConversationService.sendMessage(activeChatId, fullResponse, Role.AI, selectedModel);
+      setMessages(prev => [...prev, aiMessage]);
 
     } catch (err) {
       console.error('Edit failed:', err);
     } finally {
-      if (currentRequestId === requestIdRef.current) {
-        setIsThinking(false);
-        setStreamingContent('');
-      }
+      setIsThinking(false);
+      setStreamingContent('');
     }
-  }, [activeChatId, messages, selectedModel, modelMap]);
+  };
 
-  const handleClearChat = useCallback(async () => {
+  const handleClearChat = async () => {
     if (confirm('清空此对话？')) {
       await ConversationService.deleteConversation(activeChatId);
       setActiveChatId('');
       setViewMode('dashboard');
     }
-  }, [activeChatId]);
+  };
 
-  const handleExportChat = useCallback(async () => {
+  const handleExportChat = async () => {
     const content = messages.map(m => `${m.sender === Role.STUDENT ? 'Student' : 'AI'}: ${m.content}`).join('\n\n');
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -298,12 +256,10 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
     a.download = `${activeChat?.title}_${new Date().toISOString().slice(0, 10)}.txt`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [messages, activeChat]);
+  };
 
-  const handleCompareModels = useCallback(async (modelIds: string[]) => {
+  const handleCompareModels = async (modelIds: string[]) => {
     if (!activeChatId || modelIds.length === 0) return;
-
-    const currentRequestId = ++requestIdRef.current;
 
     const lastUserMsg = [...messages].reverse().find(m => m.sender === 'student');
     if (!lastUserMsg) return;
@@ -320,115 +276,71 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
         content: lastUserMsg.content
       }], configs, SYSTEM_PROMPTS.academic);
 
-      if (currentRequestId === requestIdRef.current) {
-        for (const result of results) {
-          if (!result.error) {
-            const modelInfo = AI_MODELS[result.model];
-            await ConversationService.sendMessage(
-              activeChatId,
-              `【${modelInfo?.name || result.model}】\n\n${result.response}`,
-              Role.AI
-            );
-          }
-        }
-        const updatedMsgs = await ConversationService.getMessages(activeChatId);
-        if (currentRequestId === requestIdRef.current) {
-          setMessages(updatedMsgs);
+      for (const result of results) {
+        if (!result.error) {
+          const modelInfo = AI_MODELS[result.model];
+          await ConversationService.sendMessage(
+            activeChatId,
+            `【${modelInfo?.name || result.model}】\n\n${result.response}`,
+            Role.AI
+          );
         }
       }
+      const updatedMsgs = await ConversationService.getMessages(activeChatId);
+      setMessages(updatedMsgs);
     } catch (err) {
       console.error('Model comparison failed:', err);
     }
-  }, [activeChatId, messages]);
+  };
 
-  const handleSelectView = useCallback((v: typeof viewMode) => {
+  const handleSelectView = (v: typeof viewMode) => {
     setViewMode(v);
     setActiveChatId('');
-  }, []);
-
-  const handleToggleTheme = useCallback(() => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
-  }, [theme, setTheme]);
-
-  // Memoized sidebar props
-  const sidebarProps = useMemo(() => ({
-    conversations,
-    activeChatId,
-    currentView: viewMode,
-    theme,
-    locale,
-    isCollapsed: isSidebarCollapsed,
-    onSelectChat: setActiveChatId,
-    onCreateChat: handleCreateChat,
-    onDeleteChat: handleDeleteChat,
-    onArchiveChat: handleArchiveChat,
-    onRenameChat: handleRenameChat,
-    onSelectView: handleSelectView,
-    onLogout,
-    onToggleCollapse: () => setIsSidebarCollapsed(prev => !prev),
-  }), [
-    conversations,
-    activeChatId,
-    viewMode,
-    theme,
-    locale,
-    isSidebarCollapsed,
-    handleCreateChat,
-    handleDeleteChat,
-    handleArchiveChat,
-    handleRenameChat,
-    handleSelectView,
-    onLogout,
-  ]);
-
-  // Memoized chat view props
-  const chatViewProps = useMemo(() => ({
-    activeChat,
-    messages,
-    loading: isThinking,
-    streamingContent,
-    selectedModel,
-    theme,
-    locale,
-    onSendMessage: handleSendMessage,
-    onEditMessage: handleEditMessage,
-    onModelSelect: setSelectedModel,
-    onToggleTheme: handleToggleTheme,
-    onLocaleChange: setLocale,
-    onClearChat: handleClearChat,
-    onExportChat: handleExportChat,
-    onCompareModels: handleCompareModels,
-  }), [
-    activeChat,
-    messages,
-    isThinking,
-    streamingContent,
-    selectedModel,
-    theme,
-    locale,
-    handleSendMessage,
-    handleEditMessage,
-    handleToggleTheme,
-    handleClearChat,
-    handleExportChat,
-    handleCompareModels,
-  ]);
-
-  const dashboardProps = useMemo(() => ({
-    theme,
-    userName: profile?.full_name || 'Student',
-  }), [theme, profile?.full_name]);
+  };
 
   return (
     <div className={`flex h-screen overflow-hidden font-sans ${theme === 'light' ? 'bg-slate-50 text-slate-900' : 'bg-[#020617] text-slate-50'}`}>
-      <StudentSidebar {...sidebarProps} />
+      <StudentSidebar
+        conversations={conversations}
+        activeChatId={activeChatId}
+        onSelectChat={setActiveChatId}
+        onCreateChat={handleCreateChat}
+        onDeleteChat={handleDeleteChat}
+        onArchiveChat={handleArchiveChat}
+        onRenameChat={handleRenameChat}
+        currentView={viewMode}
+        onSelectView={handleSelectView}
+        onLogout={onLogout}
+        theme={theme}
+        locale={locale}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
+      />
 
       <div className="flex-1 h-full relative">
-        {viewMode === 'dashboard' && <StudentDashboard {...dashboardProps} />}
+        {viewMode === 'dashboard' && <StudentDashboard theme={theme} userName={profile?.full_name || 'Student'} />}
         {viewMode === 'profile' && <StudentProfile theme={theme} />}
         {viewMode === 'classroom' && <StudentClassroomView />}
         {viewMode === 'knowledge' && <StudentKnowledgeView theme={theme} />}
-        {viewMode === 'chat' && activeChat && <StudentChatView {...chatViewProps} />}
+        {viewMode === 'chat' && activeChat && (
+          <StudentChatView
+            activeChat={activeChat}
+            messages={messages}
+            loading={isThinking}
+            streamingContent={streamingContent}
+            onSendMessage={handleSendMessage}
+            onEditMessage={handleEditMessage}
+            selectedModel={selectedModel}
+            onModelSelect={setSelectedModel}
+            theme={theme}
+            onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            locale={locale}
+            onLocaleChange={setLocale}
+            onClearChat={handleClearChat}
+            onExportChat={handleExportChat}
+            onCompareModels={handleCompareModels}
+          />
+        )}
       </div>
     </div>
   );
