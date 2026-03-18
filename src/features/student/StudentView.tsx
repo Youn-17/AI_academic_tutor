@@ -322,9 +322,8 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
               // Get last user message as prompt for comparison
               const lastUserMsg = [...messages].reverse().find(m => m.sender === 'student');
               if (lastUserMsg) {
-                const { compareAIModels } = await import('@/services/RealAIService');
+                const { compareAIModels, AI_MODELS } = await import('@/services/RealAIService');
                 const configs = modelIds.map(id => {
-                  const { AI_MODELS } = await import('@/services/RealAIService');
                   const modelInfo = AI_MODELS[id];
                   return { provider: modelInfo.provider, model: modelInfo.model };
                 });
