@@ -33,81 +33,63 @@ interface SupervisorViewProps {
 type ViewMode = 'dashboard' | 'chat' | 'classroom' | 'knowledge' | 'ai' | 'settings';
 type FilterStatus = 'all' | 'active' | 'flagged' | 'completed';
 
-// DMXAPI model list - OpenAI compatible, routes via https://www.dmxapi.cn/v1
-const DMXAPI_MODELS: { group: string; models: { id: string; name: string; tier: 'free' | 'pro' }[] }[] = [
+type ModelEntry = { id: string; name: string; tier: 'free' | 'pro'; provider: string };
+type ModelGroup = { group: string; models: ModelEntry[] };
+
+// DMXAPI model list — only Claude + ChatGPT
+const DMXAPI_MODELS: ModelGroup[] = [
   {
-    group: 'OpenAI', models: [
-      { id: 'gpt-4o-mini', name: 'GPT-4o Mini', tier: 'free' },
-      { id: 'gpt-4o', name: 'GPT-4o', tier: 'pro' },
-      { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', tier: 'free' },
-      { id: 'gpt-4.1-nano', name: 'GPT-4.1 Nano', tier: 'free' },
-      { id: 'gpt-4.1', name: 'GPT-4.1', tier: 'pro' },
-      { id: 'o1-mini', name: 'o1 Mini', tier: 'pro' },
-      { id: 'o3-mini', name: 'o3 Mini', tier: 'pro' },
-      { id: 'o4-mini', name: 'o4 Mini', tier: 'pro' },
+    group: 'ChatGPT (OpenAI)', models: [
+      { id: 'gpt-5.4',      name: 'ChatGPT 5.4',  tier: 'pro',  provider: 'dmxapi' },
+      { id: 'gpt-5.3-chat', name: 'ChatGPT 5.3',  tier: 'pro',  provider: 'dmxapi' },
     ]
   },
   {
-    group: 'Anthropic', models: [
-      { id: 'claude-3-5-haiku-20250219', name: 'Claude 3.5 Haiku', tier: 'free' },
-      { id: 'claude-3-5-sonnet-20250219', name: 'Claude 3.5 Sonnet', tier: 'pro' },
-      { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', tier: 'pro' },
-      { id: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', tier: 'pro' },
+    group: 'Claude (Anthropic)', models: [
+      { id: 'claude-sonnet-4-6',                  name: 'Claude Sonnet 4.6',               tier: 'pro', provider: 'dmxapi' },
+      { id: 'claude-sonnet-4-6-thinking',         name: 'Claude Sonnet 4.6 Thinking',      tier: 'pro', provider: 'dmxapi' },
+      { id: 'claude-opus-4-6',                    name: 'Claude Opus 4.6',                 tier: 'pro', provider: 'dmxapi' },
+      { id: 'claude-opus-4-6-thinking',           name: 'Claude Opus 4.6 Thinking',        tier: 'pro', provider: 'dmxapi' },
+      { id: 'claude-opus-4-5-20251101',           name: 'Claude Opus 4.5',                 tier: 'pro', provider: 'dmxapi' },
+      { id: 'claude-opus-4-5-20251101-thinking',  name: 'Claude Opus 4.5 Thinking',        tier: 'pro', provider: 'dmxapi' },
+      { id: 'claude-sonnet-4-5-20250929',         name: 'Claude Sonnet 4.5',               tier: 'pro', provider: 'dmxapi' },
+      { id: 'claude-sonnet-4-5-20250929-thinking',name: 'Claude Sonnet 4.5 Thinking',      tier: 'pro', provider: 'dmxapi' },
+    ]
+  },
+];
+
+// All models available in the teacher AI chat (all providers)
+const ALL_CHAT_MODELS: ModelGroup[] = [
+  ...DMXAPI_MODELS,
+  {
+    group: 'Gemini (Google 官方)', models: [
+      { id: 'gemini-2.5-pro',   name: 'Gemini 2.5 Pro',   tier: 'pro',  provider: 'google' },
+      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', tier: 'pro',  provider: 'google' },
+      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', tier: 'free', provider: 'google' },
+      { id: 'gemini-1.5-pro',   name: 'Gemini 1.5 Pro',   tier: 'pro',  provider: 'google' },
+      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', tier: 'free', provider: 'google' },
     ]
   },
   {
-    group: 'Google', models: [
-      { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', tier: 'free' },
-      { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash Lite', tier: 'free' },
-      { id: 'gemini-2.5-flash-preview', name: 'Gemini 2.5 Flash', tier: 'free' },
-      { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', tier: 'pro' },
+    group: 'DeepSeek (直连)', models: [
+      { id: 'deepseek-chat',     name: 'DeepSeek V3', tier: 'free', provider: 'deepseek' },
+      { id: 'deepseek-reasoner', name: 'DeepSeek R1', tier: 'free', provider: 'deepseek' },
     ]
   },
   {
-    group: 'DeepSeek', models: [
-      { id: 'deepseek-chat', name: 'DeepSeek V3 (Chat)', tier: 'free' },
-      { id: 'deepseek-reasoner', name: 'DeepSeek R1 (Reasoner)', tier: 'free' },
+    group: '智谱 GLM (直连)', models: [
+      { id: 'glm-4-flash',  name: 'GLM-4 Flash',  tier: 'free', provider: 'zhipu' },
+      { id: 'glm-4.7',      name: 'GLM-4.7',      tier: 'pro',  provider: 'zhipu' },
+      { id: 'glm-z1-flash', name: 'GLM-Z1 Flash', tier: 'free', provider: 'zhipu' },
+      { id: 'glm-z1',       name: 'GLM-Z1',       tier: 'pro',  provider: 'zhipu' },
+      { id: 'glm-5',        name: 'GLM-5',         tier: 'pro',  provider: 'zhipu' },
     ]
   },
   {
-    group: '智谱 GLM', models: [
-      { id: 'glm-4-flash', name: 'GLM-4 Flash', tier: 'free' },
-      { id: 'glm-4-flashx', name: 'GLM-4 FlashX', tier: 'free' },
-      { id: 'glm-4-air', name: 'GLM-4 Air', tier: 'free' },
-      { id: 'glm-4-airx', name: 'GLM-4 AirX', tier: 'free' },
-      { id: 'glm-4-plus', name: 'GLM-4 Plus', tier: 'pro' },
-      { id: 'glm-4', name: 'GLM-4', tier: 'pro' },
-      { id: 'glm-4-long', name: 'GLM-4 Long (128K)', tier: 'pro' },
-      { id: 'glm-4v', name: 'GLM-4V (Vision)', tier: 'pro' },
-      { id: 'glm-4v-flash', name: 'GLM-4V Flash (Vision)', tier: 'free' },
-      { id: 'glm-4.7', name: 'GLM-4.7', tier: 'pro' },
-      { id: 'glm-4.7v', name: 'GLM-4.7V (Vision)', tier: 'pro' },
-      { id: 'glm-z1-flash', name: 'GLM-Z1 Flash (推理)', tier: 'free' },
-      { id: 'glm-z1-air', name: 'GLM-Z1 Air (推理)', tier: 'free' },
-      { id: 'glm-z1-airx', name: 'GLM-Z1 AirX (推理)', tier: 'pro' },
-      { id: 'glm-z1', name: 'GLM-Z1 (推理)', tier: 'pro' },
-      { id: 'glm-5', name: 'GLM-5', tier: 'pro' },
-    ]
-  },
-  {
-    group: 'Kimi (Moonshot)', models: [
-      { id: 'moonshot-v1-8k', name: 'Kimi Moonshot 8K', tier: 'free' },
-      { id: 'moonshot-v1-32k', name: 'Kimi Moonshot 32K', tier: 'free' },
-      { id: 'moonshot-v1-128k', name: 'Kimi Moonshot 128K', tier: 'pro' },
-      { id: 'kimi-latest', name: 'Kimi Latest', tier: 'pro' },
-    ]
-  },
-  {
-    group: 'Qwen (通义)', models: [
-      { id: 'qwen-turbo', name: 'Qwen Turbo', tier: 'free' },
-      { id: 'qwen-turbo-latest', name: 'Qwen Turbo Latest', tier: 'free' },
-      { id: 'qwen-plus', name: 'Qwen Plus', tier: 'free' },
-      { id: 'qwen-plus-latest', name: 'Qwen Plus Latest', tier: 'free' },
-      { id: 'qwen-max', name: 'Qwen Max', tier: 'pro' },
-      { id: 'qwen-max-latest', name: 'Qwen Max Latest', tier: 'pro' },
-      { id: 'qwen3-8b', name: 'Qwen3 8B', tier: 'free' },
-      { id: 'qwen3-30b-a3b', name: 'Qwen3 30B-A3B', tier: 'free' },
-      { id: 'qwen3-235b-a22b', name: 'Qwen3 235B-A22B', tier: 'pro' },
+    group: 'Kimi (Moonshot 直连)', models: [
+      { id: 'moonshot-v1-32k',  name: 'Kimi 32K',    tier: 'free', provider: 'moonshot' },
+      { id: 'moonshot-v1-128k', name: 'Kimi 128K',   tier: 'pro',  provider: 'moonshot' },
+      { id: 'kimi-latest',      name: 'Kimi Latest', tier: 'pro',  provider: 'moonshot' },
     ]
   },
 ];
@@ -131,7 +113,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
 
   // API config state
   const [apiConfigs, setApiConfigs] = useState<{ id: string; provider: string; model: string; label: string; masked_key?: string; scope: string; class_id?: string }[]>([]);
-  const [apiForm, setApiForm] = useState({ provider: 'dmxapi', model: 'deepseek-chat', api_key: '', label: '', class_id: '' });
+  const [apiForm, setApiForm] = useState({ provider: 'dmxapi', model: 'claude-sonnet-4-6', api_key: '', label: '', class_id: '' });
   const [showKey, setShowKey] = useState(false);
   const [apiSaving, setApiSaving] = useState(false);
   const [apiMsg, setApiMsg] = useState<string | null>(null);
@@ -142,7 +124,8 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
   const [aiMessages, setAiMessages] = useState<{ role: string; content: string }[]>([]);
   const [aiInput, setAiInput] = useState('');
   const [aiStreaming, setAiStreaming] = useState(false);
-  const [aiModel, setAiModel] = useState('deepseek-chat');
+  const [aiModel, setAiModel] = useState('claude-sonnet-4-6');
+  const [aiProvider, setAiProvider] = useState('dmxapi');
   const [aiModelMenuOpen, setAiModelMenuOpen] = useState(false);
   const aiEndRef = useRef<HTMLDivElement>(null);
   const aiModelMenuRef = useRef<HTMLDivElement>(null);
@@ -267,8 +250,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
     try {
       let reply = '';
       const apiMsgs = newMsgs.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
-      // Use DMXAPI provider (supports 300+ models including all in aiModel selector)
-      for await (const chunk of streamChat(apiMsgs, { provider: 'dmxapi', model: aiModel })) {
+      for await (const chunk of streamChat(apiMsgs, { provider: aiProvider as import('@/services/RealAIService').AIProvider, model: aiModel })) {
         reply += chunk;
         setAiMessages([...newMsgs, { role: 'assistant', content: reply }]);
         aiEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -315,7 +297,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
   const flaggedCount = conversations.filter(c => c.status === 'flagged').length;
   const activeCount  = conversations.filter(c => c.status === 'active').length;
 
-  const currentAiModelName = DMXAPI_MODELS.flatMap(g => g.models).find(m => m.id === aiModel)?.name || aiModel;
+  const currentAiModelName = ALL_CHAT_MODELS.flatMap(g => g.models).find(m => m.id === aiModel)?.name || aiModel;
 
   // ── Shared styles ─────────────────────────────────────────
   const cardBase = 'bg-white rounded-xl border border-slate-200';
@@ -560,12 +542,12 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                   </button>
 
                   {aiModelMenuOpen && (
-                    <div className="absolute top-full right-0 mt-2 w-56 max-h-72 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1.5">
-                      {DMXAPI_MODELS.map(group => (
+                    <div className="absolute top-full right-0 mt-2 w-64 max-h-80 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1.5">
+                      {ALL_CHAT_MODELS.map(group => (
                         <div key={group.group} className="mb-1.5 last:mb-0">
                           <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{group.group}</div>
                           {group.models.map(m => (
-                            <button key={m.id} onClick={() => { setAiModel(m.id); setAiModelMenuOpen(false); }}
+                            <button key={m.id} onClick={() => { setAiModel(m.id); setAiProvider(m.provider); setAiModelMenuOpen(false); }}
                               className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-all ${aiModel === m.id ? 'bg-emerald-50 text-emerald-700' : 'hover:bg-slate-50 text-slate-700'}`}>
                               <span>{m.name}</span>
                               {m.tier === 'pro' && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-600 font-bold">PRO</span>}
@@ -703,8 +685,8 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                     <div className="flex items-start gap-2.5 p-3 bg-emerald-50 border border-emerald-200/60 rounded-xl mb-5">
                       <Info size={14} className="text-emerald-600 shrink-0 mt-0.5" />
                       <div className="text-xs text-emerald-700 leading-relaxed">
-                        <strong>推荐使用 DMXAPI</strong> — 一个 Key 接入 300+ 模型（GPT、Claude、Gemini、DeepSeek 等）。
-                        访问 <a href="https://www.dmxapi.cn" target="_blank" rel="noopener noreferrer" className="underline font-medium inline-flex items-center gap-1">dmxapi.cn <ExternalLink size={10} /></a> 注册并获取 Key（格式：<code className="font-mono bg-emerald-100 px-1 rounded">sk-...</code>）
+                        各服务商需分别配置 Key。<strong>DMXAPI</strong> 接入 Claude + ChatGPT；<strong>Gemini</strong> 使用 Google 官方 API；DeepSeek、智谱、Kimi 均为直连。
+                        配置后，您班级的学生自动使用对应 Key 进行 AI 对话。
                       </div>
                     </div>
 
@@ -736,17 +718,17 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                       {/* Provider selector — 4 cards */}
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">选择服务商</label>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                           {[
-                            { value: 'dmxapi',   label: 'DMXAPI',      sub: '300+ 模型聚合',   badge: '推荐', color: 'emerald', docUrl: 'https://doc.dmxapi.cn/jichu.html',                      placeholder: 'sk-...' },
-                            { value: 'deepseek', label: 'DeepSeek',    sub: 'V3 / R1 直连',   badge: '免费', color: 'sky',     docUrl: 'https://platform.deepseek.com/api-docs',               placeholder: 'sk-...' },
-                            { value: 'zhipu',    label: '智谱 GLM',    sub: 'GLM-4.7 / Z1',   badge: null,   color: 'teal',    docUrl: 'https://open.bigmodel.cn/dev/api',                      placeholder: '填入 API Key' },
-                            { value: 'moonshot', label: 'Kimi',        sub: 'Moonshot 直连',  badge: null,   color: 'violet',  docUrl: 'https://platform.moonshot.cn/docs/api/chat',            placeholder: 'sk-...' },
+                            { value: 'dmxapi',   label: 'DMXAPI',      sub: 'Claude · ChatGPT', badge: '推荐', color: 'emerald', docUrl: 'https://doc.dmxapi.cn/jichu.html',               defaultModel: 'claude-sonnet-4-6' },
+                            { value: 'google',   label: 'Gemini',      sub: 'Google 官方 API',  badge: null,   color: 'blue',    docUrl: 'https://ai.google.dev/gemini-api/docs',             defaultModel: 'gemini-2.5-flash' },
+                            { value: 'deepseek', label: 'DeepSeek',    sub: 'V3 / R1 直连',     badge: '免费', color: 'sky',     docUrl: 'https://platform.deepseek.com/api-docs',            defaultModel: 'deepseek-chat' },
+                            { value: 'zhipu',    label: '智谱 GLM',    sub: 'GLM-4.7 / Z1',     badge: null,   color: 'teal',    docUrl: 'https://open.bigmodel.cn/dev/api',                  defaultModel: 'glm-4-flash' },
+                            { value: 'moonshot', label: 'Kimi',        sub: 'Moonshot 直连',    badge: null,   color: 'violet',  docUrl: 'https://platform.moonshot.cn/docs/api/chat',         defaultModel: 'moonshot-v1-32k' },
                           ].map(p => (
                             <button key={p.value} type="button"
                               onClick={() => {
-                                const defaultModel = p.value === 'deepseek' ? 'deepseek-chat' : p.value === 'zhipu' ? 'glm-4-flash' : p.value === 'moonshot' ? 'moonshot-v1-32k' : 'deepseek-chat';
-                                setApiForm(f => ({ ...f, provider: p.value, model: defaultModel }));
+                                setApiForm(f => ({ ...f, provider: p.value, model: p.defaultModel }));
                               }}
                               className={`p-3 rounded-xl border text-left transition-all ${apiForm.provider === p.value ? `border-${p.color}-400 bg-${p.color}-50` : 'border-slate-200 hover:border-slate-300 bg-white'}`}>
                               <div className="flex items-center justify-between mb-1">
@@ -792,6 +774,14 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                               </div>
                             )}
                           </div>
+                        ) : apiForm.provider === 'google' ? (
+                          <select value={apiForm.model} onChange={e => setApiForm(f => ({ ...f, model: e.target.value }))} className={inputCls}>
+                            <option value="gemini-2.5-pro">gemini-2.5-pro（旗舰推理）</option>
+                            <option value="gemini-2.5-flash">gemini-2.5-flash（高效）</option>
+                            <option value="gemini-2.0-flash">gemini-2.0-flash（快速·免费）</option>
+                            <option value="gemini-1.5-pro">gemini-1.5-pro（长上下文）</option>
+                            <option value="gemini-1.5-flash">gemini-1.5-flash（轻量·免费）</option>
+                          </select>
                         ) : apiForm.provider === 'deepseek' ? (
                           <select value={apiForm.model} onChange={e => setApiForm(f => ({ ...f, model: e.target.value }))} className={inputCls}>
                             <option value="deepseek-chat">deepseek-chat（DeepSeek V3）</option>
@@ -850,6 +840,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                           API Key
                           <span className="ml-2 text-[10px] normal-case tracking-normal font-normal text-slate-400">
                             {apiForm.provider === 'dmxapi' && '— dmxapi.cn 工作台 → 令牌'}
+                            {apiForm.provider === 'google' && '— aistudio.google.com → Get API key'}
                             {apiForm.provider === 'deepseek' && '— platform.deepseek.com → API keys'}
                             {apiForm.provider === 'zhipu' && '— open.bigmodel.cn → API 密钥'}
                             {apiForm.provider === 'moonshot' && '— platform.moonshot.cn → API keys'}
@@ -871,7 +862,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">备注名称（可选）</label>
                         <input value={apiForm.label} onChange={e => setApiForm(f => ({ ...f, label: e.target.value }))}
-                          placeholder={`如：研究生班 ${apiForm.provider === 'dmxapi' ? 'DMXAPI' : apiForm.provider === 'deepseek' ? 'DeepSeek' : apiForm.provider === 'zhipu' ? 'GLM' : 'Kimi'} Key`}
+                          placeholder={`如：研究生班 ${apiForm.provider === 'dmxapi' ? 'DMXAPI' : apiForm.provider === 'google' ? 'Gemini' : apiForm.provider === 'deepseek' ? 'DeepSeek' : apiForm.provider === 'zhipu' ? 'GLM' : 'Kimi'} Key`}
                           className={inputCls} />
                       </div>
 

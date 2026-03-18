@@ -6,7 +6,7 @@
 
 import { supabase } from '@/lib/supabase';
 
-export type AIProvider = 'deepseek' | 'zhipu' | 'dmxapi' | 'openai' | 'anthropic' | 'google';
+export type AIProvider = 'deepseek' | 'zhipu' | 'moonshot' | 'kimi' | 'dmxapi' | 'openai' | 'anthropic' | 'google';
 
 export interface AIConfig {
     provider: AIProvider;
@@ -25,7 +25,12 @@ const EDGE_FUNCTION_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL || 'https:
 const MAX_CONTENT_LENGTH = 10_000;
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
-    const { data: { session } } = await supabase.auth.getSession();
+    let { data: { session } } = await supabase.auth.getSession();
+    // Refresh token if expired or expiring within 60 seconds
+    if (!session?.access_token || (session.expires_at && session.expires_at * 1000 < Date.now() + 60_000)) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        session = refreshed.session;
+    }
     if (!session?.access_token) {
         throw new Error('未登录，请重新登录后再试');
     }
@@ -204,68 +209,156 @@ export async function chat(
 
 /**
  * Available AI Models Configuration
- * DMXAPI: https://dmxapi.cn - One API Key for 300+ AI models
+ * - DMXAPI: ChatGPT + Claude via https://www.dmxapi.cn/v1
+ * - Google: Gemini via official https://generativelanguage.googleapis.com
+ * - DeepSeek: direct https://api.deepseek.com
+ * - Zhipu: direct https://open.bigmodel.cn
+ * - Moonshot/Kimi: direct https://api.moonshot.cn
  */
 export const AI_MODELS: Record<string, { id: string; name: string; provider: AIProvider; model: string; description: string; category: 'free' | 'premium'; color: string }> = {
-    // === DMXAPI Models (via unified API) ===
-    'gpt-4o-mini': {
-        id: 'gpt-4o-mini',
-        name: 'GPT-4o Mini',
+    // === ChatGPT via DMXAPI ===
+    'gpt-5.4': {
+        id: 'gpt-5.4',
+        name: 'ChatGPT 5.4',
         provider: 'dmxapi',
-        model: 'gpt-4o-mini',
-        description: 'OpenAI 轻量级多模态模型',
-        category: 'premium',
-        color: 'bg-emerald-500',
-    },
-    'gpt-4o': {
-        id: 'gpt-4o',
-        name: 'GPT-4o',
-        provider: 'dmxapi',
-        model: 'gpt-4o',
-        description: 'OpenAI 最新多模态旗舰',
+        model: 'gpt-5.4',
+        description: 'OpenAI 最新旗舰模型',
         category: 'premium',
         color: 'bg-emerald-600',
     },
-    'claude-3-5-sonnet': {
-        id: 'claude-3-5-sonnet',
-        name: 'Claude 3.5 Sonnet',
+    'gpt-5.3-chat': {
+        id: 'gpt-5.3-chat',
+        name: 'ChatGPT 5.3',
         provider: 'dmxapi',
-        model: 'claude-3-5-sonnet-20250219',
-        description: 'Anthropic 最强推理模型',
+        model: 'gpt-5.3-chat',
+        description: 'OpenAI 高性能对话模型',
+        category: 'premium',
+        color: 'bg-emerald-500',
+    },
+    // === Claude via DMXAPI ===
+    'claude-sonnet-4-6': {
+        id: 'claude-sonnet-4-6',
+        name: 'Claude Sonnet 4.6',
+        provider: 'dmxapi',
+        model: 'claude-sonnet-4-6',
+        description: 'Anthropic 最新 Sonnet 模型',
         category: 'premium',
         color: 'bg-amber-600',
     },
-    'claude-3-5-haiku': {
-        id: 'claude-3-5-haiku',
-        name: 'Claude 3.5 Haiku',
+    'claude-sonnet-4-6-thinking': {
+        id: 'claude-sonnet-4-6-thinking',
+        name: 'Claude Sonnet 4.6 Thinking',
         provider: 'dmxapi',
-        model: 'claude-3-5-haiku-20250219',
-        description: 'Claude 快速响应模型',
+        model: 'claude-sonnet-4-6-thinking',
+        description: 'Claude Sonnet 4.6 扩展思考版',
         category: 'premium',
         color: 'bg-amber-500',
     },
-    'gemini-2.0-flash': {
-        id: 'gemini-2.0-flash',
-        name: 'Gemini 2.0 Flash',
+    'claude-opus-4-6': {
+        id: 'claude-opus-4-6',
+        name: 'Claude Opus 4.6',
         provider: 'dmxapi',
-        model: 'gemini-2.0-flash-exp',
-        description: 'Google 超快多模态模型',
+        model: 'claude-opus-4-6',
+        description: 'Anthropic 最新 Opus 旗舰',
         category: 'premium',
-        color: 'bg-blue-500',
+        color: 'bg-orange-600',
     },
+    'claude-opus-4-6-thinking': {
+        id: 'claude-opus-4-6-thinking',
+        name: 'Claude Opus 4.6 Thinking',
+        provider: 'dmxapi',
+        model: 'claude-opus-4-6-thinking',
+        description: 'Claude Opus 4.6 扩展思考版',
+        category: 'premium',
+        color: 'bg-orange-500',
+    },
+    'claude-opus-4-5-20251101': {
+        id: 'claude-opus-4-5-20251101',
+        name: 'Claude Opus 4.5',
+        provider: 'dmxapi',
+        model: 'claude-opus-4-5-20251101',
+        description: 'Claude Opus 4.5 (Nov 2025)',
+        category: 'premium',
+        color: 'bg-amber-700',
+    },
+    'claude-opus-4-5-20251101-thinking': {
+        id: 'claude-opus-4-5-20251101-thinking',
+        name: 'Claude Opus 4.5 Thinking',
+        provider: 'dmxapi',
+        model: 'claude-opus-4-5-20251101-thinking',
+        description: 'Claude Opus 4.5 扩展思考版',
+        category: 'premium',
+        color: 'bg-amber-600',
+    },
+    'claude-sonnet-4-5-20250929': {
+        id: 'claude-sonnet-4-5-20250929',
+        name: 'Claude Sonnet 4.5',
+        provider: 'dmxapi',
+        model: 'claude-sonnet-4-5-20250929',
+        description: 'Claude Sonnet 4.5 (Sep 2025)',
+        category: 'premium',
+        color: 'bg-amber-500',
+    },
+    'claude-sonnet-4-5-20250929-thinking': {
+        id: 'claude-sonnet-4-5-20250929-thinking',
+        name: 'Claude Sonnet 4.5 Thinking',
+        provider: 'dmxapi',
+        model: 'claude-sonnet-4-5-20250929-thinking',
+        description: 'Claude Sonnet 4.5 扩展思考版',
+        category: 'premium',
+        color: 'bg-amber-400',
+    },
+    // === Google Gemini — official API ===
     'gemini-2.5-pro': {
         id: 'gemini-2.5-pro',
         name: 'Gemini 2.5 Pro',
-        provider: 'dmxapi',
+        provider: 'google',
         model: 'gemini-2.5-pro',
         description: 'Google 旗舰推理模型',
         category: 'premium',
         color: 'bg-blue-600',
     },
+    'gemini-2.5-flash': {
+        id: 'gemini-2.5-flash',
+        name: 'Gemini 2.5 Flash',
+        provider: 'google',
+        model: 'gemini-2.5-flash',
+        description: 'Google 快速高效模型',
+        category: 'premium',
+        color: 'bg-blue-500',
+    },
+    'gemini-2.0-flash': {
+        id: 'gemini-2.0-flash',
+        name: 'Gemini 2.0 Flash',
+        provider: 'google',
+        model: 'gemini-2.0-flash',
+        description: 'Google 超快多模态模型',
+        category: 'free',
+        color: 'bg-blue-400',
+    },
+    'gemini-1.5-pro': {
+        id: 'gemini-1.5-pro',
+        name: 'Gemini 1.5 Pro',
+        provider: 'google',
+        model: 'gemini-1.5-pro',
+        description: 'Google 长上下文专家',
+        category: 'premium',
+        color: 'bg-sky-600',
+    },
+    'gemini-1.5-flash': {
+        id: 'gemini-1.5-flash',
+        name: 'Gemini 1.5 Flash',
+        provider: 'google',
+        model: 'gemini-1.5-flash',
+        description: 'Google 高速轻量模型',
+        category: 'free',
+        color: 'bg-sky-500',
+    },
+    // === DeepSeek — direct API ===
     'deepseek-chat': {
         id: 'deepseek-chat',
-        name: 'DeepSeek Chat',
-        provider: 'dmxapi',
+        name: 'DeepSeek V3',
+        provider: 'deepseek',
         model: 'deepseek-chat',
         description: '深度求索对话模型',
         category: 'free',
@@ -273,44 +366,27 @@ export const AI_MODELS: Record<string, { id: string; name: string; provider: AIP
     },
     'deepseek-reasoner': {
         id: 'deepseek-reasoner',
-        name: 'DeepSeek Reasoner',
-        provider: 'dmxapi',
+        name: 'DeepSeek R1',
+        provider: 'deepseek',
         model: 'deepseek-reasoner',
         description: '深度求索推理模型',
         category: 'free',
         color: 'bg-sky-600',
     },
-    'qwen-plus': {
-        id: 'qwen-plus',
-        name: 'Qwen Plus',
-        provider: 'dmxapi',
-        model: 'qwen-plus',
-        description: '通义千问增强版',
-        category: 'free',
-        color: 'bg-indigo-500',
-    },
-    'qwen-turbo': {
-        id: 'qwen-turbo',
-        name: 'Qwen Turbo',
-        provider: 'dmxapi',
-        model: 'qwen-turbo',
-        description: '通义千问高速版',
-        category: 'free',
-        color: 'bg-indigo-600',
-    },
+    // === 智谱 GLM — direct API ===
     'glm-4-flash': {
         id: 'glm-4-flash',
         name: 'GLM-4 Flash',
-        provider: 'dmxapi',
+        provider: 'zhipu',
         model: 'glm-4-flash',
-        description: '智谱快速响应',
+        description: '智谱极速免费模型',
         category: 'free',
         color: 'bg-teal-500',
     },
     'glm-4-air': {
         id: 'glm-4-air',
         name: 'GLM-4 Air',
-        provider: 'dmxapi',
+        provider: 'zhipu',
         model: 'glm-4-air',
         description: '智谱均衡版',
         category: 'free',
@@ -319,7 +395,7 @@ export const AI_MODELS: Record<string, { id: string; name: string; provider: AIP
     'glm-4-plus': {
         id: 'glm-4-plus',
         name: 'GLM-4 Plus',
-        provider: 'dmxapi',
+        provider: 'zhipu',
         model: 'glm-4-plus',
         description: '智谱 AI 增强版',
         category: 'premium',
@@ -328,7 +404,7 @@ export const AI_MODELS: Record<string, { id: string; name: string; provider: AIP
     'glm-4.7': {
         id: 'glm-4.7',
         name: 'GLM-4.7',
-        provider: 'dmxapi',
+        provider: 'zhipu',
         model: 'glm-4.7',
         description: '智谱新一代旗舰',
         category: 'premium',
@@ -337,7 +413,7 @@ export const AI_MODELS: Record<string, { id: string; name: string; provider: AIP
     'glm-z1-flash': {
         id: 'glm-z1-flash',
         name: 'GLM-Z1 Flash',
-        provider: 'dmxapi',
+        provider: 'zhipu',
         model: 'glm-z1-flash',
         description: '智谱推理模型（快）',
         category: 'free',
@@ -346,29 +422,57 @@ export const AI_MODELS: Record<string, { id: string; name: string; provider: AIP
     'glm-z1': {
         id: 'glm-z1',
         name: 'GLM-Z1',
-        provider: 'dmxapi',
+        provider: 'zhipu',
         model: 'glm-z1',
         description: '智谱深度推理',
         category: 'premium',
         color: 'bg-teal-700',
     },
-    'kimi-128k': {
-        id: 'kimi-128k',
-        name: 'Kimi 128K',
-        provider: 'dmxapi',
-        model: 'moonshot-v1-128k',
-        description: 'Kimi 超长上下文',
+    'glm-5': {
+        id: 'glm-5',
+        name: 'GLM-5',
+        provider: 'zhipu',
+        model: 'glm-5',
+        description: '智谱第五代旗舰',
         category: 'premium',
-        color: 'bg-violet-500',
+        color: 'bg-teal-700',
     },
-    'kimi-32k': {
-        id: 'kimi-32k',
+    // === Kimi / Moonshot — direct API ===
+    'moonshot-v1-8k': {
+        id: 'moonshot-v1-8k',
+        name: 'Kimi 8K',
+        provider: 'moonshot',
+        model: 'moonshot-v1-8k',
+        description: 'Kimi 标准上下文',
+        category: 'free',
+        color: 'bg-violet-400',
+    },
+    'moonshot-v1-32k': {
+        id: 'moonshot-v1-32k',
         name: 'Kimi 32K',
-        provider: 'dmxapi',
+        provider: 'moonshot',
         model: 'moonshot-v1-32k',
         description: 'Kimi 长文本理解',
         category: 'free',
-        color: 'bg-violet-400',
+        color: 'bg-violet-500',
+    },
+    'moonshot-v1-128k': {
+        id: 'moonshot-v1-128k',
+        name: 'Kimi 128K',
+        provider: 'moonshot',
+        model: 'moonshot-v1-128k',
+        description: 'Kimi 超长上下文',
+        category: 'premium',
+        color: 'bg-violet-600',
+    },
+    'kimi-latest': {
+        id: 'kimi-latest',
+        name: 'Kimi Latest',
+        provider: 'moonshot',
+        model: 'kimi-latest',
+        description: 'Kimi 最新版本',
+        category: 'premium',
+        color: 'bg-violet-600',
     },
 };
 
@@ -377,28 +481,28 @@ export const AI_MODELS: Record<string, { id: string; name: string; provider: AIP
  */
 export const AI_CONFIGS = {
     deepseekChat: {
-        provider: 'dmxapi' as AIProvider,
+        provider: 'deepseek' as AIProvider,
         model: 'deepseek-chat'
     },
     deepseekReasoner: {
-        provider: 'dmxapi' as AIProvider,
+        provider: 'deepseek' as AIProvider,
         model: 'deepseek-reasoner'
     },
     zhipuGLM4: {
-        provider: 'dmxapi' as AIProvider,
+        provider: 'zhipu' as AIProvider,
         model: 'glm-4-flash'
-    },
-    gpt4oMini: {
-        provider: 'dmxapi' as AIProvider,
-        model: 'gpt-4o-mini'
     },
     claudeSonnet: {
         provider: 'dmxapi' as AIProvider,
-        model: 'claude-3-5-sonnet-20250219'
+        model: 'claude-sonnet-4-6'
     },
     geminiFlash: {
+        provider: 'google' as AIProvider,
+        model: 'gemini-2.0-flash'
+    },
+    chatGPT: {
         provider: 'dmxapi' as AIProvider,
-        model: 'gemini-2.0-flash-exp'
+        model: 'gpt-5.4'
     },
 };
 
@@ -407,38 +511,33 @@ export const AI_CONFIGS = {
  */
 export const MODEL_CATEGORIES = {
     openai: {
-        name: 'OpenAI',
-        models: ['gpt-4o-mini', 'gpt-4o'],
+        name: 'ChatGPT (via DMXAPI)',
+        models: ['gpt-5.4', 'gpt-5.3-chat'],
         color: 'bg-emerald-500',
     },
     anthropic: {
-        name: 'Anthropic',
-        models: ['claude-3-5-sonnet', 'claude-3-5-haiku'],
+        name: 'Claude (via DMXAPI)',
+        models: ['claude-sonnet-4-6', 'claude-sonnet-4-6-thinking', 'claude-opus-4-6', 'claude-opus-4-6-thinking', 'claude-opus-4-5-20251101', 'claude-opus-4-5-20251101-thinking', 'claude-sonnet-4-5-20250929', 'claude-sonnet-4-5-20250929-thinking'],
         color: 'bg-amber-500',
     },
     google: {
-        name: 'Google',
-        models: ['gemini-2.0-flash', 'gemini-2.5-pro'],
+        name: 'Gemini (官方 API)',
+        models: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'],
         color: 'bg-blue-500',
     },
     deepseek: {
-        name: 'DeepSeek',
+        name: 'DeepSeek (直连)',
         models: ['deepseek-chat', 'deepseek-reasoner'],
         color: 'bg-sky-500',
     },
-    qwen: {
-        name: 'Qwen',
-        models: ['qwen-plus', 'qwen-turbo'],
-        color: 'bg-indigo-500',
-    },
     zhipu: {
-        name: 'GLM (智谱)',
-        models: ['glm-4-flash', 'glm-4-air', 'glm-4-plus', 'glm-4.7', 'glm-z1-flash', 'glm-z1'],
+        name: 'GLM · 智谱 (直连)',
+        models: ['glm-4-flash', 'glm-4-air', 'glm-4-plus', 'glm-4.7', 'glm-z1-flash', 'glm-z1', 'glm-5'],
         color: 'bg-teal-500',
     },
     moonshot: {
-        name: 'Kimi',
-        models: ['kimi-32k', 'kimi-128k'],
+        name: 'Kimi (直连)',
+        models: ['moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k', 'kimi-latest'],
         color: 'bg-violet-500',
     },
 };
@@ -447,9 +546,9 @@ export const MODEL_CATEGORIES = {
  * Recommended models for comparison
  */
 export const COMPARE_RECOMMENDATIONS = [
-    ['gpt-4o-mini', 'claude-3-5-haiku', 'deepseek-chat'], // Fast & Free
-    ['claude-3-5-sonnet', 'gpt-4o', 'gemini-2.5-pro'], // Premium
-    ['deepseek-reasoner', 'claude-3-5-sonnet', 'glm-4-plus'], // Reasoning
+    ['deepseek-chat', 'claude-sonnet-4-6', 'gemini-2.0-flash'], // Fast & Balanced
+    ['claude-opus-4-6', 'gpt-5.4', 'gemini-2.5-pro'], // Premium
+    ['deepseek-reasoner', 'claude-opus-4-6-thinking', 'glm-z1'], // Reasoning
 ];
 
 /**
