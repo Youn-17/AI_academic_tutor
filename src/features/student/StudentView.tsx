@@ -9,7 +9,7 @@ import StudentChatView from '@/features/student/components/StudentChatView';
 
 import { useAuth } from '@/features/auth/AuthProvider';
 import * as ConversationService from '@/services/ConversationService';
-import { streamChat, AI_CONFIGS, SYSTEM_PROMPTS, ChatMessage } from '@/services/RealAIService';
+import { streamChat, AI_CONFIGS, AI_MODELS, SYSTEM_PROMPTS, ChatMessage } from '@/services/RealAIService';
 import { readFileContent } from '@/services/DocumentService';
 
 interface StudentViewProps {
@@ -33,16 +33,8 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
   // Chat State
   const [isThinking, setIsThinking] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
-  const [selectedModel, setSelectedModel] = useState('deepseek-chat');
-
-  // Model config map
-  const modelMap: Record<string, { provider: 'deepseek' | 'zhipu'; model: string }> = {
-    'deepseek-chat':     { provider: 'deepseek', model: 'deepseek-chat' },
-    'deepseek-reasoner': { provider: 'deepseek', model: 'deepseek-reasoner' },
-    'glm-4.7':           { provider: 'zhipu',    model: 'glm-4.7' },
-    'glm-4-flash':       { provider: 'zhipu',    model: 'glm-4-flash' },
-    'glm-4':             { provider: 'zhipu',    model: 'glm-4' },
-  };
+  const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-6');
+  const [useRag, setUseRag] = useState(false);
 
   // Find active chat
   const activeChat = conversations.find(c => c.id === activeChatId);
@@ -160,11 +152,15 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       }));
       chatHistory.push({ role: 'user', content: fullContent });
 
-      const config = modelMap[selectedModel] || AI_CONFIGS.deepseekChat;
+      const modelInfo = AI_MODELS[selectedModel];
+      const config = modelInfo
+        ? { provider: modelInfo.provider, model: modelInfo.model }
+        : AI_CONFIGS.deepseekChat;
+      const ragOptions = useRag ? { use_rag: true } : undefined;
       let fullResponse = '';
 
       try {
-        for await (const chunk of streamChat(chatHistory, config, SYSTEM_PROMPTS.academic)) {
+        for await (const chunk of streamChat(chatHistory, config, SYSTEM_PROMPTS.academic, ragOptions)) {
           fullResponse += chunk;
           setStreamingContent(fullResponse);
         }
@@ -216,11 +212,15 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       }));
       chatHistory.push({ role: 'user', content: newContent });
 
-      const config = modelMap[selectedModel] || AI_CONFIGS.deepseekChat;
+      const modelInfo = AI_MODELS[selectedModel];
+      const config = modelInfo
+        ? { provider: modelInfo.provider, model: modelInfo.model }
+        : AI_CONFIGS.deepseekChat;
+      const ragOptions = useRag ? { use_rag: true } : undefined;
       let fullResponse = '';
 
       try {
-        for await (const chunk of streamChat(chatHistory, config, SYSTEM_PROMPTS.academic)) {
+        for await (const chunk of streamChat(chatHistory, config, SYSTEM_PROMPTS.academic, ragOptions)) {
           fullResponse += chunk;
           setStreamingContent(fullResponse);
         }
@@ -332,6 +332,8 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
             onEditMessage={handleEditMessage}
             selectedModel={selectedModel}
             onModelSelect={setSelectedModel}
+            useRag={useRag}
+            onToggleRag={() => setUseRag(prev => !prev)}
             theme={theme}
             onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
             locale={locale}

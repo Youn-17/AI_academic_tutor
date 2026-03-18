@@ -120,6 +120,127 @@ export const SUPPORTED_MIME_TYPES = [
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ];
 
+// ── RAG Library ───────────────────────────────────────────────────────
+
+export interface RagDoc {
+  id: string;
+  title: string;
+  description?: string;
+  layer: 1 | 2 | 3 | 4;
+  visibility: string;
+  resource_type: string;
+  source_type: string;
+  processing_status: 'pending' | 'processing' | 'completed' | 'failed';
+  processing_error?: string;
+  chunk_count: number;
+  file_size?: number;
+  storage_path?: string;
+  mime_type?: string;
+  course_id?: string;
+  created_at: string;
+}
+
+const EDGE_FUNCTION_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL
+  || 'https://oztozjwngekmqtuylypt.supabase.co/functions/v1';
+
+export async function uploadToLibrary(
+  file: File,
+  options: {
+    title?: string;
+    layer?: 1 | 2 | 3 | 4;
+    visibility?: string;
+    course_id?: string;
+    resource_type?: string;
+  } = {}
+): Promise<RagDoc> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('未登录');
+
+  const validation = validateFile(file);
+  if (!validation.valid) throw new Error(validation.error);
+
+  // Upload file to Storage
+  const ts = Date.now();
+  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  const storagePath = `${user.id}/library/${ts}_${safeName}`;
+
+  const { error: storageErr } = await supabase.storage
+    .from('documents')
+    .upload(storagePath, file, { cacheControl: '3600', upsert: false });
+  if (storageErr) throw storageErr;
+
+  // Determine resource type from file
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'txt';
+  const resourceType = options.resource_type
+    || (['pdf'].includes(ext) ? 'pdf'
+      : ['doc', 'docx'].includes(ext) ? 'docx'
+      : 'txt');
+
+  // Insert document record
+  const { data: doc, error: insertErr } = await supabase
+    .from('documents')
+    .insert({
+      owner_id: user.id,
+      title: options.title || file.name.replace(/\.[^/.]+$/, ''),
+      layer: options.layer ?? 2,
+      visibility: options.visibility ?? 'private',
+      course_id: options.course_id ?? null,
+      resource_type: resourceType,
+      source_type: 'upload',
+      storage_path: storagePath,
+      file_size: file.size,
+      mime_type: file.type,
+      processing_status: 'pending',
+    })
+    .select()
+    .single();
+  if (insertErr) throw insertErr;
+
+  // For text-based files, extract content and trigger processing immediately
+  const isText = file.type.startsWith('text/') || ['txt', 'md', 'json', 'csv'].includes(ext);
+  if (isText) {
+    const textContent = await file.text();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      fetch(`${EDGE_FUNCTION_URL}/process-document`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ document_id: doc.id, text_content: textContent }),
+      }).catch(console.error); // fire-and-forget
+    }
+  }
+
+  return doc as RagDoc;
+}
+
+export async function getLibraryDocuments(filters?: {
+  layer?: number;
+  course_id?: string;
+  owner_id?: string;
+}): Promise<RagDoc[]> {
+  let q = supabase.from('documents').select('*').order('created_at', { ascending: false });
+  if (filters?.layer) q = q.eq('layer', filters.layer);
+  if (filters?.course_id) q = q.eq('course_id', filters.course_id);
+  if (filters?.owner_id) q = q.eq('owner_id', filters.owner_id);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data || []) as RagDoc[];
+}
+
+export async function deleteLibraryDocument(id: string): Promise<void> {
+  // Get storage path first
+  const { data: doc } = await supabase.from('documents').select('storage_path').eq('id', id).single();
+  if (doc?.storage_path) {
+    await supabase.storage.from('documents').remove([doc.storage_path]).catch(() => {});
+  }
+  const { error } = await supabase.from('documents').delete().eq('id', id);
+  if (error) throw error;
+}
+
 /**
  * Validate file before upload
  */
