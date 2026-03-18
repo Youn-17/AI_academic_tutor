@@ -340,7 +340,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
       <AnimStyles />
 
       {/* ── LEFT — Form ── */}
-      <div className="w-full lg:w-[52%] flex flex-col justify-center px-8 md:px-14 lg:px-16 py-10 relative">
+      <div className="w-full lg:w-[48%] flex flex-col justify-center px-8 md:px-12 lg:px-14 py-10 relative">
 
         {/* Top bar */}
         <div className="flex items-center justify-between mb-8">
@@ -355,7 +355,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
             surface={surface} border={border} textBase={textBase} textMuted={textMuted} />
         </div>
 
-        <div className="w-full max-w-sm mx-auto lg:mx-0">
+        <div className="w-full max-w-[360px] mx-auto">
           {/* Brand */}
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -517,7 +517,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
       <div className="hidden lg:block w-px flex-shrink-0" style={{ background: border }} />
 
       {/* ── RIGHT — Community panel ── */}
-      <div className="hidden lg:flex flex-1 flex-col justify-center px-12 xl:px-16 py-10 relative overflow-hidden"
+      <div className="hidden lg:flex flex-1 flex-col justify-center px-10 xl:px-14 py-10 relative overflow-hidden"
         style={{ background: isDark ? '#0A1825' : '#F0FDF4' }}>
 
         {/* Ambient orbs */}
@@ -539,7 +539,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
           animation: 'spinSlow 40s linear infinite', pointerEvents: 'none',
         }} />
 
-        <div style={{ position: 'relative', maxWidth: 380, width: '100%' }}>
+        <div style={{ position: 'relative', maxWidth: 360, width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>
 
           {/* Hero SVG */}
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
@@ -608,7 +608,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
           </div>
         </div>
 
-        <p style={{ position: 'absolute', bottom: 24, left: 48, fontSize: 12, color: textMuted, opacity: 0.5 }}>
+        <p style={{ position: 'absolute', bottom: 24, left: 40, fontSize: 12, color: textMuted, opacity: 0.5 }}>
           © 2026 HAKHub Team · HAKHub Scholar
         </p>
       </div>

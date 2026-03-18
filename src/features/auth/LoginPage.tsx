@@ -199,7 +199,7 @@ const TriadicScene: React.FC<{
       </div>
 
       {/* Scene container — fixed height, full width */}
-      <div style={{ position: 'relative', height: 310, overflow: 'hidden', margin: '0 16px 8px' }}>
+      <div style={{ position: 'relative', height: 270, overflow: 'hidden', margin: '0 16px 8px' }}>
 
         {/* Background: workflow-cycle.svg slowly spinning */}
         <img
@@ -216,14 +216,14 @@ const TriadicScene: React.FC<{
         {/* SVG layer — connections + flowing dots */}
         <svg
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-          viewBox="0 0 380 310"
+          viewBox="0 0 380 270"
           preserveAspectRatio="none"
         >
           <defs>
-            {/* Paths used by animateMotion */}
-            <path id="lp-ai-stu"  d="M 170 82 C 115 155 80 200 88 225" />
-            <path id="lp-stu-sup" d="M 105 255 C 160 278 222 278 275 255" />
-            <path id="lp-sup-ai"  d="M 292 225 C 308 172 258 118 210 82" />
+            {/* Paths used by animateMotion — node centers: AI(190,46) Stu(68,218) Sup(312,218) */}
+            <path id="lp-ai-stu"  d="M 168 74 C 112 138 78 178 86 198" />
+            <path id="lp-stu-sup" d="M 104 218 C 158 240 222 240 276 218" />
+            <path id="lp-sup-ai"  d="M 294 198 C 308 152 258 106 212 74" />
           </defs>
 
           {/* Static dashed lines */}
@@ -232,16 +232,16 @@ const TriadicScene: React.FC<{
           <use href="#lp-sup-ai"  fill="none" stroke={`${colSUP}28`} strokeWidth="1.5" strokeDasharray="5 4" />
 
           {/* Pulse rings */}
-          <circle cx="190" cy="52" r="40" fill="none" stroke={colAI} strokeWidth="1.2">
-            <animate attributeName="r"       values="36;45;36" dur="3s"   repeatCount="indefinite" />
+          <circle cx="190" cy="46" r="38" fill="none" stroke={colAI} strokeWidth="1.2">
+            <animate attributeName="r"       values="34;42;34" dur="3s"   repeatCount="indefinite" />
             <animate attributeName="opacity" values="0.28;0.07;0.28" dur="3s" repeatCount="indefinite" />
           </circle>
-          <circle cx="68" cy="255" r="40" fill="none" stroke={colSTU} strokeWidth="1.2">
-            <animate attributeName="r"       values="36;45;36" dur="3.6s" repeatCount="indefinite" />
+          <circle cx="68" cy="218" r="38" fill="none" stroke={colSTU} strokeWidth="1.2">
+            <animate attributeName="r"       values="34;42;34" dur="3.6s" repeatCount="indefinite" />
             <animate attributeName="opacity" values="0.28;0.07;0.28" dur="3.6s" repeatCount="indefinite" />
           </circle>
-          <circle cx="312" cy="255" r="40" fill="none" stroke={colSUP} strokeWidth="1.2">
-            <animate attributeName="r"       values="36;45;36" dur="4.2s" repeatCount="indefinite" />
+          <circle cx="312" cy="218" r="38" fill="none" stroke={colSUP} strokeWidth="1.2">
+            <animate attributeName="r"       values="34;42;34" dur="4.2s" repeatCount="indefinite" />
             <animate attributeName="opacity" values="0.28;0.07;0.28" dur="4.2s" repeatCount="indefinite" />
           </circle>
 
@@ -283,7 +283,7 @@ const TriadicScene: React.FC<{
 
         {/* AI node — top center */}
         <div style={{
-          position: 'absolute', left: `${190/380*100}%`, top: `${52/310*100}%`,
+          position: 'absolute', left: `${190/380*100}%`, top: `${46/270*100}%`,
           transform: 'translate(-50%, -50%)',
           animation: 'floatAI 4.2s ease-in-out infinite',
           textAlign: 'center',
@@ -309,7 +309,7 @@ const TriadicScene: React.FC<{
 
         {/* Student node — bottom left */}
         <div style={{
-          position: 'absolute', left: `${68/380*100}%`, top: `${255/310*100}%`,
+          position: 'absolute', left: `${68/380*100}%`, top: `${218/270*100}%`,
           transform: 'translate(-50%, -50%)',
           animation: 'floatStu 5s ease-in-out infinite',
           textAlign: 'center',
@@ -335,7 +335,7 @@ const TriadicScene: React.FC<{
 
         {/* Supervisor node — bottom right */}
         <div style={{
-          position: 'absolute', left: `${312/380*100}%`, top: `${255/310*100}%`,
+          position: 'absolute', left: `${312/380*100}%`, top: `${218/270*100}%`,
           transform: 'translate(-50%, -50%)',
           animation: 'floatSup 4.7s ease-in-out infinite',
           textAlign: 'center',
@@ -442,7 +442,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister, onSwitchToFor
       <AnimStyles />
 
       {/* ── LEFT — Form panel ── */}
-      <div className="w-full lg:w-[46%] flex flex-col justify-center px-8 md:px-14 lg:px-16 py-10 relative">
+      <div className="w-full lg:w-[48%] flex flex-col justify-center px-8 md:px-12 lg:px-14 py-10 relative">
 
         {/* Top bar */}
         <div className="flex items-center justify-between mb-10">
@@ -456,7 +456,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister, onSwitchToFor
           <LangDropdown lang={lang} onChange={setLang} isDark={isDark} />
         </div>
 
-        <div className="w-full max-w-sm mx-auto lg:mx-0">
+        <div className="w-full max-w-[360px] mx-auto">
           {/* Brand */}
           <div className="flex items-center gap-3 mb-8">
             <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
@@ -563,7 +563,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister, onSwitchToFor
       <div className="hidden lg:block w-px flex-shrink-0" style={{ background: border }} />
 
       {/* ── RIGHT — Brand showcase panel ── */}
-      <div className="hidden lg:flex flex-1 flex-col justify-center px-12 xl:px-16 py-10 relative overflow-hidden"
+      <div className="hidden lg:flex flex-1 flex-col justify-center px-10 xl:px-14 py-10 relative overflow-hidden"
         style={{ background: isDark ? '#0A1825' : '#F0FDF4' }}>
 
         {/* Ambient orbs */}
@@ -572,7 +572,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister, onSwitchToFor
         <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full pointer-events-none"
           style={{ background: `radial-gradient(circle, #0EA5E914 0%, transparent 70%)` }} />
 
-        <div className="relative max-w-md w-full">
+        <div className="relative max-w-[360px] w-full mx-auto">
           {/* Title */}
           <div className="mb-6">
             <ShieldCheck size={20} className="mb-3" style={{ color: emL }} />
@@ -649,7 +649,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister, onSwitchToFor
           </div>
         </div>
 
-        <p className="absolute bottom-6 left-12 text-xs" style={{ color: textMuted, opacity: 0.5 }}>
+        <p className="absolute bottom-6 left-10 text-xs" style={{ color: textMuted, opacity: 0.5 }}>
           © 2026 HAKHub Team · HAKHub Scholar
         </p>
       </div>
