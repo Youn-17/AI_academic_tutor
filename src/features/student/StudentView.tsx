@@ -311,6 +311,42 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
               a.download = `${activeChat.title}_${new Date().toISOString().slice(0, 10)}.txt`;
               a.click();
             }}
+            onCompareModels={async (modelIds: string[]) => {
+              if (!activeChatId || modelIds.length === 0) return;
+
+              const chatHistory: ChatMessage[] = messages.map(msg => ({
+                role: msg.sender === 'student' ? 'user' : 'assistant',
+                content: msg.content,
+              }));
+
+              // Get last user message as prompt for comparison
+              const lastUserMsg = [...messages].reverse().find(m => m.sender === 'student');
+              if (lastUserMsg) {
+                const { compareAIModels } = await import('@/services/RealAIService');
+                const configs = modelIds.map(id => {
+                  const { AI_MODELS } = await import('@/services/RealAIService');
+                  const modelInfo = AI_MODELS[id];
+                  return { provider: modelInfo.provider, model: modelInfo.model };
+                });
+
+                const results = await compareAIModels([{
+                  role: 'user',
+                  content: lastUserMsg.content
+                }], configs, SYSTEM_PROMPTS.academic);
+
+                // Display results in chat
+                for (const result of results) {
+                  if (!result.error) {
+                    const modelInfo = AI_MODELS[result.model];
+                    const aiMessage = await ConversationService.sendMessage(
+                      activeChatId,
+                      `【${modelInfo?.name || result.model}】\n\n${result.response}`,
+                      Role.AI
+                    );
+                  }
+                }
+              }
+            }}
           />
         )}
       </div>

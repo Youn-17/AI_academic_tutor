@@ -3,13 +3,14 @@ import {
     Send, Loader2, ChevronDown, Cpu, Paperclip, FileText,
     XCircle, Network, PanelRightOpen, PanelRightClose, Plus, Minus, Type, Sun, Moon,
     Search, BookOpen, ExternalLink, ChevronRight, Sparkles as SparklesIcon,
-    Lightbulb, MessageSquare, ArrowRight, Copy, Trash2, Download, MoreVertical, Code, BookText, Check
+    Lightbulb, MessageSquare, ArrowRight, Copy, Trash2, Download, MoreVertical, Code, BookText, Check,
+    GitCompare, Zap, Repeat, Clock, Sparkles as SparklesIcon2
 } from 'lucide-react';
 import { Conversation, Message, Theme, Locale } from '@/types';
 import ChatBubble from '@/shared/components/ChatBubble';
 import KnowledgeGraph from './KnowledgeGraph';
 import AITutorAvatar from '@/shared/components/AITutorAvatar';
-import { AI_CONFIGS } from '@/services/RealAIService';
+import { AI_MODELS, MODEL_CATEGORIES, COMPARE_RECOMMENDATIONS, compareAIModels } from '@/services/RealAIService';
 import * as SemanticScholar from '@/services/SemanticScholarService';
 import type { PaperBasic } from '@/services/SemanticScholarService';
 
@@ -28,15 +29,10 @@ interface StudentChatViewProps {
     onLocaleChange: (locale: Locale) => void;
     onClearChat?: () => Promise<void>;
     onExportChat?: () => Promise<void>;
+    onCompareModels?: (models: string[]) => Promise<void>;
 }
 
-const AI_MODELS = {
-    'deepseek-chat': { id: 'deepseek-chat', name: 'DeepSeek', description: '快速响应', color: 'bg-blue-500' },
-    'deepseek-reasoner': { id: 'deepseek-reasoner', name: 'DeepSeek R', description: '深度推理', color: 'bg-purple-500' },
-    'glm-4.7': { id: 'glm-4.7', name: 'GLM-4', description: '学术专业', color: 'bg-emerald-500' },
-};
-
-type RightPanelTab = 'graph' | 'sources' | null;
+type RightPanelTab = 'graph' | 'sources' | 'compare' | null;
 type ChatWidth = 'narrow' | 'normal' | 'wide';
 type FontSize = 'sm' | 'base' | 'lg';
 
@@ -64,6 +60,13 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     const [isSearching, setIsSearching] = useState(false);
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
     const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+
+    // AI Compare State
+    const [compareMode, setCompareMode] = useState(false);
+    const [selectedCompareModels, setSelectedCompareModels] = useState<string[]>(['gpt-4o-mini', 'deepseek-chat', 'claude-3-5-haiku']);
+    const [compareResults, setCompareResults] = useState<{ model: string; response: string; error?: string }[]>([]);
+    const [isComparing, setIsComparing] = useState(false);
+    const [showComparePanel, setShowComparePanel] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -183,6 +186,69 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
         setTimeout(() => setCopiedMessageId(null), 2000);
     }, []);
 
+    // AI Compare handlers
+    const handleToggleCompareMode = useCallback(() => {
+        setCompareMode(!compareMode);
+        if (!compareMode) {
+            setShowComparePanel(true);
+            setRightPanelTab('compare');
+        }
+    }, [compareMode]);
+
+    const handleRunCompare = useCallback(async () => {
+        if (messages.length === 0) return;
+
+        setIsComparing(true);
+        setCompareResults([]);
+
+        // Get last user message
+        const lastUserMessage = [...messages].reverse().find(m => m.sender === 'student' || m.sender === 'STUDENT');
+        if (!lastUserMessage) return;
+
+        const chatHistory = messages.slice(0, messages.indexOf(lastUserMessage)).map(m => ({
+            role: (m.sender === 'student' || m.sender === 'STUDENT') ? 'user' : 'assistant',
+            content: m.content,
+        }));
+
+        try {
+            const { AI_CONFIGS: configs } = await import('@/services/RealAIService');
+            const selectedConfigs = selectedCompareModels
+                .map(id => AI_MODELS[id])
+                .filter(Boolean)
+                .map(m => ({ provider: m.provider, model: m.model }));
+
+            if (selectedConfigs.length === 0) {
+                setCompareResults([{ model: 'Error', response: isEN ? 'Please select models' : '请选择模型', error: 'No models selected' }]);
+                return;
+            }
+
+            const results = await compareAIModels(chatHistory, selectedConfigs);
+            setCompareResults(results);
+            setShowComparePanel(true);
+            setRightPanelTab('compare');
+        } catch (error) {
+            setCompareResults([{ model: 'Error', response: (error as Error).message, error: 'Request failed' }]);
+        } finally {
+            setIsComparing(false);
+        }
+    }, [messages, selectedCompareModels, isEN]);
+
+    const toggleCompareModel = useCallback((modelId: string) => {
+        setSelectedCompareModels(prev =>
+            prev.includes(modelId)
+                ? prev.filter(id => id !== modelId)
+                : prev.length < 4
+                ? [...prev, modelId]
+                : prev
+        );
+    }, []);
+
+    const quickComparePresets = useMemo(() => [
+        { name: isEN ? 'Fast & Free' : '快速免费', models: ['gpt-4o-mini', 'deepseek-chat', 'claude-3-5-haiku'] },
+        { name: isEN ? 'Premium' : '高级模型', models: ['claude-3-5-sonnet', 'gpt-4o', 'gemini-2.5-pro'] },
+        { name: isEN ? 'Reasoning' : '推理专用', models: ['deepseek-reasoner', 'claude-3-5-sonnet', 'glm-4-plus'] },
+    ], [isEN]);
+
     const quickPrompts = useMemo(() => isEN ? [
         { text: 'Help me clarify my research question', icon: <MessageSquare size={14} /> },
         { text: 'What theoretical frameworks could I use?', icon: <Code size={14} /> },
@@ -277,15 +343,36 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                             </button>
 
                             {isModelMenuOpen && (
-                                <div className="absolute top-full right-0 mt-2 w-44 rounded-xl border shadow-xl p-1.5 z-50" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
-                                    {Object.values(AI_MODELS).map(m => (
-                                        <button key={m.id} onClick={() => { onModelSelect(m.id); setIsModelMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg transition-all" style={{ backgroundColor: selectedModel === m.id ? 'rgba(16, 185, 129, 0.1)' : 'transparent', color: selectedModel === m.id ? colors.primary : colors.text }}>
-                                            <span className={`w-2 h-2 rounded-full ${m.color}`}></span>
-                                            <div className="flex-1 text-left">
-                                                <div className="font-semibold">{m.name}</div>
-                                                <div className="text-[10px] opacity-70">{m.description}</div>
+                                <div className="absolute top-full right-0 mt-2 w-52 max-h-80 overflow-y-auto rounded-xl border shadow-xl p-1.5 z-50" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
+                                    {/* Model Categories */}
+                                    {Object.entries(MODEL_CATEGORIES).map(([catKey, category]) => (
+                                        <div key={catKey} className="mb-2 last:mb-0">
+                                            <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1" style={{ color: colors.textSecondary }}>
+                                                <span className={`w-1.5 h-1.5 rounded ${category.color}`}></span>
+                                                {category.name}
                                             </div>
-                                        </button>
+                                            {category.models.map(modelId => {
+                                                const m = AI_MODELS[modelId];
+                                                if (!m) return null;
+                                                return (
+                                                    <button
+                                                        key={modelId}
+                                                        onClick={() => { onModelSelect(modelId); setIsModelMenuOpen(false); }}
+                                                        className="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg transition-all"
+                                                        style={{ backgroundColor: selectedModel === modelId ? 'rgba(16, 185, 129, 0.1)' : 'transparent', color: selectedModel === modelId ? colors.primary : colors.text }}
+                                                    >
+                                                        <span className={`w-2 h-2 rounded-full ${m.color}`}></span>
+                                                        <div className="flex-1 text-left">
+                                                            <div className="font-semibold">{m.name}</div>
+                                                            <div className="text-[10px] opacity-70">{m.description}</div>
+                                                        </div>
+                                                        {m.category === 'premium' && (
+                                                            <span className="text-[9px] px-1 py-0.5 rounded bg-amber-100 text-amber-600">PRO</span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
                                     ))}
                                 </div>
                             )}
@@ -310,6 +397,9 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                         </div>
 
                         {/* Panel Toggles */}
+                        <button onClick={handleToggleCompareMode} className={`p-2 rounded-lg transition-all ${compareMode || rightPanelTab === 'compare' ? 'bg-purple-500/10 text-purple-500' : ''}`} title={isEN ? 'Compare AI Models' : 'AI 模型对比'}>
+                            <GitCompare size={18} />
+                        </button>
                         <button onClick={() => setRightPanelTab(rightPanelTab === 'sources' ? null : 'sources')} className={`p-2 rounded-lg transition-all ${rightPanelTab === 'sources' ? 'bg-emerald-500/10 text-emerald-500' : ''}`}>
                             <BookOpen size={18} />
                         </button>
@@ -467,6 +557,117 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                 <button onClick={() => setRightPanelTab(null)} style={{ color: colors.textSecondary }}><PanelRightClose size={18} /></button>
                             </div>
                             <div className="flex-1 p-4"><KnowledgeGraph messages={messages} theme={theme} /></div>
+                        </div>
+                    )}
+
+                    {/* AI Compare Panel */}
+                    {rightPanelTab === 'compare' && (
+                        <div className="w-full h-full flex flex-col">
+                            <div className="h-14 border-b flex items-center justify-between px-4" style={{ borderColor: colors.border }}>
+                                <div className="flex items-center gap-2">
+                                    <GitCompare size={16} className="text-purple-500" />
+                                    <span className="font-bold text-xs" style={{ color: colors.text }}>{isEN ? 'AI Model Compare' : 'AI 模型对比'}</span>
+                                </div>
+                                <button onClick={() => setRightPanelTab(null)} style={{ color: colors.textSecondary }}><PanelRightClose size={18} /></button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                {/* Compare Controls */}
+                                <div className="space-y-3">
+                                    {/* Presets */}
+                                    <div>
+                                        <label className="text-xs font-medium mb-2 block" style={{ color: colors.textSecondary }}>{isEN ? 'Quick Select:' : '快速选择:'}</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {quickComparePresets.map(preset => (
+                                                <button
+                                                    key={preset.name}
+                                                    onClick={() => setSelectedCompareModels(preset.models)}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selectedCompareModels.length === preset.models.length && selectedCompareModels.every(m => preset.models.includes(m)) ? 'bg-purple-500 text-white' : ''}`}
+                                                    style={{ backgroundColor: selectedCompareModels.length === preset.models.length && selectedCompareModels.every(m => preset.models.includes(m)) ? undefined : colors.card, border: colors.border }}
+                                                >
+                                                    {preset.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Model Selection */}
+                                    <div>
+                                        <label className="text-xs font-medium mb-2 block" style={{ color: colors.textSecondary }}>{isEN ? 'Select Models (max 4):' : '选择模型（最多4个）:'}</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {Object.entries(MODEL_CATEGORIES).map(([catKey, category]) => (
+                                                <div key={catKey} className="space-y-1">
+                                                    <div className="text-[10px] font-medium uppercase" style={{ color: colors.textSecondary }}>{category.name}</div>
+                                                    {category.models.slice(0, 4).map(modelId => {
+                                                        const m = AI_MODELS[modelId];
+                                                        if (!m) return null;
+                                                        const isSelected = selectedCompareModels.includes(modelId);
+                                                        return (
+                                                            <button
+                                                                key={modelId}
+                                                                onClick={() => toggleCompareModel(modelId)}
+                                                                className={`px-2 py-1 rounded text-[10px] text-left transition-all ${isSelected ? 'text-white' : ''}`}
+                                                                style={{
+                                                                    backgroundColor: isSelected ? m.color : colors.card,
+                                                                    border: isSelected ? undefined : colors.border,
+                                                                    opacity: isSelected ? 1 : 0.8
+                                                                }}
+                                                            >
+                                                                <span className="truncate block">{m.name}</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Run Compare Button */}
+                                    <button
+                                        onClick={handleRunCompare}
+                                        disabled={isComparing || messages.length === 0}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-all"
+                                    >
+                                        {isComparing ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+                                        {isEN ? 'Compare Models' : '开始对比'}
+                                    </button>
+                                </div>
+
+                                {/* Results */}
+                                {compareResults.length > 0 && (
+                                    <div className="space-y-3">
+                                        <div className="text-xs font-bold uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+                                            {isEN ? 'Results' : '对比结果'}
+                                        </div>
+                                        {compareResults.map((result, idx) => {
+                                            const modelInfo = AI_MODELS[result.model];
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    className="rounded-xl border p-3 transition-all hover:scale-[1.01]"
+                                                    style={{ backgroundColor: colors.card, borderColor: result.error ? '#fca5a5' : colors.border }}
+                                                >
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className={`w-2 h-2 rounded-full ${modelInfo?.color || 'bg-slate-500'}`}></span>
+                                                        <span className="text-xs font-bold" style={{ color: colors.text }}>{modelInfo?.name || result.model}</span>
+                                                        {result.error && <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-600">Error</span>}
+                                                    </div>
+                                                    <div className="text-xs leading-relaxed max-h-32 overflow-y-auto" style={{ color: colors.text }}>
+                                                        {result.error || result.response || isEN ? 'No response' : '无响应'}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {compareResults.length === 0 && !isComparing && (
+                                    <div className="text-center py-8" style={{ color: colors.textSecondary }}>
+                                        <GitCompare size={24} className="mx-auto mb-2 opacity-50" />
+                                        <p className="text-xs">{isEN ? 'Select models and run comparison' : '选择模型后开始对比'}</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
