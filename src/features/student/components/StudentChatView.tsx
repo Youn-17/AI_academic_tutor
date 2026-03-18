@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     Send, Bot, Loader2, ChevronDown, Cpu, Paperclip, FileText,
     XCircle, Network, PanelRightOpen, PanelRightClose, Plus, Minus, Type, Sun, Moon,
-    Search, BookOpen, ExternalLink, Bookmark, ChevronRight, Sparkles
+    Search, BookOpen, ExternalLink, Bookmark, ChevronRight, Sparkles,
+    Lightbulb, MessageSquare, SparklesIcon, ArrowRight
 } from 'lucide-react';
 import { Conversation, Message, Theme, Locale, Role } from '@/types';
 import ChatBubble from '@/shared/components/ChatBubble';
@@ -212,15 +213,25 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
             <div className="flex-1 flex flex-col h-full min-w-0">
 
                 {/* Header */}
-                <header className={`h-14 px-6 flex items-center justify-between border-b sticky top-0 backdrop-blur-md z-10
-           ${isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white/80 border-slate-100'}
+                <header className={`h-16 px-6 flex items-center justify-between border-b sticky top-0 backdrop-blur-md z-10 transition-all
+           ${isDark ? 'bg-slate-900/90 border-slate-800/50' : 'bg-white/90 border-slate-100/50'}
         `}>
                     <div className="flex items-center gap-4 min-w-0">
+                        {/* Chat Info */}
                         <div className="flex flex-col">
-                            <h2 className="font-bold truncate text-sm">{activeChat.title}</h2>
+                            <div className="flex items-center gap-2">
+                                <h2 className="font-bold truncate text-sm">{activeChat.title}</h2>
+                                {messages.length === 0 && (
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-100 text-emerald-600'}`}>
+                                        {isEN ? 'New' : '新对话'}
+                                    </span>
+                                )}
+                            </div>
                             <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                                <Cpu size={10} />
+                                <Bot size={10} className="text-indigo-400" />
                                 <span>{AI_MODELS[selectedModel as keyof typeof AI_MODELS]?.name}</span>
+                                <span>·</span>
+                                <span className={isDark ? 'text-slate-500' : 'text-slate-400'}>{isEN ? 'Socratic Mode' : '苏格拉底式'}</span>
                             </div>
                         </div>
                     </div>
@@ -300,6 +311,89 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto w-full scroll-smooth">
                     <div className={`${getMaxWidthClass()} mx-auto px-4 py-6 space-y-6 transition-all duration-300`}>
+
+                        {/* Welcome Empty State */}
+                        {messages.length === 0 && !loading && (
+                            <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                {/* Logo/Icon */}
+                                <div className="relative mb-6">
+                                    <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${isDark ? 'bg-gradient-to-br from-indigo-600 to-purple-600' : 'bg-gradient-to-br from-emerald-500 to-teal-600'} shadow-lg shadow-indigo-500/20`}>
+                                        <SparklesIcon size={36} className="text-white" />
+                                    </div>
+                                    <div className={`absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center ${isDark ? 'bg-slate-800' : 'bg-white'} shadow-md`}>
+                                        <Bot size={14} className="text-indigo-500" />
+                                    </div>
+                                </div>
+
+                                {/* Title */}
+                                <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                    {isEN ? 'Socratic Academic Tutor' : '苏格拉底式学术导师'}
+                                </h2>
+                                <p className={`text-sm mb-8 max-w-md ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                    {isEN
+                                        ? 'I\'m here to guide your thinking, not give you answers. Let\'s explore your research questions together.'
+                                        : '我在这里引导你思考，而非直接给出答案。让我们一起探索你的学术问题。'}
+                                </p>
+
+                                {/* Feature Cards */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-2xl w-full mb-8">
+                                    {[
+                                        {
+                                            icon: <MessageSquare size={18} />,
+                                            title: isEN ? 'Clarify Questions' : '澄清问题',
+                                            desc: isEN ? 'Define your research focus' : '明确研究方向'
+                                        },
+                                        {
+                                            icon: <Lightbulb size={18} />,
+                                            title: isEN ? 'Explore Frameworks' : '探索框架',
+                                            desc: isEN ? 'Discover theoretical approaches' : '发现理论方法'
+                                        },
+                                        {
+                                            icon: <Search size={18} />,
+                                            title: isEN ? 'Find Evidence' : '寻找证据',
+                                            desc: isEN ? 'Support your arguments' : '支持你的论证'
+                                        }
+                                    ].map((feature, idx) => (
+                                        <div
+                                            key={idx}
+                                            className={`p-4 rounded-xl border transition-all hover:scale-105 cursor-pointer ${isDark ? 'bg-slate-800/50 border-slate-700 hover:border-indigo-500/50' : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md'}`}
+                                            onClick={() => {
+                                                const prompts = isEN
+                                                    ? ['Help me clarify my research question.', 'What theoretical frameworks could I use?', 'How do I find relevant literature?']
+                                                    : ['帮我澄清研究问题', '我可以用什么理论框架？', '如何找到相关文献？'];
+                                                setInputValue(prompts[idx]);
+                                                textareaRef.current?.focus();
+                                            }}
+                                        >
+                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 mx-auto ${isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-100 text-indigo-600'}`}>
+                                                {feature.icon}
+                                            </div>
+                                            <h3 className={`font-semibold text-sm mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>{feature.title}</h3>
+                                            <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{feature.desc}</p>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Quick Prompt Suggestions */}
+                                <div className="flex flex-wrap items-center justify-center gap-2">
+                                    <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                        {isEN ? 'Try asking:' : '试试询问：'}
+                                    </span>
+                                    {[
+                                        isEN ? 'How do I narrow my research topic?' : '如何缩小研究选题范围？',
+                                        isEN ? 'What methods suit my study?' : '什么方法适合我的研究？'
+                                    ].map((suggestion, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => { setInputValue(suggestion); textareaRef.current?.focus(); }}
+                                            className={`px-3 py-1.5 rounded-full text-xs transition-colors ${isDark ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'}`}
+                                        >
+                                            {suggestion}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         {messages.map(msg => (
                             <ChatBubble
                                 key={msg.id}
@@ -392,9 +486,12 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                placeholder={isEN ? 'Ask your question...' : '输入您的问题...'}
+                                placeholder={messages.length === 0
+                                    ? (isEN ? 'What would you like to explore today?' : '今天想探索什么学术问题？')
+                                    : (isEN ? 'Continue the discussion...' : '继续讨论...')
+                                }
                                 rows={1}
-                                className={`flex-1 bg-transparent border-none focus:ring-0 px-2 py-3 min-h-[44px] max-h-[150px] resize-none text-sm outline-none leading-relaxed ${isDark ? 'text-slate-100 placeholder:text-slate-500' : 'text-slate-800 placeholder:text-slate-400'}`}
+                                className={`flex-1 bg-transparent border-none focus:ring-0 px-3 py-3 min-h-[44px] max-h-[150px] resize-none text-sm outline-none leading-relaxed ${isDark ? 'text-slate-100 placeholder:text-slate-500' : 'text-slate-800 placeholder:text-slate-400'}`}
                                 disabled={loading}
                             />
 
@@ -415,8 +512,15 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                         </div>
                     </div>
 
-                    <div className="text-center mt-2 text-[10px] text-slate-400 opacity-60">
-                        {isEN ? 'AI powered by DeepSeek & Zhipu · Content for reference only' : 'AI 模型由 DeepSeek & Zhipu 提供支持 · 内容仅供参考'}
+                    <div className="text-center mt-3 text-[10px] text-slate-400 opacity-70 flex items-center justify-center gap-2">
+                        <span className="flex items-center gap-1">
+                            <Sparkles size={10} className="text-indigo-400" />
+                            {isEN ? 'Socratic tutoring' : '苏格拉底式辅导'}
+                        </span>
+                        <span>·</span>
+                        <span>{isEN ? 'DeepSeek & Zhipu AI' : 'DeepSeek & 智谱 AI'}</span>
+                        <span>·</span>
+                        <span>{isEN ? 'Content for reference only' : '内容仅供参考'}</span>
                     </div>
                 </div>
 
