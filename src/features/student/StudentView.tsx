@@ -47,7 +47,12 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
     'glm-4':             { provider: 'zhipu' as const,    model: 'glm-4' },
   }), []);
 
-  // Load Conversations - memoized with proper dependencies
+  // Find active chat (must be before other useMemo that uses it)
+  const activeChat = useMemo(() =>
+    conversations.find(c => c.id === activeChatId) || null,
+  [conversations, activeChatId]);
+
+  // Load Conversations
   const loadConversations = useCallback(async () => {
     try {
       const convs = await ConversationService.getConversations();
@@ -86,7 +91,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
     };
   }, [activeChatId]);
 
-  // --- Handlers (memoized) ---
+  // --- Handlers ---
 
   const handleCreateChat = useCallback(async () => {
     try {
@@ -144,10 +149,9 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
       fullContent = `[Attachment: ${file.name}]\n\nContent:\n${fileContent}\n\nUser Question: ${content}`;
     }
 
-    // Increment request ID for race condition prevention
     const currentRequestId = ++requestIdRef.current;
 
-    // 1. Optimistic Update
+    // Optimistic Update
     const tempUserMsgId = `temp-${Date.now()}-${currentRequestId}`;
     const optimisticUserMsg: Message = {
       id: tempUserMsgId,
@@ -162,10 +166,8 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
     setStreamingContent('');
 
     try {
-      // 2. Persist User Message
       const userMessage = await ConversationService.sendMessage(activeChatId, fullContent, Role.STUDENT);
 
-      // Only update if this is still the current request
       if (currentRequestId === requestIdRef.current) {
         setMessages(prev => prev.map(m => m.id === tempUserMsgId ? userMessage : m));
       }
@@ -176,18 +178,15 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
       }));
       chatHistory.push({ role: 'user', content: fullContent });
 
-      // 3. Stream AI Response
       const config = modelMap[selectedModel] || AI_CONFIGS.deepseekChat;
       let fullResponse = '';
 
       try {
         for await (const chunk of streamChat(chatHistory, config, SYSTEM_PROMPTS.academic)) {
-          // Only update if this is still the current request
           if (currentRequestId === requestIdRef.current) {
             fullResponse += chunk;
             setStreamingContent(fullResponse);
           } else {
-            // Request was superseded, abort streaming
             break;
           }
         }
@@ -197,13 +196,10 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
         }
       }
 
-      // Only save and update if this is still the current request
       if (currentRequestId === requestIdRef.current) {
-        // 4. Save AI Message
         const aiMessage = await ConversationService.sendMessage(activeChatId, fullResponse, Role.AI, selectedModel);
         setMessages(prev => [...prev, aiMessage]);
 
-        // 5. Update Title if first message
         if (messages.length === 0) {
           const newTitle = content.slice(0, 20) || 'New Chat';
           ConversationService.updateConversationTitle(activeChatId, newTitle).then(loadConversations);
@@ -231,10 +227,8 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
 
     const currentRequestId = ++requestIdRef.current;
 
-    // Truncate history to before the edited message
     const keptMessages = messages.slice(0, msgIndex);
 
-    // Optimistic Update
     const editedUserMsg: Message = {
       ...messages[msgIndex],
       content: newContent,
@@ -246,10 +240,8 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
     setStreamingContent('');
 
     try {
-      // Save new message (append)
       await ConversationService.sendMessage(activeChatId, newContent, Role.STUDENT);
 
-      // Re-generate response
       const chatHistory: ChatMessage[] = keptMessages.map(msg => ({
         role: msg.sender === Role.STUDENT ? 'user' : 'assistant',
         content: msg.content,
@@ -328,7 +320,6 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
         content: lastUserMsg.content
       }], configs, SYSTEM_PROMPTS.academic);
 
-      // Only display results if this is still the current request
       if (currentRequestId === requestIdRef.current) {
         for (const result of results) {
           if (!result.error) {
@@ -340,7 +331,6 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
             );
           }
         }
-        // Reload messages to show new AI responses
         const updatedMsgs = await ConversationService.getMessages(activeChatId);
         if (currentRequestId === requestIdRef.current) {
           setMessages(updatedMsgs);
@@ -356,7 +346,11 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
     setActiveChatId('');
   }, []);
 
-  // Memoized sidebar props to prevent re-renders
+  const handleToggleTheme = useCallback(() => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
+  }, [theme, setTheme]);
+
+  // Memoized sidebar props
   const sidebarProps = useMemo(() => ({
     conversations,
     activeChatId,
@@ -399,7 +393,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
     onSendMessage: handleSendMessage,
     onEditMessage: handleEditMessage,
     onModelSelect: setSelectedModel,
-    onToggleTheme: () => setTheme(theme === 'light' ? 'dark' : 'light'),
+    onToggleTheme: handleToggleTheme,
     onLocaleChange: setLocale,
     onClearChat: handleClearChat,
     onExportChat: handleExportChat,
@@ -414,14 +408,11 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
     locale,
     handleSendMessage,
     handleEditMessage,
+    handleToggleTheme,
     handleClearChat,
     handleExportChat,
     handleCompareModels,
   ]);
-
-  const activeChat = useMemo(() =>
-    conversations.find(c => c.id === activeChatId),
-  [conversations, activeChatId]);
 
   const dashboardProps = useMemo(() => ({
     theme,
