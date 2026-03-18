@@ -696,21 +696,72 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">服务商</label>
-                      <select value={apiForm.provider} onChange={e => setApiForm(f => ({ ...f, provider: e.target.value, model: e.target.value === 'deepseek' ? 'deepseek-chat' : 'glm-4-flash' }))}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
-                        <option value="deepseek">DeepSeek</option>
-                        <option value="zhipu">智谱 AI</option>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">服务商 / Provider</label>
+                      <select value={apiForm.provider} onChange={e => {
+                        const newProvider = e.target.value;
+                        setApiForm(f => ({ ...f, provider: newProvider }));
+                        // Auto-select appropriate default model
+                        if (newProvider === 'dmxapi') {
+                          setApiForm(f => ({ ...f, model: 'gpt-4o-mini' }));
+                        } else if (newProvider === 'deepseek') {
+                          setApiForm(f => ({ ...f, model: 'deepseek-chat' }));
+                        } else if (newProvider === 'zhipu') {
+                          setApiForm(f => ({ ...f, model: 'glm-4-flash' }));
+                        }
+                      }}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      >
+                        <option value="dmxapi">DMXAPI (300+ Models)</option>
+                        <option value="deepseek">DeepSeek (直连)</option>
+                        <option value="zhipu">智谱 AI (直连)</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">模型</label>
-                      <select value={apiForm.model} onChange={e => setApiForm(f => ({ ...f, model: e.target.value }))}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
-                        {apiForm.provider === 'deepseek'
-                          ? <><option value="deepseek-chat">deepseek-chat</option><option value="deepseek-reasoner">deepseek-reasoner</option></>
-                          : <><option value="glm-4-flash">glm-4-flash</option><option value="glm-4">glm-4</option></>}
-                      </select>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">模型 / Model</label>
+                      {apiForm.provider === 'dmxapi' ? (
+                        <select value={apiForm.model} onChange={e => setApiForm(f => ({ ...f, model: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        >
+                          <optgroup label="OpenAI">
+                            <option value="gpt-4o-mini">GPT-4o Mini</option>
+                            <option value="gpt-4o">GPT-4o</option>
+                          </optgroup>
+                          <optgroup label="Anthropic">
+                            <option value="claude-3-5-sonnet-20250219">Claude 3.5 Sonnet</option>
+                            <option value="claude-3-5-haiku-20250219">Claude 3.5 Haiku</option>
+                          </optgroup>
+                          <optgroup label="Google">
+                            <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
+                            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                          </optgroup>
+                          <optgroup label="DeepSeek">
+                            <option value="deepseek-chat">DeepSeek Chat</option>
+                            <option value="deepseek-reasoner">DeepSeek Reasoner</option>
+                          </optgroup>
+                          <optgroup label="Qwen">
+                            <option value="qwen-plus">Qwen Plus</option>
+                            <option value="qwen-turbo">Qwen Turbo</option>
+                          </optgroup>
+                          <optgroup label="GLM">
+                            <option value="glm-4-flash">GLM-4 Flash</option>
+                            <option value="glm-4-plus">GLM-4 Plus</option>
+                          </optgroup>
+                        </select>
+                      ) : apiForm.provider === 'deepseek' ? (
+                        <select value={apiForm.model} onChange={e => setApiForm(f => ({ ...f, model: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        >
+                          <option value="deepseek-chat">deepseek-chat</option>
+                          <option value="deepseek-reasoner">deepseek-reasoner</option>
+                        </select>
+                      ) : (
+                        <select value={apiForm.model} onChange={e => setApiForm(f => ({ ...f, model: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        >
+                          <option value="glm-4-flash">glm-4-flash</option>
+                          <option value="glm-4">glm-4</option>
+                        </select>
+                      )}
                     </div>
                   </div>
                   <div>

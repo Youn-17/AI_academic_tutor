@@ -1,17 +1,18 @@
 /**
- * Real AI Service - Unified interface for DeepSeek and Zhipu AI
+ * Real AI Service - Unified interface for multiple AI providers
+ * Supports: DeepSeek, Zhipu, DMXAPI (OpenAI/Anthropic/Google/etc.)
  * Calls Supabase Edge Function to proxy requests (secure API keys)
  */
 
 import { supabase } from '@/lib/supabase';
 
-export type AIProvider = 'deepseek' | 'zhipu';
-export type DeepSeekModel = 'deepseek-chat' | 'deepseek-reasoner';
-export type ZhipuModel = 'glm-4.7';
+export type AIProvider = 'deepseek' | 'zhipu' | 'dmxapi' | 'openai' | 'anthropic' | 'google';
 
 export interface AIConfig {
     provider: AIProvider;
     model: string;
+    apiKey?: string; // Optional: use stored key
+    baseUrl?: string; // For DMXAPI custom endpoint
 }
 
 export interface ChatMessage {
@@ -65,7 +66,9 @@ export async function* streamChat(
             messages: fullMessages,
             provider: config.provider,
             model: config.model,
-            stream: true
+            stream: true,
+            api_key: config.apiKey,
+            base_url: config.baseUrl,
         }),
     });
 
@@ -108,6 +111,63 @@ export async function* streamChat(
 }
 
 /**
+ * Compare multiple AI models - send same prompt to multiple models
+ * Returns array of { model: string, response: string, error?: string }
+ */
+export async function compareAIModels(
+    messages: ChatMessage[],
+    configs: AIConfig[],
+    systemPrompt?: string
+): Promise<{ model: string; response: string; error?: string }[]> {
+    const fullMessages: ChatMessage[] = systemPrompt
+        ? [{ role: 'system', content: systemPrompt }, ...messages]
+        : messages;
+
+    validateMessages(fullMessages);
+
+    const headers = await getAuthHeaders();
+
+    const results = await Promise.allSettled(
+        configs.map(async (config) => {
+            const response = await fetch(`${EDGE_FUNCTION_URL}/chat`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    messages: fullMessages,
+                    provider: config.provider,
+                    model: config.model,
+                    stream: false,
+                    api_key: config.apiKey,
+                    base_url: config.baseUrl,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText);
+            }
+
+            const data = await response.json();
+            return {
+                model: config.model,
+                response: data.choices?.[0]?.message?.content || '',
+            };
+        })
+    );
+
+    return results.map((result, index) => {
+        if (result.status === 'fulfilled') {
+            return result.value;
+        }
+        return {
+            model: configs[index].model,
+            response: '',
+            error: result.reason?.message || 'Unknown error',
+        };
+    });
+}
+
+/**
  * Non-streaming chat completion
  */
 export async function chat(
@@ -143,22 +203,215 @@ export async function chat(
 }
 
 /**
- * Default AI configurations
+ * Available AI Models Configuration
+ * DMXAPI: https://dmxapi.cn - One API Key for 300+ AI models
+ */
+export const AI_MODELS: Record<string, { id: string; name: string; provider: AIProvider; model: string; description: string; category: 'free' | 'premium'; color: string }> = {
+    // === DMXAPI Models (via unified API) ===
+    'gpt-4o-mini': {
+        id: 'gpt-4o-mini',
+        name: 'GPT-4o Mini',
+        provider: 'dmxapi',
+        model: 'gpt-4o-mini',
+        description: 'OpenAI 轻量级多模态模型',
+        category: 'premium',
+        color: 'bg-emerald-500',
+    },
+    'gpt-4o': {
+        id: 'gpt-4o',
+        name: 'GPT-4o',
+        provider: 'dmxapi',
+        model: 'gpt-4o',
+        description: 'OpenAI 最新多模态旗舰',
+        category: 'premium',
+        color: 'bg-emerald-600',
+    },
+    'claude-3-5-sonnet': {
+        id: 'claude-3-5-sonnet',
+        name: 'Claude 3.5 Sonnet',
+        provider: 'dmxapi',
+        model: 'claude-3-5-sonnet-20250219',
+        description: 'Anthropic 最强推理模型',
+        category: 'premium',
+        color: 'bg-amber-600',
+    },
+    'claude-3-5-haiku': {
+        id: 'claude-3-5-haiku',
+        name: 'Claude 3.5 Haiku',
+        provider: 'dmxapi',
+        model: 'claude-3-5-haiku-20250219',
+        description: 'Claude 快速响应模型',
+        category: 'premium',
+        color: 'bg-amber-500',
+    },
+    'gemini-2.0-flash': {
+        id: 'gemini-2.0-flash',
+        name: 'Gemini 2.0 Flash',
+        provider: 'dmxapi',
+        model: 'gemini-2.0-flash-exp',
+        description: 'Google 超快多模态模型',
+        category: 'premium',
+        color: 'bg-blue-500',
+    },
+    'gemini-2.5-pro': {
+        id: 'gemini-2.5-pro',
+        name: 'Gemini 2.5 Pro',
+        provider: 'dmxapi',
+        model: 'gemini-2.5-pro',
+        description: 'Google 旗舰推理模型',
+        category: 'premium',
+        color: 'bg-blue-600',
+    },
+    'deepseek-chat': {
+        id: 'deepseek-chat',
+        name: 'DeepSeek Chat',
+        provider: 'dmxapi',
+        model: 'deepseek-chat',
+        description: '深度求索对话模型',
+        category: 'free',
+        color: 'bg-sky-500',
+    },
+    'deepseek-reasoner': {
+        id: 'deepseek-reasoner',
+        name: 'DeepSeek Reasoner',
+        provider: 'dmxapi',
+        model: 'deepseek-reasoner',
+        description: '深度求索推理模型',
+        category: 'free',
+        color: 'bg-sky-600',
+    },
+    'qwen-plus': {
+        id: 'qwen-plus',
+        name: 'Qwen Plus',
+        provider: 'dmxapi',
+        model: 'qwen-plus',
+        description: '通义千问增强版',
+        category: 'free',
+        color: 'bg-indigo-500',
+    },
+    'qwen-turbo': {
+        id: 'qwen-turbo',
+        name: 'Qwen Turbo',
+        provider: 'dmxapi',
+        model: 'qwen-turbo',
+        description: '通义千问高速版',
+        category: 'free',
+        color: 'bg-indigo-600',
+    },
+    'glm-4-flash': {
+        id: 'glm-4-flash',
+        name: 'GLM-4 Flash',
+        provider: 'dmxapi',
+        model: 'glm-4-flash',
+        description: '智谱 AI 快速响应',
+        category: 'free',
+        color: 'bg-teal-500',
+    },
+    'glm-4-plus': {
+        id: 'glm-4-plus',
+        name: 'GLM-4 Plus',
+        provider: 'dmxapi',
+        model: 'glm-4-plus',
+        description: '智谱 AI 增强版',
+        category: 'premium',
+        color: 'bg-teal-600',
+    },
+
+    // === Legacy Direct Providers (for backward compatibility) ===
+    'deepseek-chat-direct': {
+        id: 'deepseek-chat-direct',
+        name: 'DeepSeek (Direct)',
+        provider: 'deepseek',
+        model: 'deepseek-chat',
+        description: '直连深度求索',
+        category: 'free',
+        color: 'bg-slate-500',
+    },
+    'glm-4-zhipu': {
+        id: 'glm-4-zhipu',
+        name: 'GLM-4 (Direct)',
+        provider: 'zhipu',
+        model: 'glm-4.7',
+        description: '直连智谱 AI',
+        category: 'premium',
+        color: 'bg-slate-600',
+    },
+};
+
+/**
+ * Default AI configurations (legacy compatibility)
  */
 export const AI_CONFIGS = {
     deepseekChat: {
-        provider: 'deepseek' as AIProvider,
+        provider: 'dmxapi' as AIProvider,
         model: 'deepseek-chat'
     },
     deepseekReasoner: {
-        provider: 'deepseek' as AIProvider,
+        provider: 'dmxapi' as AIProvider,
         model: 'deepseek-reasoner'
     },
     zhipuGLM4: {
-        provider: 'zhipu' as AIProvider,
-        model: 'glm-4.7'
-    }
+        provider: 'dmxapi' as AIProvider,
+        model: 'glm-4-flash'
+    },
+    gpt4oMini: {
+        provider: 'dmxapi' as AIProvider,
+        model: 'gpt-4o-mini'
+    },
+    claudeSonnet: {
+        provider: 'dmxapi' as AIProvider,
+        model: 'claude-3-5-sonnet-20250219'
+    },
+    geminiFlash: {
+        provider: 'dmxapi' as AIProvider,
+        model: 'gemini-2.0-flash-exp'
+    },
 };
+
+/**
+ * Model categories for better organization
+ */
+export const MODEL_CATEGORIES = {
+    openai: {
+        name: 'OpenAI',
+        models: ['gpt-4o-mini', 'gpt-4o'],
+        color: 'bg-emerald-500',
+    },
+    anthropic: {
+        name: 'Anthropic',
+        models: ['claude-3-5-sonnet', 'claude-3-5-haiku'],
+        color: 'bg-amber-500',
+    },
+    google: {
+        name: 'Google',
+        models: ['gemini-2.0-flash', 'gemini-2.5-pro'],
+        color: 'bg-blue-500',
+    },
+    deepseek: {
+        name: 'DeepSeek',
+        models: ['deepseek-chat', 'deepseek-reasoner'],
+        color: 'bg-sky-500',
+    },
+    qwen: {
+        name: 'Qwen',
+        models: ['qwen-plus', 'qwen-turbo'],
+        color: 'bg-indigo-500',
+    },
+    zhipu: {
+        name: 'GLM',
+        models: ['glm-4-flash', 'glm-4-plus'],
+        color: 'bg-teal-500',
+    },
+};
+
+/**
+ * Recommended models for comparison
+ */
+export const COMPARE_RECOMMENDATIONS = [
+    ['gpt-4o-mini', 'claude-3-5-haiku', 'deepseek-chat'], // Fast & Free
+    ['claude-3-5-sonnet', 'gpt-4o', 'gemini-2.5-pro'], // Premium
+    ['deepseek-reasoner', 'claude-3-5-sonnet', 'glm-4-plus'], // Reasoning
+];
 
 /**
  * Default system prompts for academic tutor
