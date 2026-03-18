@@ -4,9 +4,9 @@ import {
     XCircle, Network, PanelRightOpen, PanelRightClose, Plus, Minus, Type, Sun, Moon,
     Search, BookOpen, ExternalLink, ChevronRight, Sparkles as SparklesIcon,
     Lightbulb, MessageSquare, ArrowRight, Copy, Trash2, Download, MoreVertical, Code, BookText, Check,
-    GitCompare, Zap, Repeat, Clock, Sparkles as SparklesIcon2
+    GitCompare, Zap, Repeat, Clock
 } from 'lucide-react';
-import { Conversation, Message, Theme, Locale } from '@/types';
+import { Conversation, Message, Role, Theme, Locale } from '@/types';
 import ChatBubble from '@/shared/components/ChatBubble';
 import KnowledgeGraph from './KnowledgeGraph';
 import AITutorAvatar from '@/shared/components/AITutorAvatar';
@@ -202,11 +202,11 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
         setCompareResults([]);
 
         // Get last user message
-        const lastUserMessage = [...messages].reverse().find(m => m.sender === 'student' || m.sender === 'STUDENT');
+        const lastUserMessage = [...messages].reverse().find(m => m.sender === Role.STUDENT);
         if (!lastUserMessage) return;
 
         const chatHistory = messages.slice(0, messages.indexOf(lastUserMessage)).map(m => ({
-            role: (m.sender === 'student' || m.sender === 'STUDENT') ? 'user' : 'assistant',
+            role: (m.sender === Role.STUDENT ? 'user' : 'assistant') as 'user' | 'assistant',
             content: m.content,
         }));
 

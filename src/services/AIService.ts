@@ -140,7 +140,7 @@ export class MockAIService {
       id: `cit-${Date.now()}-${index}`,
       title: doc.metadata.title,
       author: doc.metadata.author || 'Unknown',
-      year: doc.metadata.year || 'n.d.',
+      year: Number(doc.metadata.year) || 0,
       source: doc.metadata.source || 'Knowledge Base',
       url: '#'
     }));

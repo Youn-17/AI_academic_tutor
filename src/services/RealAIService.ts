@@ -162,7 +162,7 @@ export async function compareAIModels(
         return {
             model: configs[index].model,
             response: '',
-            error: result.reason?.message || 'Unknown error',
+            error: (result.reason as Error)?.message || 'Unknown error',
         };
     });
 }

@@ -20,7 +20,7 @@ interface StudentViewProps {
   setTheme: (t: Theme) => void;
 }
 
-const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setTheme }) => {
+const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, theme, setTheme }) => {
   const { profile } = useAuth();
 
   // State
@@ -261,7 +261,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, theme, setT
   const handleCompareModels = async (modelIds: string[]) => {
     if (!activeChatId || modelIds.length === 0) return;
 
-    const lastUserMsg = [...messages].reverse().find(m => m.sender === 'student');
+    const lastUserMsg = [...messages].reverse().find(m => m.sender === Role.STUDENT);
     if (!lastUserMsg) return;
 
     try {
