@@ -40,7 +40,11 @@ const DMXAPI_MODELS: { group: string; models: { id: string; name: string; tier: 
       { id: 'gpt-4o-mini', name: 'GPT-4o Mini', tier: 'free' },
       { id: 'gpt-4o', name: 'GPT-4o', tier: 'pro' },
       { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', tier: 'free' },
+      { id: 'gpt-4.1-nano', name: 'GPT-4.1 Nano', tier: 'free' },
       { id: 'gpt-4.1', name: 'GPT-4.1', tier: 'pro' },
+      { id: 'o1-mini', name: 'o1 Mini', tier: 'pro' },
+      { id: 'o3-mini', name: 'o3 Mini', tier: 'pro' },
+      { id: 'o4-mini', name: 'o4 Mini', tier: 'pro' },
     ]
   },
   {
@@ -48,31 +52,62 @@ const DMXAPI_MODELS: { group: string; models: { id: string; name: string; tier: 
       { id: 'claude-3-5-haiku-20250219', name: 'Claude 3.5 Haiku', tier: 'free' },
       { id: 'claude-3-5-sonnet-20250219', name: 'Claude 3.5 Sonnet', tier: 'pro' },
       { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', tier: 'pro' },
+      { id: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', tier: 'pro' },
     ]
   },
   {
     group: 'Google', models: [
       { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', tier: 'free' },
+      { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash Lite', tier: 'free' },
+      { id: 'gemini-2.5-flash-preview', name: 'Gemini 2.5 Flash', tier: 'free' },
       { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', tier: 'pro' },
     ]
   },
   {
     group: 'DeepSeek', models: [
-      { id: 'deepseek-chat', name: 'DeepSeek Chat', tier: 'free' },
-      { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner', tier: 'free' },
+      { id: 'deepseek-chat', name: 'DeepSeek V3 (Chat)', tier: 'free' },
+      { id: 'deepseek-reasoner', name: 'DeepSeek R1 (Reasoner)', tier: 'free' },
     ]
   },
   {
-    group: 'Qwen', models: [
-      { id: 'qwen-turbo', name: 'Qwen Turbo', tier: 'free' },
-      { id: 'qwen-plus', name: 'Qwen Plus', tier: 'free' },
-      { id: 'qwen-max', name: 'Qwen Max', tier: 'pro' },
-    ]
-  },
-  {
-    group: 'GLM', models: [
+    group: '智谱 GLM', models: [
       { id: 'glm-4-flash', name: 'GLM-4 Flash', tier: 'free' },
+      { id: 'glm-4-flashx', name: 'GLM-4 FlashX', tier: 'free' },
+      { id: 'glm-4-air', name: 'GLM-4 Air', tier: 'free' },
+      { id: 'glm-4-airx', name: 'GLM-4 AirX', tier: 'free' },
       { id: 'glm-4-plus', name: 'GLM-4 Plus', tier: 'pro' },
+      { id: 'glm-4', name: 'GLM-4', tier: 'pro' },
+      { id: 'glm-4-long', name: 'GLM-4 Long (128K)', tier: 'pro' },
+      { id: 'glm-4v', name: 'GLM-4V (Vision)', tier: 'pro' },
+      { id: 'glm-4v-flash', name: 'GLM-4V Flash (Vision)', tier: 'free' },
+      { id: 'glm-4.7', name: 'GLM-4.7', tier: 'pro' },
+      { id: 'glm-4.7v', name: 'GLM-4.7V (Vision)', tier: 'pro' },
+      { id: 'glm-z1-flash', name: 'GLM-Z1 Flash (推理)', tier: 'free' },
+      { id: 'glm-z1-air', name: 'GLM-Z1 Air (推理)', tier: 'free' },
+      { id: 'glm-z1-airx', name: 'GLM-Z1 AirX (推理)', tier: 'pro' },
+      { id: 'glm-z1', name: 'GLM-Z1 (推理)', tier: 'pro' },
+      { id: 'glm-5', name: 'GLM-5', tier: 'pro' },
+    ]
+  },
+  {
+    group: 'Kimi (Moonshot)', models: [
+      { id: 'moonshot-v1-8k', name: 'Kimi Moonshot 8K', tier: 'free' },
+      { id: 'moonshot-v1-32k', name: 'Kimi Moonshot 32K', tier: 'free' },
+      { id: 'moonshot-v1-128k', name: 'Kimi Moonshot 128K', tier: 'pro' },
+      { id: 'kimi-latest', name: 'Kimi Latest', tier: 'pro' },
+    ]
+  },
+  {
+    group: 'Qwen (通义)', models: [
+      { id: 'qwen-turbo', name: 'Qwen Turbo', tier: 'free' },
+      { id: 'qwen-turbo-latest', name: 'Qwen Turbo Latest', tier: 'free' },
+      { id: 'qwen-plus', name: 'Qwen Plus', tier: 'free' },
+      { id: 'qwen-plus-latest', name: 'Qwen Plus Latest', tier: 'free' },
+      { id: 'qwen-max', name: 'Qwen Max', tier: 'pro' },
+      { id: 'qwen-max-latest', name: 'Qwen Max Latest', tier: 'pro' },
+      { id: 'qwen3-8b', name: 'Qwen3 8B', tier: 'free' },
+      { id: 'qwen3-30b-a3b', name: 'Qwen3 30B-A3B', tier: 'free' },
+      { id: 'qwen3-235b-a22b', name: 'Qwen3 235B-A22B', tier: 'pro' },
     ]
   },
 ];
