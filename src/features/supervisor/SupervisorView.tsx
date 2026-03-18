@@ -10,6 +10,7 @@ import LearningSankeyChart from '@/shared/components/charts/LearningSankeyChart'
 import ActivityHeatmap from '@/shared/components/charts/ActivityHeatmap';
 import ClassroomView from '@/features/supervisor/ClassroomView';
 import KnowledgeBaseView from '@/features/supervisor/KnowledgeBaseView';
+import GptBotsWidget from '@/shared/components/GptBotsWidget';
 import {
   Users, MessageSquare, AlertTriangle, Search, Send, BarChart2,
   CheckCircle, MoreHorizontal, LogOut, Menu, X, CheckSquare,
@@ -603,7 +604,10 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
           <KnowledgeBaseView />
         ) : viewMode === 'ai' ? (
           /* --- AI CHAT FOR TEACHER --- */
-          <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
+          <>
+            {/* GptBots AI Widget - 只在教师 AI 聊天界面加载 */}
+            <GptBotsWidget />
+            <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {aiMessages.length === 0 && (
                 <div className="text-center py-20 text-slate-400">
@@ -637,6 +641,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
               </div>
             </div>
           </div>
+          </>
         ) : viewMode === 'settings' ? (
           /* --- TEACHER SETTINGS --- */
           <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-50">

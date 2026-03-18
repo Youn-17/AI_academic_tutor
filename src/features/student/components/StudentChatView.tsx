@@ -7,6 +7,7 @@ import {
 import { Conversation, Message, Theme, Locale, Role } from '@/types';
 import ChatBubble from '@/shared/components/ChatBubble';
 import KnowledgeGraph from './KnowledgeGraph';
+import GptBotsWidget from '@/shared/components/GptBotsWidget';
 import { AI_CONFIGS } from '@/services/RealAIService';
 import * as SemanticScholar from '@/services/SemanticScholarService';
 import type { PaperBasic } from '@/services/SemanticScholarService';
@@ -204,6 +205,8 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
 
     return (
         <div className={`flex h-full w-full relative overflow-hidden bg-transparent ${getFontSizeClass()}`}>
+            {/* GptBots AI Widget - 只在 AI 聊天界面加载 */}
+            <GptBotsWidget />
 
             {/* Main Chat Area */}
             <div className="flex-1 flex flex-col h-full min-w-0">
