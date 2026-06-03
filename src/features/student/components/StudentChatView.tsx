@@ -281,10 +281,10 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     const colors = {
         bg: isDark ? '#07111A' : '#f8fafc',
         card: isDark ? '#0D1E2C' : '#ffffff',
-        border: isDark ? 'rgba(16,185,129,0.12)' : '#e2e8f0',
+        border: isDark ? 'rgba(37,99,235,0.12)' : '#e2e8f0',
         text: isDark ? '#f1f5f9' : '#0f172a',
         textSecondary: isDark ? '#64748b' : '#64748b',
-        primary: '#10b981',
+        primary: '#2563EB',
         headerBg: isDark ? 'rgba(7,17,26,0.92)' : 'rgba(255,255,255,0.95)',
     };
 
@@ -309,13 +309,13 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                             <div className="flex items-center gap-2">
                                 <h2 className="font-bold truncate text-sm" style={{ color: colors.text }}>{activeChat.title}</h2>
                                 {messages.length === 0 && (
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-500">{isEN ? 'New' : '新对话'}</span>
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-500">{isEN ? 'New' : '新对话'}</span>
                                 )}
                             </div>
                             <div className="flex items-center gap-2 text-[10px]" style={{ color: colors.textSecondary }}>
                                 <span>{AI_MODELS[selectedModel as keyof typeof AI_MODELS]?.name}</span>
                                 <span>·</span>
-                                <span className="text-emerald-500">{isEN ? 'Socratic' : '苏格拉底式'}</span>
+                                <span className="text-blue-500">{isEN ? 'Socratic' : '苏格拉底式'}</span>
                             </div>
                         </div>
                     </div>
@@ -428,11 +428,11 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                             <div className="min-h-[65vh] flex flex-col items-center justify-center text-center px-4 animate-in fade-in duration-500">
                                 {/* Hero Icon */}
                                 <div className="relative mb-8">
-                                    <div className="w-24 h-24 rounded-3xl flex items-center justify-center bg-gradient-to-br from-emerald-500 via-teal-500 to-emerald-600 shadow-2xl shadow-emerald-500/25">
+                                    <div className="w-24 h-24 rounded-3xl flex items-center justify-center bg-gradient-to-br from-blue-600 via-sky-500 to-blue-500 shadow-2xl shadow-blue-500/25">
                                         <SparklesIcon size={40} className="text-white" />
                                     </div>
                                     {/* Orbit ring */}
-                                    <div className="absolute inset-0 rounded-3xl border-2 border-emerald-500/20 scale-125 animate-pulse" />
+                                    <div className="absolute inset-0 rounded-3xl border-2 border-blue-500/20 scale-125 animate-pulse" />
                                     <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: colors.card, border: `1px solid ${colors.border}` }}>
                                         <AITutorAvatar size="sm" theme={theme} />
                                     </div>
@@ -445,7 +445,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                     {isEN ? 'I guide your thinking through questions — not just answers.' : '通过追问引导你深入思考，而非仅仅给出答案。'}
                                 </p>
                                 <div className="flex items-center gap-2 mb-10">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
                                     <span className="text-xs font-medium" style={{ color: colors.primary }}>{isEN ? 'Ready to explore' : '随时开始探索'}</span>
                                 </div>
 
@@ -455,10 +455,10 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                         <button
                                             key={idx}
                                             onClick={() => { setInputValue(prompt.text); textareaRef.current?.focus(); }}
-                                            className="p-4 rounded-2xl border text-left transition-all hover:scale-[1.03] hover:shadow-lg hover:shadow-emerald-500/5 active:scale-[0.98] group"
+                                            className="p-4 rounded-2xl border text-left transition-all hover:scale-[1.03] hover:shadow-lg hover:shadow-blue-500/5 active:scale-[0.98] group"
                                             style={{ backgroundColor: colors.card, borderColor: colors.border }}
                                         >
-                                            <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500/20 transition-colors">
+                                            <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-blue-500/10 text-blue-500 group-hover:bg-blue-500/20 transition-colors">
                                                 {prompt.icon}
                                             </div>
                                             <h3 className="font-semibold text-xs leading-snug" style={{ color: colors.text }}>{prompt.text}</h3>
@@ -474,7 +474,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                             key={idx}
                                             onClick={() => { setInputValue(suggestion); textareaRef.current?.focus(); }}
                                             className="px-3.5 py-1.5 rounded-full text-xs transition-all hover:scale-105 border"
-                                            style={{ backgroundColor: isDark ? 'rgba(16,185,129,0.06)' : '#f1f5f9', color: colors.text, borderColor: colors.border }}
+                                            style={{ backgroundColor: isDark ? 'rgba(37,99,235,0.06)' : '#f1f5f9', color: colors.text, borderColor: colors.border }}
                                         >
                                             {suggestion}
                                         </button>
@@ -489,7 +489,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                 <ChatBubble message={msg} onEdit={onEditMessage ? (c) => onEditMessage(msg.id, c) : undefined} />
                                 <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                                     <button onClick={() => handleCopyMessage(msg.content, msg.id)} className="p-1.5 rounded-lg shadow-md transition-all hover:scale-110" style={{ backgroundColor: colors.card }}>
-                                        {copiedMessageId === msg.id ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} style={{ color: colors.textSecondary }} />}
+                                        {copiedMessageId === msg.id ? <Check size={12} className="text-blue-500" /> : <Copy size={12} style={{ color: colors.textSecondary }} />}
                                     </button>
                                 </div>
                             </div>
@@ -506,8 +506,8 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                             {agentSteps.map((s, i) => (
                                                 <div key={i} className="flex items-center gap-2 text-xs">
                                                     {s.status === 'done'
-                                                        ? <Check size={13} className="text-emerald-500 shrink-0" />
-                                                        : <Loader2 size={13} className="animate-spin text-emerald-500 shrink-0" />}
+                                                        ? <Check size={13} className="text-blue-500 shrink-0" />
+                                                        : <Loader2 size={13} className="animate-spin text-blue-500 shrink-0" />}
                                                     <span style={{ color: colors.textSecondary }}>
                                                         {toolLabel(s.tool)}{s.status === 'done' && s.found ? ` · ${s.found}${isEN ? ' found' : ' 条'}` : '…'}
                                                     </span>
@@ -517,7 +517,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                     )}
                                     {/* Reasoning (collapsible) */}
                                     {reasoning && (
-                                        <details className="text-xs rounded-lg p-2" style={{ backgroundColor: isDark ? 'rgba(16,185,129,0.06)' : '#f1f5f9' }}>
+                                        <details className="text-xs rounded-lg p-2" style={{ backgroundColor: isDark ? 'rgba(37,99,235,0.06)' : '#f1f5f9' }}>
                                             <summary className="cursor-pointer select-none font-medium" style={{ color: colors.textSecondary }}>{isEN ? 'Reasoning' : '思考过程'}</summary>
                                             <div className="mt-2 whitespace-pre-wrap leading-relaxed" style={{ color: colors.textSecondary }}>{reasoning}</div>
                                         </details>
@@ -529,7 +529,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                         <div className="flex items-center gap-3 text-sm">
                                             <div className="flex gap-1">
                                                 {[0, 1, 2].map(i => (
-                                                    <div key={i} className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                                                    <div key={i} className="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                                                 ))}
                                             </div>
                                             <span style={{ color: colors.textSecondary }}>{isEN ? 'Thinking...' : '思考中...'}</span>
@@ -552,7 +552,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                 <div className="px-4 pb-4">
                     <div className={`${maxWidthClass} mx-auto rounded-2xl p-2 border shadow-lg transition-all`} style={{ backgroundColor: colors.card, borderColor: colors.border }}>
                         {attachedFile && (
-                            <div className="mx-2 mt-1 mb-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 text-xs font-medium">
+                            <div className="mx-2 mt-1 mb-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 text-xs font-medium">
                                 <FileText size={12} /><span className="max-w-[150px] truncate">{attachedFile.name}</span><button onClick={() => setAttachedFile(null)}><XCircle size={14} /></button>
                             </div>
                         )}
@@ -567,7 +567,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                     <button
                                         onClick={onToggleRag}
                                         title={useRag ? '关闭知识库增强' : '开启知识库增强 (RAG)'}
-                                        className={`p-2 rounded-full transition-all hover:scale-110 ${useRag ? 'text-emerald-500 bg-emerald-500/10' : ''}`}
+                                        className={`p-2 rounded-full transition-all hover:scale-110 ${useRag ? 'text-blue-500 bg-blue-500/10' : ''}`}
                                         style={{ color: useRag ? undefined : colors.textSecondary }}
                                     >
                                         <BookOpen size={18} />
@@ -578,7 +578,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                             <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={handleKeyDown} placeholder={messages.length === 0 ? (isEN ? 'What would you like to explore?' : '今天想探索什么？') : (isEN ? 'Continue...' : '继续讨论...')} rows={1} className="flex-1 bg-transparent border-none focus:ring-0 px-3 py-3 min-h-[44px] max-h-[150px] resize-none text-sm outline-none leading-relaxed" style={{ color: colors.text }} disabled={loading} />
 
                             <div className="shrink-0 pb-1 pr-1">
-                                <button onClick={handleSubmit} disabled={(!inputValue.trim() && !attachedFile) || loading} className="p-3 rounded-full transition-all shadow-md" style={{ backgroundColor: (!inputValue.trim() && !attachedFile) || loading ? (isDark ? '#292524' : '#e7e5e4') : '#10b981', color: ((!inputValue.trim() && !attachedFile) || loading) ? colors.textSecondary : '#fff' }}>
+                                <button onClick={handleSubmit} disabled={(!inputValue.trim() && !attachedFile) || loading} className="p-3 rounded-full transition-all shadow-md" style={{ backgroundColor: (!inputValue.trim() && !attachedFile) || loading ? (isDark ? '#292524' : '#e7e5e4') : '#2563EB', color: ((!inputValue.trim() && !attachedFile) || loading) ? colors.textSecondary : '#fff' }}>
                                     {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                                 </button>
                             </div>
@@ -586,8 +586,8 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                     </div>
 
                     <div className="text-center mt-3 flex items-center justify-center gap-2 text-[10px]" style={{ color: colors.textSecondary }}>
-                        <span className="flex items-center gap-1"><SparklesIcon size={10} className="text-emerald-500" />{isEN ? 'Socratic tutoring' : '苏格拉底式'}</span>
-                        {useRag && <><span>·</span><span className="flex items-center gap-1 text-emerald-500"><BookOpen size={10} />{isEN ? 'RAG enabled' : '知识库已启用'}</span></>}
+                        <span className="flex items-center gap-1"><SparklesIcon size={10} className="text-blue-500" />{isEN ? 'Socratic tutoring' : '苏格拉底式'}</span>
+                        {useRag && <><span>·</span><span className="flex items-center gap-1 text-blue-500"><BookOpen size={10} />{isEN ? 'RAG enabled' : '知识库已启用'}</span></>}
                         <span>·</span><span>{isEN ? 'For reference only' : '仅供参考'}</span>
                     </div>
                 </div>
@@ -599,7 +599,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                     {rightPanelTab === 'sources' && (
                         <div className="w-full h-full flex flex-col">
                             <div className="h-14 border-b flex items-center justify-between px-4" style={{ borderColor: colors.border }}>
-                                <div className="flex items-center gap-2"><BookOpen size={16} className="text-emerald-500" /><span className="font-bold text-xs" style={{ color: colors.text }}>{isEN ? 'Literature' : '文献来源'}</span></div>
+                                <div className="flex items-center gap-2"><BookOpen size={16} className="text-blue-500" /><span className="font-bold text-xs" style={{ color: colors.text }}>{isEN ? 'Literature' : '文献来源'}</span></div>
                                 <button onClick={() => setRightPanelTab(null)} style={{ color: colors.textSecondary }}><PanelRightClose size={18} /></button>
                             </div>
                             <div className="flex-1 overflow-y-auto">
@@ -609,13 +609,13 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                         <h3 className="font-bold text-sm" style={{ color: colors.text }}>{paperDetails.title}</h3>
                                         <p className="text-xs" style={{ color: colors.textSecondary }}>{paperDetails.authors?.slice(0, 5).map(a => a.name).join(', ')} · {paperDetails.year}</p>
                                         {paperDetails.abstract && <p className="text-xs leading-relaxed" style={{ color: colors.text }}>{paperDetails.abstract.slice(0, 500)}...</p>}
-                                        <button onClick={handleInsertPaper} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs"><Send size={14} />{isEN ? 'Insert' : '插入'}</button>
+                                        <button onClick={handleInsertPaper} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs"><Send size={14} />{isEN ? 'Insert' : '插入'}</button>
                                     </div>
                                 ) : (
                                     <div className="p-4 space-y-3">
                                         {searchResults.length > 0 ? searchResults.map((paper) => (
                                             <button key={paper.paperId} onClick={() => handlePaperClick(paper)} className="w-full text-left p-3 rounded-xl border transition-all hover:scale-[1.02]" style={{ borderColor: colors.border }}>
-                                                <div className="flex items-start gap-3"><div className="w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-500/10"><BookOpen size={14} className="text-emerald-500" /></div><div className="flex-1"><h4 className="font-semibold text-xs" style={{ color: colors.text }}>{paper.title}</h4><p className="text-[10px]" style={{ color: colors.textSecondary }}>{paper.authors?.slice(0, 2).map(a => a.name).join(', ')} · {paper.year}</p></div></div>
+                                                <div className="flex items-start gap-3"><div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-500/10"><BookOpen size={14} className="text-blue-500" /></div><div className="flex-1"><h4 className="font-semibold text-xs" style={{ color: colors.text }}>{paper.title}</h4><p className="text-[10px]" style={{ color: colors.textSecondary }}>{paper.authors?.slice(0, 2).map(a => a.name).join(', ')} · {paper.year}</p></div></div>
                                             </button>
                                         )) : <div className="text-center py-8" style={{ color: colors.textSecondary }}><Search size={24} className="mx-auto mb-2 opacity-50" /><p className="text-xs">{isEN ? 'Search papers' : '搜索论文'}</p></div>}
                                     </div>

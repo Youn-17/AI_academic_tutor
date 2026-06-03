@@ -84,27 +84,27 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
     ];
 
     const sidebarBg = isDark
-        ? 'bg-[#07111A] border-emerald-900/20'
+        ? 'bg-[#07111A] border-blue-900/20'
         : 'bg-slate-50/95 border-slate-200/70 backdrop-blur-xl';
 
     return (
         <div className={`relative flex flex-col h-full border-r transition-all duration-300 ease-in-out z-30 ${sidebarBg} ${isCollapsed ? 'w-[68px]' : 'w-[260px]'}`}>
 
             {/* Brand */}
-            <div className={`h-16 flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-5'} border-b ${isDark ? 'border-emerald-900/20' : 'border-slate-200/50'}`}>
+            <div className={`h-16 flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-5'} border-b ${isDark ? 'border-blue-900/20' : 'border-slate-200/50'}`}>
                 <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-xl flex justify-center items-center text-white shadow-lg shadow-emerald-500/30 shrink-0">
+                    <div className="w-8 h-8 bg-gradient-to-tr from-blue-500 to-sky-400 rounded-xl flex justify-center items-center text-white shadow-lg shadow-blue-500/30 shrink-0">
                         <Sparkles size={15} />
                     </div>
                     {!isCollapsed && (
                         <div className="min-w-0">
                             <h1 className={`font-bold leading-none font-heading tracking-tight text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>ACADEMIC</h1>
-                            <span className={`text-[10px] font-mono tracking-widest ${isDark ? 'text-emerald-500/70' : 'text-emerald-600/60'}`}>AI TUTOR</span>
+                            <span className={`text-[10px] font-mono tracking-widest ${isDark ? 'text-blue-500/70' : 'text-blue-600/60'}`}>AI TUTOR</span>
                         </div>
                     )}
                 </div>
                 {!isCollapsed && (
-                    <button onClick={onToggleCollapse} className={`shrink-0 transition-colors ${isDark ? 'text-slate-500 hover:text-emerald-400' : 'text-slate-400 hover:text-emerald-600'}`}>
+                    <button onClick={onToggleCollapse} className={`shrink-0 transition-colors ${isDark ? 'text-slate-500 hover:text-blue-400' : 'text-slate-400 hover:text-blue-600'}`}>
                         <PanelLeftClose size={17} />
                     </button>
                 )}
@@ -113,7 +113,7 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
             {/* Main Nav */}
             <div className="px-2.5 pt-3 pb-2 space-y-0.5">
                 {isCollapsed && (
-                    <button onClick={onToggleCollapse} className={`w-full flex justify-center py-2 mb-3 transition-colors ${isDark ? 'text-slate-500 hover:text-emerald-400' : 'text-slate-400 hover:text-emerald-600'}`}>
+                    <button onClick={onToggleCollapse} className={`w-full flex justify-center py-2 mb-3 transition-colors ${isDark ? 'text-slate-500 hover:text-blue-400' : 'text-slate-400 hover:text-blue-600'}`}>
                         <PanelLeftOpen size={19} />
                     </button>
                 )}
@@ -127,13 +127,13 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
                             className={`
                                 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative
                                 ${active
-                                    ? (isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-700 shadow-sm')
+                                    ? (isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-700 shadow-sm')
                                     : (isDark ? 'text-slate-400 hover:bg-white/4 hover:text-slate-200' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700')
                                 }
                                 ${isCollapsed ? 'justify-center px-0' : ''}
                             `}
                         >
-                            <item.icon size={18} className={active ? 'text-emerald-500' : 'group-hover:text-emerald-500 transition-colors'} />
+                            <item.icon size={18} className={active ? 'text-blue-500' : 'group-hover:text-blue-500 transition-colors'} />
                             {!isCollapsed && <span className="font-medium text-sm">{item.label}</span>}
                             {isCollapsed && (
                                 <div className={`absolute left-full ml-3 px-2 py-1 text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity shadow-lg ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-900 text-white'}`}>
@@ -158,7 +158,7 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
                 <button
                     onClick={onCreateChat}
                     className={`p-1.5 rounded-lg transition-all hover:scale-105 active:scale-95 shadow-sm
-                        ${isDark ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20'}`}
+                        ${isDark ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20'}`}
                     title={locale === 'en' ? 'New Chat' : '新建对话'}
                 >
                     <Plus size={15} />
@@ -182,7 +182,7 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
                                 onChange={(e) => setEditTitle(e.target.value)}
                                 onBlur={() => handleRenameSubmit(chat.id)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit(chat.id)}
-                                className={`w-full text-sm px-3 py-2 rounded-lg outline-none border ${isDark ? 'bg-slate-800 border-emerald-500/50 text-white' : 'bg-white border-emerald-500 text-slate-900'}`}
+                                className={`w-full text-sm px-3 py-2 rounded-lg outline-none border ${isDark ? 'bg-slate-800 border-blue-500/50 text-white' : 'bg-white border-blue-500 text-slate-900'}`}
                             />
                         ) : (
                             <button
@@ -190,13 +190,13 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
                                 className={`
                                     w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition-colors relative
                                     ${activeChatId === chat.id && currentView === 'chat'
-                                        ? (isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-800 shadow-sm ring-1 ring-emerald-200/50')
+                                        ? (isDark ? 'bg-blue-500/10 text-blue-300' : 'bg-blue-50 text-blue-800 shadow-sm ring-1 ring-blue-200/50')
                                         : (isDark ? 'text-slate-400 hover:bg-white/4 hover:text-slate-200' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700')
                                     }
                                     ${isCollapsed ? 'justify-center px-0' : ''}
                                 `}
                             >
-                                <MessageSquare size={14} className={`shrink-0 ${activeChatId === chat.id && currentView === 'chat' ? 'text-emerald-500' : 'opacity-40'}`} />
+                                <MessageSquare size={14} className={`shrink-0 ${activeChatId === chat.id && currentView === 'chat' ? 'text-blue-500' : 'opacity-40'}`} />
                                 {!isCollapsed && (
                                     <>
                                         <span className="truncate text-sm flex-1 pr-5">{chat.title || (locale === 'en' ? 'New Conversation' : '新对话')}</span>

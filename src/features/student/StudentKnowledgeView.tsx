@@ -21,7 +21,7 @@ type MainTab = 'graph' | 'library';
 type LibraryLayer = 'all' | 'personal' | 'global' | 'domain';
 
 const STATUS_ICON = {
-    completed: <CheckCircle size={13} className="text-emerald-500" />,
+    completed: <CheckCircle size={13} className="text-blue-500" />,
     processing: <RefreshCw size={13} className="text-blue-400 animate-spin" />,
     pending: <Clock size={13} className="text-amber-400" />,
     failed: <AlertCircle size={13} className="text-red-400" />,
@@ -35,7 +35,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 const LAYER_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
     all:      { label: '全部文档', color: 'bg-slate-500',  icon: <Layers size={13} /> },
-    personal: { label: '我的文档', color: 'bg-emerald-600', icon: <User size={13} /> },
+    personal: { label: '我的文档', color: 'bg-blue-600', icon: <User size={13} /> },
     global:   { label: '全局知识库', color: 'bg-violet-600', icon: <Globe size={13} /> },
     domain:   { label: '课程资料', color: 'bg-blue-600',   icon: <BookOpen size={13} /> },
 };
@@ -183,7 +183,7 @@ const StudentKnowledgeView: React.FC<StudentKnowledgeViewProps> = ({ theme }) =>
                             onClick={() => setMainTab('library')}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                                 mainTab === 'library'
-                                    ? 'bg-emerald-600 text-white shadow'
+                                    ? 'bg-blue-600 text-white shadow'
                                     : `${subText} hover:${text}`
                             }`}
                         >
@@ -194,7 +194,7 @@ const StudentKnowledgeView: React.FC<StudentKnowledgeViewProps> = ({ theme }) =>
                             onClick={() => setMainTab('graph')}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                                 mainTab === 'graph'
-                                    ? 'bg-emerald-600 text-white shadow'
+                                    ? 'bg-blue-600 text-white shadow'
                                     : `${subText} hover:${text}`
                             }`}
                         >
@@ -223,7 +223,7 @@ const StudentKnowledgeView: React.FC<StudentKnowledgeViewProps> = ({ theme }) =>
                         <button
                             onClick={() => fileInputRef.current?.click()}
                             disabled={uploading}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                         >
                             {uploading ? <RefreshCw size={13} className="animate-spin" /> : <Upload size={13} />}
                             上传文档
@@ -254,7 +254,7 @@ const StudentKnowledgeView: React.FC<StudentKnowledgeViewProps> = ({ theme }) =>
                     <div className={`px-6 py-3 flex items-center gap-4 border-b flex-shrink-0 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                         {[
                             { label: '文档总数', value: totalDocs, icon: <FileText size={13} />, color: 'text-slate-400' },
-                            { label: '已索引', value: indexedDocs, icon: <CheckCircle size={13} />, color: 'text-emerald-500' },
+                            { label: '已索引', value: indexedDocs, icon: <CheckCircle size={13} />, color: 'text-blue-500' },
                             { label: '处理中', value: processingDocs, icon: <RefreshCw size={13} />, color: 'text-blue-400' },
                             { label: '知识块', value: totalChunks, icon: <Database size={13} />, color: 'text-violet-400' },
                         ].map(stat => (
@@ -296,8 +296,8 @@ const StudentKnowledgeView: React.FC<StudentKnowledgeViewProps> = ({ theme }) =>
                         <div
                             className={`mx-6 mt-4 mb-2 flex-shrink-0 border-2 border-dashed rounded-xl p-4 flex items-center gap-4 transition-all cursor-pointer ${
                                 dragOver
-                                    ? 'border-emerald-500 bg-emerald-500/5'
-                                    : isDark ? 'border-slate-700 hover:border-emerald-700' : 'border-slate-200 hover:border-emerald-400'
+                                    ? 'border-blue-500 bg-blue-500/5'
+                                    : isDark ? 'border-slate-700 hover:border-blue-700' : 'border-slate-200 hover:border-blue-400'
                             }`}
                             onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                             onDragLeave={() => setDragOver(false)}
@@ -305,7 +305,7 @@ const StudentKnowledgeView: React.FC<StudentKnowledgeViewProps> = ({ theme }) =>
                             onClick={() => fileInputRef.current?.click()}
                         >
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-slate-700' : 'bg-slate-100'}`}>
-                                <Upload size={18} className="text-emerald-500" />
+                                <Upload size={18} className="text-blue-500" />
                             </div>
                             <div className="min-w-0">
                                 <p className={`text-sm font-medium ${text}`}>
@@ -376,7 +376,7 @@ const StudentKnowledgeView: React.FC<StudentKnowledgeViewProps> = ({ theme }) =>
                             {/* Floating insight card */}
                             <div className={`absolute bottom-6 right-6 p-4 rounded-2xl border backdrop-blur-md shadow-xl ${isDark ? 'bg-slate-900/90 border-slate-700' : 'bg-white/90 border-slate-200'}`}>
                                 <div className="flex items-center gap-2 mb-2">
-                                    <BarChart3 size={14} className="text-emerald-500" />
+                                    <BarChart3 size={14} className="text-blue-500" />
                                     <span className={`text-xs font-bold uppercase ${subText}`}>图谱洞察</span>
                                 </div>
                                 <div className={`text-2xl font-bold font-mono ${text}`}>
@@ -392,7 +392,7 @@ const StudentKnowledgeView: React.FC<StudentKnowledgeViewProps> = ({ theme }) =>
                             <div className={`absolute top-4 left-4 p-3 rounded-xl border backdrop-blur-md ${isDark ? 'bg-slate-900/80 border-slate-700' : 'bg-white/80 border-slate-200'}`}>
                                 <p className={`text-xs font-semibold mb-2 ${subText}`}>节点类型</p>
                                 {[
-                                    { color: '#10b981', label: '核心概念' },
+                                    { color: '#2563EB', label: '核心概念' },
                                     { color: '#6366f1', label: '问题节点' },
                                     { color: '#f59e0b', label: '知识点' },
                                 ].map(item => (
@@ -422,7 +422,7 @@ interface DocRowProps {
 
 const LAYER_COLOR: Record<number, string> = {
     1: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
-    2: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    2: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
     3: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
     4: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
 };
@@ -439,10 +439,10 @@ const DocRow: React.FC<DocRowProps> = ({ doc, onDelete, isDark, text, subText, c
     const layerName = LAYER_NAME[doc.layer] || '文档';
 
     return (
-        <div className={`flex items-center gap-3 p-3 rounded-xl border transition-all group ${cardBg} hover:border-emerald-500/30`}>
+        <div className={`flex items-center gap-3 p-3 rounded-xl border transition-all group ${cardBg} hover:border-blue-500/30`}>
             {/* File icon */}
             <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-slate-700' : 'bg-slate-100'}`}>
-                <FileText size={16} className="text-emerald-500" />
+                <FileText size={16} className="text-blue-500" />
             </div>
 
             {/* Info */}

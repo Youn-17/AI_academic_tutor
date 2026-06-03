@@ -160,19 +160,6 @@ const TOOL_DEFS = [
     }, required: ['query'] },
   }},
   { type: 'function', function: {
-    name: 'search_academic_papers',
-    description: '通过 Semantic Scholar 检索真实学术论文（标题/作者/年份/摘要/被引）。需要为学生提供真实文献线索或核实某主题研究时调用。绝不要编造文献——用此工具获取真实论文。',
-    parameters: { type: 'object', properties: {
-      query: { type: 'string' },
-      limit: { type: 'integer', description: '返回数量，默认 5，最多 10' },
-    }, required: ['query'] },
-  }},
-  { type: 'function', function: {
-    name: 'get_paper_details',
-    description: '根据 Semantic Scholar paperId 获取某篇论文的详情（摘要、被引、期刊/会议、作者）。',
-    parameters: { type: 'object', properties: { paper_id: { type: 'string' } }, required: ['paper_id'] },
-  }},
-  { type: 'function', function: {
     name: 'recall_memory',
     description: '回忆该学生过往的对话摘要、研究进展、待办、痛点以及教师反馈。需要延续之前讨论或了解学生背景时调用。',
     parameters: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] },
@@ -501,7 +488,7 @@ serve(async (req: Request) => {
     if (use_agent) {
       const ctx: ToolCtx = { serviceClient, user, course_id: course_id || null, resolvedApiKey };
       // Add a brief tool-usage note to the system message (or prepend one).
-      const note = '\n\n你具备工具能力：search_knowledge_base(检索平台知识库——已含多本统计/学习科学教材与论文，稳定可靠，概念性问题优先用它)、search_academic_papers(检索真实外部文献，用于查找具体论文)、get_paper_details、recall_memory、save_memory。需要事实依据时优先调用工具，绝不编造文献或数据。若外部文献库限流失败，改用知识库。调用工具后，请在回答中自然地说明你查阅了哪些来源（书名/论文），便于学生核对。';
+      const note = '\n\n你具备工具能力：search_knowledge_base(检索平台知识库——已含多本统计/学习科学教材与论文，稳定可靠，需要概念或事实依据时优先用它)、recall_memory(回忆该学生过往的进展与讨论)、save_memory(保存关键决策/进展/待办)。需要依据时优先调用知识库，绝不编造文献或数据。调用工具后，请在回答中自然地说明你查阅了哪些来源（书名/论文），便于学生核对。';
       const sysIdx = messages.findIndex((m: any) => m.role === 'system');
       const agentMsgs = sysIdx >= 0
         ? messages.map((m: any, i: number) => i === sysIdx ? { ...m, content: m.content + note } : m)

@@ -35,8 +35,8 @@ const RADAR_DATA = [
 ];
 
 const QUICK_ACTIONS = [
-    { label: '开始新对话', sub: '与 AI 导师探讨研究', icon: MessageSquare, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-    { label: '查看知识图谱', sub: '可视化你的知识体系', icon: BrainCircuit, color: 'text-teal-500', bg: 'bg-teal-500/10' },
+    { label: '开始新对话', sub: '与 AI 助手探讨研究', icon: MessageSquare, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { label: '查看知识图谱', sub: '可视化你的知识体系', icon: BrainCircuit, color: 'text-sky-500', bg: 'bg-sky-500/10' },
     { label: '今日学习计划', sub: '3 项任务待完成', icon: Target, color: 'text-amber-500', bg: 'bg-amber-500/10' },
     { label: '文献检索', sub: '在 Semantic Scholar 搜索', icon: BookOpen, color: 'text-blue-500', bg: 'bg-blue-500/10' },
 ];
@@ -52,14 +52,14 @@ interface StatCardProps {
 }
 
 const StatCard = ({ icon: Icon, label, value, trend, theme, iconClass, iconBg }: StatCardProps) => (
-    <div className={`p-5 rounded-2xl border transition-all hover:shadow-lg hover:-translate-y-0.5 ${theme === 'light' ? 'bg-white border-slate-100' : 'bg-[#0D1E2C] border-emerald-900/20'}`}>
+    <div className={`p-5 rounded-2xl border transition-all hover:shadow-lg hover:-translate-y-0.5 ${theme === 'light' ? 'bg-white border-slate-100' : 'bg-[#0D1E2C] border-blue-900/20'}`}>
         <div className="flex justify-between items-start mb-4">
             <div className={`p-2.5 rounded-xl ${iconBg}`}>
                 <Icon size={18} className={iconClass} />
             </div>
             {trend !== undefined && (
                 <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${trend > 0
-                    ? 'bg-emerald-100 text-emerald-700'
+                    ? 'bg-blue-100 text-blue-700'
                     : 'bg-rose-100 text-rose-700'}`}>
                     {trend > 0 ? '+' : ''}{trend}%
                 </span>
@@ -72,7 +72,7 @@ const StatCard = ({ icon: Icon, label, value, trend, theme, iconClass, iconBg }:
 
 const InsightCard = ({ insight, theme }: { insight: StudentInsight; theme: Theme }) => {
     const config = {
-        strength:   { label: '优势', className: 'bg-emerald-100 text-emerald-700', borderColor: '#10b981' },
+        strength:   { label: '优势', className: 'bg-blue-100 text-blue-700', borderColor: '#2563EB' },
         weakness:   { label: '待改进', className: 'bg-rose-100 text-rose-700', borderColor: '#f43f5e' },
         suggestion: { label: '建议', className: 'bg-blue-100 text-blue-700', borderColor: '#3b82f6' },
         milestone:  { label: '里程碑', className: 'bg-amber-100 text-amber-700', borderColor: '#f59e0b' },
@@ -114,7 +114,7 @@ export default function StudentDashboard({ theme, userName }: StudentDashboardPr
     }, []);
 
     const isDark = theme === 'dark';
-    const cardBase = `rounded-2xl border ${isDark ? 'bg-[#0D1E2C] border-emerald-900/20' : 'bg-white border-slate-100'}`;
+    const cardBase = `rounded-2xl border ${isDark ? 'bg-[#0D1E2C] border-blue-900/20' : 'bg-white border-slate-100'}`;
 
     const greeting = (() => {
         const h = new Date().getHours();
@@ -132,7 +132,7 @@ export default function StudentDashboard({ theme, userName }: StudentDashboardPr
                 <div>
                     <div className="flex items-center gap-2 mb-1">
                         <Flame size={18} className="text-amber-400" />
-                        <span className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-emerald-400/70' : 'text-emerald-600/70'}`}>
+                        <span className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-blue-400/70' : 'text-blue-600/70'}`}>
                             连续学习 7 天
                         </span>
                     </div>
@@ -141,10 +141,10 @@ export default function StudentDashboard({ theme, userName }: StudentDashboardPr
                     </h1>
                     <p className={`mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>这里是你的学术成长概览。</p>
                 </div>
-                <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border ${isDark ? 'bg-emerald-900/20 border-emerald-800/30' : 'bg-emerald-50 border-emerald-200/50'}`}>
-                    <Calendar size={18} className="text-emerald-500" />
+                <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border ${isDark ? 'bg-blue-900/20 border-blue-800/30' : 'bg-blue-50 border-blue-200/50'}`}>
+                    <Calendar size={18} className="text-blue-500" />
                     <div>
-                        <p className={`text-xs font-medium ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>今日目标</p>
+                        <p className={`text-xs font-medium ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>今日目标</p>
                         <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>阅读 2 篇文献 · 1 次 AI 讨论</p>
                     </div>
                 </div>
@@ -158,11 +158,11 @@ export default function StudentDashboard({ theme, userName }: StudentDashboardPr
                 />
                 <StatCard
                     icon={BookOpen} label="累计对话" value={stats?.total_conversations ?? '—'} theme={theme}
-                    iconClass="text-teal-500" iconBg="bg-teal-500/10"
+                    iconClass="text-sky-500" iconBg="bg-sky-500/10"
                 />
                 <StatCard
                     icon={BrainCircuit} label="AI 交互" value={stats?.ai_interactions ?? '—'} trend={28} theme={theme}
-                    iconClass="text-emerald-500" iconBg="bg-emerald-500/10"
+                    iconClass="text-blue-500" iconBg="bg-blue-500/10"
                 />
                 <StatCard
                     icon={Target} label="专注度评分" value="88" trend={3} theme={theme}
@@ -190,12 +190,12 @@ export default function StudentDashboard({ theme, userName }: StudentDashboardPr
                 <div className={`lg:col-span-2 p-5 ${cardBase}`}>
                     <div className="flex justify-between items-center mb-5">
                         <div className="flex items-center gap-2">
-                            <TrendingUp size={16} className="text-emerald-500" />
+                            <TrendingUp size={16} className="text-blue-500" />
                             <h3 className={`font-bold font-heading text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>学习活跃度</h3>
                         </div>
                         <div className="flex items-center gap-1">
                             {['本周', '上月'].map(t => (
-                                <button key={t} className={`text-[11px] px-3 py-1 rounded-lg transition-colors ${t === '本周' ? (isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-100 text-emerald-700') : (isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600')}`}>{t}</button>
+                                <button key={t} className={`text-[11px] px-3 py-1 rounded-lg transition-colors ${t === '本周' ? (isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-100 text-blue-700') : (isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600')}`}>{t}</button>
                             ))}
                         </div>
                     </div>
@@ -204,8 +204,8 @@ export default function StudentDashboard({ theme, userName }: StudentDashboardPr
                             <AreaChart data={WEEKLY_DATA} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
                                 <defs>
                                     <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
-                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                        <stop offset="5%" stopColor="#2563EB" stopOpacity={0.25} />
+                                        <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} dy={8} />
@@ -214,13 +214,13 @@ export default function StudentDashboard({ theme, userName }: StudentDashboardPr
                                     contentStyle={{
                                         backgroundColor: isDark ? '#0D1E2C' : '#fff',
                                         borderRadius: '12px',
-                                        border: isDark ? '1px solid rgba(16,185,129,0.15)' : '1px solid #e2e8f0',
+                                        border: isDark ? '1px solid rgba(37,99,235,0.15)' : '1px solid #e2e8f0',
                                         boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
                                         fontSize: '12px'
                                     }}
                                     formatter={(v: number) => [`${v} 小时`, '学习时长']}
                                 />
-                                <Area type="monotone" dataKey="hours" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorHours)" dot={false} activeDot={{ r: 5, fill: '#10b981' }} />
+                                <Area type="monotone" dataKey="hours" stroke="#2563EB" strokeWidth={2.5} fillOpacity={1} fill="url(#colorHours)" dot={false} activeDot={{ r: 5, fill: '#2563EB' }} />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
@@ -229,7 +229,7 @@ export default function StudentDashboard({ theme, userName }: StudentDashboardPr
                 {/* Radar Chart */}
                 <div className={`p-5 ${cardBase}`}>
                     <div className="flex items-center gap-2 mb-5">
-                        <BarChart2 size={16} className="text-emerald-500" />
+                        <BarChart2 size={16} className="text-blue-500" />
                         <h3 className={`font-bold font-heading text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>能力分布</h3>
                     </div>
                     <div className="h-52">
@@ -237,7 +237,7 @@ export default function StudentDashboard({ theme, userName }: StudentDashboardPr
                             <RadarChart data={RADAR_DATA}>
                                 <PolarGrid stroke={isDark ? '#1e3a2f' : '#e2e8f0'} />
                                 <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: isDark ? '#64748b' : '#94a3b8' }} />
-                                <Radar name="能力" dataKey="value" stroke="#10b981" fill="#10b981" fillOpacity={0.15} strokeWidth={2} />
+                                <Radar name="能力" dataKey="value" stroke="#2563EB" fill="#2563EB" fillOpacity={0.15} strokeWidth={2} />
                             </RadarChart>
                         </ResponsiveContainer>
                     </div>
@@ -248,12 +248,12 @@ export default function StudentDashboard({ theme, userName }: StudentDashboardPr
             <div className={`p-5 ${cardBase}`}>
                 <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                            <Bot size={15} className="text-emerald-500" />
+                        <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                            <Bot size={15} className="text-blue-500" />
                         </div>
-                        <h3 className={`font-bold font-heading text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>AI 导师建议</h3>
+                        <h3 className={`font-bold font-heading text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>AI 协同建议</h3>
                     </div>
-                    <button className="flex items-center gap-1 text-xs text-emerald-500 hover:text-emerald-400 transition-colors">
+                    <button className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-400 transition-colors">
                         查看全部 <ChevronRight size={13} />
                     </button>
                 </div>
@@ -263,13 +263,13 @@ export default function StudentDashboard({ theme, userName }: StudentDashboardPr
             </div>
 
             {/* Learning Tips */}
-            <div className={`p-5 rounded-2xl border ${isDark ? 'bg-gradient-to-br from-emerald-900/20 to-teal-900/10 border-emerald-800/30' : 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200/50'}`}>
+            <div className={`p-5 rounded-2xl border ${isDark ? 'bg-gradient-to-br from-blue-900/20 to-sky-900/10 border-blue-800/30' : 'bg-gradient-to-br from-blue-50 to-sky-50 border-blue-200/50'}`}>
                 <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0 mt-0.5">
-                        <Lightbulb size={15} className="text-emerald-500" />
+                    <div className="w-8 h-8 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0 mt-0.5">
+                        <Lightbulb size={15} className="text-blue-500" />
                     </div>
                     <div>
-                        <p className={`text-sm font-semibold mb-1 ${isDark ? 'text-emerald-300' : 'text-emerald-800'}`}>今日学习提示</p>
+                        <p className={`text-sm font-semibold mb-1 ${isDark ? 'text-blue-300' : 'text-blue-800'}`}>今日学习提示</p>
                         <p className={`text-sm leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                             苏格拉底式学习法建议：当 AI 给出答案时，尝试追问"为什么"和"如何验证"，这会帮助你构建更深入的理解，而不只是获取答案。
                         </p>

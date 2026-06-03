@@ -105,11 +105,11 @@ export default function StudentProfile({ theme }: StudentProfileProps) {
     const identityLabel = IDENTITY_OPTIONS.find(o => o.value === formData.student_identity)?.label || '—';
     const identityIcon = IDENTITY_OPTIONS.find(o => o.value === formData.student_identity)?.icon || '📖';
 
-    const cardBase = `rounded-2xl border ${isDark ? 'bg-[#0D1E2C] border-emerald-900/20' : 'bg-white border-slate-100'}`;
+    const cardBase = `rounded-2xl border ${isDark ? 'bg-[#0D1E2C] border-blue-900/20' : 'bg-white border-slate-100'}`;
     const inputBase = `w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all
         ${isDark
-            ? 'bg-[#07111A] border-emerald-900/30 text-white placeholder:text-slate-600 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20'
-            : 'bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20'
+            ? 'bg-[#07111A] border-blue-900/30 text-white placeholder:text-slate-600 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20'
+            : 'bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-blue-400 focus:ring-1 focus:ring-blue-400/20'
         }`;
     const labelBase = `text-[11px] font-bold uppercase tracking-wider mb-1.5 block ${isDark ? 'text-slate-500' : 'text-slate-400'}`;
 
@@ -117,7 +117,7 @@ export default function StudentProfile({ theme }: StudentProfileProps) {
         return (
             <div className={`flex-1 flex items-center justify-center ${isDark ? 'bg-[#07111A]' : 'bg-slate-50'}`}>
                 <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+                    <div className="w-5 h-5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
                     <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>加载中...</span>
                 </div>
             </div>
@@ -128,20 +128,20 @@ export default function StudentProfile({ theme }: StudentProfileProps) {
         <div className={`flex-1 overflow-y-auto ${isDark ? 'bg-[#07111A]' : 'bg-slate-50'}`}>
 
             {/* Hero Header */}
-            <div className={`relative overflow-hidden px-6 pt-10 pb-6 border-b ${isDark ? 'bg-gradient-to-br from-[#07111A] via-[#0B1A28] to-[#07111A] border-emerald-900/20' : 'bg-gradient-to-br from-emerald-50 via-white to-teal-50/50 border-slate-200/50'}`}>
+            <div className={`relative overflow-hidden px-6 pt-10 pb-6 border-b ${isDark ? 'bg-gradient-to-br from-[#07111A] via-[#0B1A28] to-[#07111A] border-blue-900/20' : 'bg-gradient-to-br from-blue-50 via-white to-sky-50/50 border-slate-200/50'}`}>
                 {/* Background decoration */}
-                <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-emerald-500/5 -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full bg-teal-500/5 translate-y-1/2 -translate-x-1/4 pointer-events-none" />
+                <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-blue-500/5 -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full bg-sky-500/5 translate-y-1/2 -translate-x-1/4 pointer-events-none" />
 
                 <div className="max-w-3xl mx-auto relative">
                     <div className="flex items-start gap-5">
                         {/* Avatar */}
                         <div className="relative shrink-0">
-                            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center shadow-xl shadow-emerald-500/20">
+                            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center shadow-xl shadow-blue-500/20">
                                 <span className="text-2xl font-bold text-white font-heading">{initials}</span>
                             </div>
-                            <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 flex items-center justify-center ${isDark ? 'bg-[#0D1E2C] border-[#07111A]' : 'bg-white border-emerald-50'}`}>
-                                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                            <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 flex items-center justify-center ${isDark ? 'bg-[#0D1E2C] border-[#07111A]' : 'bg-white border-blue-50'}`}>
+                                <div className="w-2.5 h-2.5 rounded-full bg-blue-400" />
                             </div>
                         </div>
 
@@ -155,7 +155,7 @@ export default function StudentProfile({ theme }: StudentProfileProps) {
                             )}
                             <div className="flex flex-wrap items-center gap-3 mt-2">
                                 {formData.student_identity && (
-                                    <span className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-medium ${isDark ? 'bg-emerald-900/30 text-emerald-400' : 'bg-emerald-100 text-emerald-700'}`}>
+                                    <span className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-medium ${isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-700'}`}>
                                         <span>{identityIcon}</span> {identityLabel}
                                     </span>
                                 )}
@@ -176,8 +176,8 @@ export default function StudentProfile({ theme }: StudentProfileProps) {
                     {/* Stats Row */}
                     <div className="grid grid-cols-3 gap-3 mt-6">
                         {[
-                            { label: '对话数', value: stats?.total_conversations ?? '—', icon: MessageSquare, color: 'text-emerald-500' },
-                            { label: 'AI 交互', value: stats?.ai_interactions ?? '—', icon: BrainCircuit, color: 'text-teal-500' },
+                            { label: '对话数', value: stats?.total_conversations ?? '—', icon: MessageSquare, color: 'text-blue-500' },
+                            { label: 'AI 交互', value: stats?.ai_interactions ?? '—', icon: BrainCircuit, color: 'text-sky-500' },
                             { label: '总消息', value: stats?.total_messages ?? '—', icon: BookOpen, color: 'text-blue-500' },
                         ].map(s => (
                             <div key={s.label} className={`p-3 rounded-xl border text-center ${isDark ? 'bg-white/3 border-white/5' : 'bg-white/60 border-white shadow-sm'}`}>
@@ -195,17 +195,17 @@ export default function StudentProfile({ theme }: StudentProfileProps) {
 
                 {/* Basic Info */}
                 <section className={`${cardBase} overflow-hidden`}>
-                    <div className={`px-5 py-4 border-b flex items-center justify-between ${isDark ? 'border-emerald-900/20' : 'border-slate-100'}`}>
+                    <div className={`px-5 py-4 border-b flex items-center justify-between ${isDark ? 'border-blue-900/20' : 'border-slate-100'}`}>
                         <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                                <User size={14} className="text-emerald-500" />
+                            <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                                <User size={14} className="text-blue-500" />
                             </div>
                             <h2 className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>基本信息</h2>
                         </div>
                         <button
                             type="button"
                             onClick={() => setEditingSection(editingSection === 'basic' ? null : 'basic')}
-                            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors ${editingSection === 'basic' ? (isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-100 text-emerald-700') : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-400 hover:text-slate-700')}`}
+                            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors ${editingSection === 'basic' ? (isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-100 text-blue-700') : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-400 hover:text-slate-700')}`}
                         >
                             <Pencil size={12} /> {editingSection === 'basic' ? '收起' : '编辑'}
                         </button>
@@ -253,17 +253,17 @@ export default function StudentProfile({ theme }: StudentProfileProps) {
 
                 {/* Academic Info */}
                 <section className={`${cardBase} overflow-hidden`}>
-                    <div className={`px-5 py-4 border-b flex items-center justify-between ${isDark ? 'border-emerald-900/20' : 'border-slate-100'}`}>
+                    <div className={`px-5 py-4 border-b flex items-center justify-between ${isDark ? 'border-blue-900/20' : 'border-slate-100'}`}>
                         <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-lg bg-teal-500/10 flex items-center justify-center">
-                                <GraduationCap size={14} className="text-teal-500" />
+                            <div className="w-7 h-7 rounded-lg bg-sky-500/10 flex items-center justify-center">
+                                <GraduationCap size={14} className="text-sky-500" />
                             </div>
                             <h2 className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>学术信息</h2>
                         </div>
                         <button
                             type="button"
                             onClick={() => setEditingSection(editingSection === 'academic' ? null : 'academic')}
-                            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors ${editingSection === 'academic' ? (isDark ? 'bg-teal-500/10 text-teal-400' : 'bg-teal-100 text-teal-700') : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-400 hover:text-slate-700')}`}
+                            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors ${editingSection === 'academic' ? (isDark ? 'bg-sky-500/10 text-sky-400' : 'bg-sky-100 text-sky-700') : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-400 hover:text-slate-700')}`}
                         >
                             <Pencil size={12} /> {editingSection === 'academic' ? '收起' : '编辑'}
                         </button>
@@ -305,7 +305,7 @@ export default function StudentProfile({ theme }: StudentProfileProps) {
 
                 {/* Research Interests */}
                 <section className={`${cardBase} overflow-hidden`}>
-                    <div className={`px-5 py-4 border-b ${isDark ? 'border-emerald-900/20' : 'border-slate-100'}`}>
+                    <div className={`px-5 py-4 border-b ${isDark ? 'border-blue-900/20' : 'border-slate-100'}`}>
                         <div className="flex items-center gap-2.5">
                             <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
                                 <BrainCircuit size={14} className="text-blue-500" />
@@ -325,7 +325,7 @@ export default function StudentProfile({ theme }: StudentProfileProps) {
                                     onClick={() => toggleInterest(interest)}
                                     className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:scale-105 active:scale-95 ${
                                         selectedInterests.includes(interest)
-                                            ? (isDark ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20')
+                                            ? (isDark ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-blue-600 text-white shadow-md shadow-blue-500/20')
                                             : (isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10 border border-white/10' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200')
                                     }`}
                                 >
@@ -334,7 +334,7 @@ export default function StudentProfile({ theme }: StudentProfileProps) {
                             ))}
                         </div>
                         {selectedInterests.length > 0 && (
-                            <p className={`text-xs mt-3 ${isDark ? 'text-emerald-400/70' : 'text-emerald-600/70'}`}>
+                            <p className={`text-xs mt-3 ${isDark ? 'text-blue-400/70' : 'text-blue-600/70'}`}>
                                 已选择 {selectedInterests.length} 个领域
                             </p>
                         )}
@@ -343,7 +343,7 @@ export default function StudentProfile({ theme }: StudentProfileProps) {
 
                 {/* Security */}
                 <section className={`${cardBase} overflow-hidden`}>
-                    <div className={`px-5 py-4 border-b ${isDark ? 'border-emerald-900/20' : 'border-slate-100'}`}>
+                    <div className={`px-5 py-4 border-b ${isDark ? 'border-blue-900/20' : 'border-slate-100'}`}>
                         <div className="flex items-center gap-2.5">
                             <div className="w-7 h-7 rounded-lg bg-slate-500/10 flex items-center justify-center">
                                 <Shield size={14} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
@@ -364,7 +364,7 @@ export default function StudentProfile({ theme }: StudentProfileProps) {
 
                 {/* Save / Feedback */}
                 {message && (
-                    <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm ${message.type === 'success' ? (isDark ? 'bg-emerald-900/30 text-emerald-400' : 'bg-emerald-50 text-emerald-600') : (isDark ? 'bg-rose-900/30 text-rose-400' : 'bg-rose-50 text-rose-600')}`}>
+                    <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm ${message.type === 'success' ? (isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-blue-600') : (isDark ? 'bg-rose-900/30 text-rose-400' : 'bg-rose-50 text-rose-600')}`}>
                         {message.type === 'success' ? <CheckCircle2 size={16} /> : null}
                         {message.text}
                     </div>
@@ -378,8 +378,8 @@ export default function StudentProfile({ theme }: StudentProfileProps) {
                             ${editingSection === null
                                 ? (isDark ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-100 text-slate-400 cursor-not-allowed')
                                 : (saved
-                                    ? 'bg-emerald-500 text-white shadow-emerald-500/30'
-                                    : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-500/20 hover:-translate-y-0.5'
+                                    ? 'bg-blue-500 text-white shadow-blue-500/30'
+                                    : 'bg-blue-600 text-white hover:bg-blue-500 shadow-blue-500/20 hover:-translate-y-0.5'
                                 )
                             }
                         `}

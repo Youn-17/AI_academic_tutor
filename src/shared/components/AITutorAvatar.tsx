@@ -36,12 +36,12 @@ const AITutorAvatar: React.FC<AITutorAvatarProps> = ({
           {/* Background Circle - Natural Emerald Gradient */}
           <defs>
             <linearGradient id="aiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#10b981" />
-              <stop offset="100%" stopColor="#059669" />
+              <stop offset="0%" stopColor="#2563EB" />
+              <stop offset="100%" stopColor="#1D4ED8" />
             </linearGradient>
             <linearGradient id="aiGradientLight" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#34d399" />
-              <stop offset="100%" stopColor="#10b981" />
+              <stop offset="100%" stopColor="#2563EB" />
             </linearGradient>
           </defs>
 
@@ -145,8 +145,8 @@ const AITutorAvatar: React.FC<AITutorAvatarProps> = ({
     >
       <defs>
         <linearGradient id="aiGradientStatic" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#10b981" />
-          <stop offset="100%" stopColor="#059669" />
+          <stop offset="0%" stopColor="#2563EB" />
+          <stop offset="100%" stopColor="#1D4ED8" />
         </linearGradient>
       </defs>
 
@@ -154,7 +154,7 @@ const AITutorAvatar: React.FC<AITutorAvatarProps> = ({
         cx="24"
         cy="24"
         r="18"
-        fill={isDark ? '#059669' : '#10b981'}
+        fill={isDark ? '#1D4ED8' : '#2563EB'}
       />
 
       <path
