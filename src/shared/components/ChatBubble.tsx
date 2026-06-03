@@ -184,7 +184,8 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit }) => {
                 {(message.artifacts.files?.length ?? 0) > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {message.artifacts.files!.map((f, i) => (
-                      <a key={`f${i}`} href={`data:application/octet-stream;base64,${f.b64}`} download={f.name}
+                      <a key={`f${i}`} href={f.url ? f.url : `data:application/octet-stream;base64,${f.b64}`} download={f.name}
+                        target={f.url ? '_blank' : undefined} rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-medium border border-blue-200 hover:bg-blue-100 transition-colors">
                         ⬇ {f.name}
                       </a>

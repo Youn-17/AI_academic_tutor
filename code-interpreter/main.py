@@ -23,6 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import json
 import urllib.request
+import uuid
 import jwt
 
 E2B_API_KEY = os.environ.get("E2B_API_KEY", "")
@@ -67,6 +68,22 @@ def verify_user(authorization: str) -> str:
         return jwt.decode(token, options={"verify_signature": False}).get("sub") or "anon"
     except Exception as e:
         raise HTTPException(401, f"invalid token: {e}")
+
+
+def upload_to_storage(token: str, uid: str, name: str, data: bytes):
+    """Upload bytes to the public 'code-outputs' bucket via the caller's token → public URL (or None)."""
+    if not (SUPABASE_URL and token and data):
+        return None
+    key = f"{uid}/{uuid.uuid4().hex[:8]}_{name}"
+    try:
+        req = urllib.request.Request(
+            f"{SUPABASE_URL}/storage/v1/object/code-outputs/{key}",
+            data=data, method="POST",
+            headers={"Authorization": token, "Content-Type": "application/octet-stream", "x-upsert": "true"})
+        urllib.request.urlopen(req, timeout=30)
+        return f"{SUPABASE_URL}/storage/v1/object/public/code-outputs/{key}"
+    except Exception:
+        return None
 
 
 class RunReq(BaseModel):
@@ -127,7 +144,12 @@ def run(req: RunReq, authorization: str = Header(default="")):
                 f"import base64;print(base64.b64encode(open('/data/{name}','rb').read()).decode())")
             b64 = _txt(r.logs.stdout).strip()
             if b64 and not r.error:
-                out_files.append({"name": name, "b64": b64})
+                try:
+                    data = base64.b64decode(b64)
+                except Exception:
+                    data = b""
+                url = upload_to_storage(authorization, uid, name, data)
+                out_files.append({"name": name, "url": url} if url else {"name": name, "b64": b64})
 
         return {
             "uid": uid,

@@ -247,7 +247,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
         : ((condition === 'B_socratic' || useRag) ? { use_rag: true } : undefined);
       let fullResponse = '';
       let ragSources: { id: string; source_title: string; layer: number }[] = [];
-      let collectedArtifacts: { charts: string[]; files: { name: string; b64: string }[] } | undefined;
+      let collectedArtifacts: { charts: string[]; files: { name: string; b64?: string; url?: string }[] } | undefined;
 
       try {
         for await (const chunk of streamChat(chatHistory, config, sysPrompt, ragOptions,
@@ -337,7 +337,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
         : ((condition === 'B_socratic' || useRag) ? { use_rag: true } : undefined);
       let fullResponse = '';
       let ragSources: { id: string; source_title: string; layer: number }[] = [];
-      let collectedArtifacts: { charts: string[]; files: { name: string; b64: string }[] } | undefined;
+      let collectedArtifacts: { charts: string[]; files: { name: string; b64?: string; url?: string }[] } | undefined;
 
       try {
         for await (const chunk of streamChat(chatHistory, config, sysPrompt, ragOptions,

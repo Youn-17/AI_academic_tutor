@@ -61,7 +61,7 @@ export interface StreamOptions {
     reasoning_effort?: 'high' | 'max';
     onAgentStep?: (step: { tool?: string; args?: any; status?: string; found?: number }) => void;
     onReasoning?: (text: string) => void;       // reasoning_content / _reasoning channel
-    onArtifacts?: (a: { charts: string[]; files: { name: string; b64: string }[] }) => void;  // run_python charts/files
+    onArtifacts?: (a: { charts: string[]; files: { name: string; b64?: string; url?: string }[] }) => void;  // run_python charts/files
 }
 
 // Stateful stripper that removes leaked <thinking>…</thinking> blocks from a
