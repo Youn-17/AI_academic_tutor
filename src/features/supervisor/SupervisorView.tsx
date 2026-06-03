@@ -725,6 +725,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                             { value: 'deepseek', label: 'DeepSeek',    sub: 'V3 / R1 直连',     badge: '免费', color: 'sky',     docUrl: 'https://platform.deepseek.com/api-docs',            defaultModel: 'deepseek-chat' },
                             { value: 'zhipu',    label: '智谱 GLM',    sub: 'GLM-4.7 / Z1',     badge: null,   color: 'teal',    docUrl: 'https://open.bigmodel.cn/dev/api',                  defaultModel: 'glm-4-flash' },
                             { value: 'moonshot', label: 'Kimi',        sub: 'Moonshot 直连',    badge: null,   color: 'violet',  docUrl: 'https://platform.moonshot.cn/docs/api/chat',         defaultModel: 'moonshot-v1-32k' },
+                            { value: 'tavily',   label: 'Tavily 搜索', sub: '联网搜索·给智能体', badge: '新',   color: 'blue',    docUrl: 'https://docs.tavily.com',                           defaultModel: 'tavily-search' },
                           ].map(p => (
                             <button key={p.value} type="button"
                               onClick={() => {
@@ -814,6 +815,8 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                               <option value="glm-5">glm-5</option>
                             </optgroup>
                           </select>
+                        ) : apiForm.provider === 'tavily' ? (
+                          <div className={`${inputCls} flex items-center text-xs text-slate-500`}>Tavily 联网搜索 · 无需选模型（密钥以 tvly- 开头，配置后智能体即可联网检索）</div>
                         ) : (
                           /* moonshot / kimi */
                           <select value={apiForm.model} onChange={e => setApiForm(f => ({ ...f, model: e.target.value }))} className={inputCls}>

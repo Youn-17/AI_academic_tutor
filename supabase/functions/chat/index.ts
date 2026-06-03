@@ -174,11 +174,21 @@ const TOOL_DEFS = [
   }},
 ];
 
+const WEB_SEARCH_TOOL = { type: 'function', function: {
+  name: 'web_search',
+  description: '联网搜索最新信息（Tavily，为 AI 优化）。当需要时效性/最新进展、平台知识库没有的事实、或要核实某说法时调用。返回综合答案 + 真实来源链接；绝不编造，用此工具获取真实网页信息。',
+  parameters: { type: 'object', properties: {
+    query: { type: 'string', description: '搜索查询' },
+    topic: { type: 'string', enum: ['general', 'news'], description: '可选，news 偏新闻时效' },
+  }, required: ['query'] },
+}};
+
 interface ToolCtx {
   serviceClient: any;
   user: { id: string };
   course_id: string | null;
   resolvedApiKey: string;
+  tavilyKey?: string;
 }
 type ToolResult = { content: string; sources: any[] };
 
@@ -262,6 +272,30 @@ async function executeTool(name: string, args: any, ctx: ToolCtx): Promise<ToolR
       const { error } = await ctx.serviceClient.from('memories').insert(ins);
       return { content: error ? `保存记忆失败：${error.message}` : '已保存到过程记忆。', sources: [] };
     }
+
+    if (name === 'web_search') {
+      if (!ctx.tavilyKey) return { content: '（联网搜索未配置 API Key）', sources: [] };
+      const r = await fetchWithTimeout('https://api.tavily.com/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ctx.tavilyKey}` },
+        body: JSON.stringify({
+          query: String(args.query || ''),
+          search_depth: 'basic',
+          max_results: 5,
+          include_answer: 'advanced',
+          topic: args.topic === 'news' ? 'news' : 'general',
+        }),
+      }, T_SS);
+      if (!r.ok) return { content: '联网搜索暂时不可用，请稍后再试。', sources: [] };
+      const j = await r.json();
+      const rows: any[] = j.results || [];
+      const sources = rows.map((x) => ({ id: x.url, source_title: x.title, layer: 0, url: x.url }));
+      const ans = j.answer ? `【综合】${j.answer}\n\n` : '';
+      const content = ans + (rows.length
+        ? rows.map((x, i) => `[${i + 1}] ${x.title}\n${x.url}\n${String(x.content || '').slice(0, 320)}`).join('\n\n')
+        : '未检索到结果。');
+      return { content, sources };
+    }
   } catch (e) {
     console.error('tool error', name, e);
     return { content: `工具 ${name} 执行出错。`, sources: [] };
@@ -295,7 +329,7 @@ function buildBaseParams(model: string, provider: Provider, opts: any): any {
 
 // ── Agent streaming loop: runs tool rounds non-streamed, emits live SSE ─────
 async function runAgentStream(controller: ReadableStreamDefaultController, opts: {
-  apiUrl: string; key: string; baseParams: any; messages: any[]; ctx: ToolCtx;
+  apiUrl: string; key: string; baseParams: any; messages: any[]; ctx: ToolCtx; tools: any[];
 }) {
   const enc = new TextEncoder();
   const send = (o: any) => controller.enqueue(enc.encode(`data: ${JSON.stringify(o)}\n\n`));
@@ -308,7 +342,7 @@ async function runAgentStream(controller: ReadableStreamDefaultController, opts:
       const params = {
         ...opts.baseParams,
         messages: msgs,
-        tools: TOOL_DEFS,
+        tools: opts.tools,
         tool_choice: forceFinal ? 'none' : 'auto',
       };
       const resp = await callProviderJSON(opts.apiUrl, opts.key, params);
@@ -486,16 +520,26 @@ serve(async (req: Request) => {
 
     // ── 5a. AGENT MODE (tool-calling) ── always streams its result ──
     if (use_agent) {
-      const ctx: ToolCtx = { serviceClient, user, course_id: course_id || null, resolvedApiKey };
-      // Add a brief tool-usage note to the system message (or prepend one).
-      const note = '\n\n你具备工具能力：search_knowledge_base(检索平台知识库——已含多本统计/学习科学教材与论文，稳定可靠，需要概念或事实依据时优先用它)、recall_memory(回忆该学生过往的进展与讨论)、save_memory(保存关键决策/进展/待办)。需要依据时优先调用知识库，绝不编造文献或数据。调用工具后，请在回答中自然地说明你查阅了哪些来源（书名/论文），便于学生核对。';
+      // Tavily web-search key — teacher-configurable via ai_api_configs(provider='tavily'). Best-effort.
+      let tavilyKey = Deno.env.get('TAVILY_API_KEY') || '';
+      try {
+        const { data: tv } = await serviceClient
+          .from('ai_api_configs').select('api_key')
+          .eq('provider', 'tavily').eq('is_active', true).not('api_key', 'is', null).limit(1).single();
+        if (tv?.api_key) tavilyKey = tv.api_key;
+      } catch (_) { /* no tavily key configured */ }
+
+      const ctx: ToolCtx = { serviceClient, user, course_id: course_id || null, resolvedApiKey, tavilyKey };
+      const tools = tavilyKey ? [...TOOL_DEFS, WEB_SEARCH_TOOL] : TOOL_DEFS;
+      const webNote = tavilyKey ? '、web_search(联网搜索最新/实时信息，知识库没有时用)' : '';
+      const note = `\n\n你具备工具能力：search_knowledge_base(检索平台知识库——已含多本统计/学习科学教材与论文，稳定可靠，概念或事实依据优先用它)${webNote}、recall_memory(回忆该学生过往)、save_memory(保存关键决策/进展/待办)。需要依据时优先调用工具，绝不编造文献或数据。调用工具后，请在回答中自然地说明你查阅了哪些来源（书名/论文/网址），便于学生核对。`;
       const sysIdx = messages.findIndex((m: any) => m.role === 'system');
       const agentMsgs = sysIdx >= 0
         ? messages.map((m: any, i: number) => i === sysIdx ? { ...m, content: m.content + note } : m)
         : [{ role: 'system', content: `你是一位学术研究辅导助手。${note}` }, ...messages];
 
       const streamOut = new ReadableStream({
-        start: (controller) => runAgentStream(controller, { apiUrl, key: resolvedApiKey, baseParams, messages: agentMsgs, ctx }),
+        start: (controller) => runAgentStream(controller, { apiUrl, key: resolvedApiKey, baseParams, messages: agentMsgs, ctx, tools }),
       });
       return new Response(streamOut, { headers: SSE_HEADERS });
     }
