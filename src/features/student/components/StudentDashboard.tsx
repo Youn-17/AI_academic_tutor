@@ -43,7 +43,7 @@ async function analyzeStudent(): Promise<Analysis | null> {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, apikey: ANON },
       body: JSON.stringify({
         messages: [{ role: 'system', content: sys }, { role: 'user', content: text.slice(0, 6000) }],
-        provider: 'dmxapi', model: 'claude-sonnet-4-6', stream: false, response_format: { type: 'json_object' },
+        provider: 'deepseek', model: 'deepseek-chat', stream: false, response_format: { type: 'json_object' },
       }),
     });
     if (!resp.ok) return null;
