@@ -128,8 +128,16 @@ def run(req: RunReq, authorization: str = Header(default="")):
         raise HTTPException(502, f"sandbox create failed: {type(e).__name__}: {e}")
 
     try:
+        # ensure doc-gen libs when the code needs them (E2B template already has the DS stack)
+        _need = []
+        if any(k in req.code for k in ("openpyxl", "to_excel", ".xlsx")):
+            _need.append("openpyxl")
+        if "docx" in req.code:
+            _need.append("python-docx")
         # write input files via a prelude (SDK-agnostic — only uses run_code)
         prelude = "import os,base64\nos.makedirs('/data',exist_ok=True)\n"
+        if _need:
+            prelude += f"import subprocess,sys;subprocess.run([sys.executable,'-m','pip','install','-q']+{_need!r},check=False)\n"
         for f in req.files[:5]:
             prelude += (f"open('/data/{f['name']}','wb')"
                         f".write(base64.b64decode({f['b64']!r}))\n")

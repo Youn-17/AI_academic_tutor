@@ -62,6 +62,7 @@ export interface StreamOptions {
     onAgentStep?: (step: { tool?: string; args?: any; status?: string; found?: number }) => void;
     onReasoning?: (text: string) => void;       // reasoning_content / _reasoning channel
     onArtifacts?: (a: { charts: string[]; files: { name: string; b64?: string; url?: string }[] }) => void;  // run_python charts/files
+    attachedFile?: { name: string; b64: string };  // a data file the student uploaded → run_python /data/
 }
 
 // Stateful stripper that removes leaked <thinking>…</thinking> blocks from a
@@ -155,6 +156,7 @@ export async function* streamChat(
                 ...(opts.use_agent ? { use_agent: true } : {}),
                 ...(opts.thinking ? { thinking: opts.thinking } : {}),
                 ...(opts.reasoning_effort ? { reasoning_effort: opts.reasoning_effort } : {}),
+                ...(opts.attachedFile ? { attached_file: opts.attachedFile } : {}),
             }),
         });
 

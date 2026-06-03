@@ -46,6 +46,17 @@ async function readImageAsDataURL(file: File, maxDim = 1280, quality = 0.8): Pro
   } catch { return dataUrl; }
 }
 
+// Read any file as raw base64 (no data: prefix) — for sending data files to run_python.
+async function readFileAsBase64(file: File): Promise<string> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+  return dataUrl.split(',')[1] || '';
+}
+
 const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, theme, setTheme }) => {
   const { profile } = useAuth();
 
@@ -186,13 +197,15 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     const isImage = !!file && file.type.startsWith('image/');
     let fullContent = content;          // text persisted to DB / transcript / RAG
     let imageDataUrl = '';
+    let dataFile: { name: string; b64: string } | undefined;
     try {
       if (file && isImage) {
         imageDataUrl = await readImageAsDataURL(file);     // multimodal: image sent transiently to a vision model
         fullContent = content ? `${content}\n\n[图片]` : '[图片]';
       } else if (file) {
-        const fileContent = await readFileContent(file);
-        fullContent = `[Attachment: ${file.name}]\n\nContent:\n${fileContent}\n\nUser Question: ${content}`;
+        // data file (csv/xlsx/…) → send raw to run_python's sandbox (/data/) for analysis
+        dataFile = { name: file.name, b64: await readFileAsBase64(file) };
+        fullContent = content ? `${content}\n\n[附件: ${file.name}]` : `[附件: ${file.name}，请分析]`;
       }
     } catch (e) {
       console.error('File read failed:', e);
@@ -258,6 +271,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
             onAgentStep: (step) => setAgentSteps(prev => [...prev, step]),
             onReasoning: (t) => setReasoning(prev => prev + t),
             onArtifacts: (a) => { collectedArtifacts = a; },
+            attachedFile: dataFile,
           })) {
           fullResponse += chunk;
           if (convId === activeChatIdRef.current) setStreamingContent(fullResponse);
@@ -298,6 +312,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     sendingRef.current = true;
 
     const keptMessages = messages.slice(0, msgIndex);
+    const dataFile: { name: string; b64: string } | undefined = undefined;  // edits never carry a new upload
 
     const editedUserMsg: Message = {
       ...messages[msgIndex],
@@ -348,6 +363,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
             onAgentStep: (step) => setAgentSteps(prev => [...prev, step]),
             onReasoning: (t) => setReasoning(prev => prev + t),
             onArtifacts: (a) => { collectedArtifacts = a; },
+            attachedFile: dataFile,
           })) {
           fullResponse += chunk;
           if (convId === activeChatIdRef.current) setStreamingContent(fullResponse);

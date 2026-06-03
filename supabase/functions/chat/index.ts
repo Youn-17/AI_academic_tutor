@@ -247,6 +247,7 @@ interface ToolCtx {
   userToken?: string;   // original "Bearer ..." header, forwarded to the code-interpreter backend
   apiUrl?: string;      // resolved provider endpoint (for deep_search sub-query decomposition)
   model?: string;       // resolved model
+  attachedFile?: { name: string; b64: string };  // a data file the student uploaded → written to /data/ for run_python
 }
 type ToolResult = { content: string; sources: any[]; artifacts?: { charts: string[]; files: { name: string; b64: string }[] } };
 
@@ -405,6 +406,7 @@ async function executeTool(name: string, args: any, ctx: ToolCtx): Promise<ToolR
         headers: { 'Content-Type': 'application/json', 'Authorization': ctx.userToken },
         body: JSON.stringify({
           code: String(args.code || ''),
+          files: ctx.attachedFile ? [ctx.attachedFile] : [],
           return_files: Array.isArray(args.return_files) ? args.return_files.slice(0, 5) : [],
         }),
       }, 90_000);
@@ -596,7 +598,7 @@ serve(async (req: Request) => {
     const {
       messages, provider: rawProvider, model, stream = true,
       use_rag = false, use_agent = false, course_id, layer_filter,
-      thinking, reasoning_effort, response_format,
+      thinking, reasoning_effort, response_format, attached_file,
     } = bodyJson as any;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -715,10 +717,10 @@ serve(async (req: Request) => {
         if (tv?.api_key) tavilyKey = tv.api_key;
       } catch (_) { /* no tavily key configured */ }
 
-      const ctx: ToolCtx = { serviceClient, user, course_id: course_id || null, resolvedApiKey, tavilyKey, userToken: authHeader || undefined, apiUrl, model: effModel };
+      const ctx: ToolCtx = { serviceClient, user, course_id: course_id || null, resolvedApiKey, tavilyKey, userToken: authHeader || undefined, apiUrl, model: effModel, attachedFile: (attached_file && attached_file.name && attached_file.b64) ? { name: String(attached_file.name), b64: String(attached_file.b64) } : undefined };
       const tools = [...TOOL_DEFS, DEEP_SEARCH_TOOL, ...(tavilyKey ? [WEB_SEARCH_TOOL] : []), CODE_INTERPRETER_TOOL];
       const webNote = tavilyKey ? '、web_search(联网搜索最新/实时信息，知识库没有时用)' : '';
-      const note = `\n\n你具备工具能力：search_knowledge_base(单次检索平台知识库——已含多本统计/学习科学教材与论文)、deep_search(综合/多概念/综述类问题用它，自动把问题拆成多角度检索后合并，召回更全)${webNote}、run_python(需要对数据/表格做计算统计、画图表、或生成 Excel/Word 文件时，在隔离沙箱里跑 Python)、recall_memory(回忆该学生过往)、save_memory(保存关键决策/进展/待办)。需要依据或计算时优先调用工具，绝不编造文献或数据。调用工具后，请在回答中自然地说明你查阅了哪些来源（书名/论文/网址）或做了什么计算，便于学生核对。`;
+      const note = `\n\n你具备工具能力：search_knowledge_base(单次检索平台知识库——已含多本统计/学习科学教材与论文)、deep_search(综合/多概念/综述类问题用它，自动把问题拆成多角度检索后合并，召回更全)${webNote}、run_python(需要对数据/表格做计算统计、画图表、或生成 Excel/Word 文件时，在隔离沙箱里跑 Python)、recall_memory(回忆该学生过往)、save_memory(保存关键决策/进展/待办)。需要依据或计算时优先调用工具，绝不编造文献或数据。调用工具后，请在回答中自然地说明你查阅了哪些来源（书名/论文/网址）或做了什么计算，便于学生核对。${ctx.attachedFile ? `\n\n注意：用户刚上传了数据文件，已放在沙箱 /data/${ctx.attachedFile.name}，需要分析它时用 run_python 读取（如 pandas.read_csv/read_excel("/data/${ctx.attachedFile.name}")）。` : ''}`;
       const sysIdx = messages.findIndex((m: any) => m.role === 'system');
       const agentMsgs = sysIdx >= 0
         ? messages.map((m: any, i: number) => i === sysIdx ? { ...m, content: m.content + note } : m)
