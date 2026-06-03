@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Message, Role } from '@/types';
 import { User, Bot, ShieldAlert, Copy, ThumbsUp, ThumbsDown, Book, ExternalLink, Activity, Edit2, X, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { RiRobot2Line } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import GeneratedChart from '@/features/student/components/GeneratedChart';
@@ -25,8 +26,10 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit }) => {
     .replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/gi, '').trim() || message.content;
 
   const handleSave = () => {
-    if (onEdit && editValue.trim() !== message.content) {
-      onEdit(editValue);
+    // "Save & Retry" always re-runs (even if the text is unchanged) so the button
+    // never silently no-ops; the parent regenerates the AI reply from this point.
+    if (onEdit && editValue.trim()) {
+      onEdit(editValue.trim());
     }
     setIsEditing(false);
   };
@@ -122,9 +125,12 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit }) => {
                 isStudent ? "prose-invert" : "prose-slate",
                 "prose-p:my-1.5 prose-headings:my-2 prose-ul:my-2 prose-li:my-0.5",
                 "prose-pre:bg-slate-900 prose-pre:text-slate-50 prose-pre:rounded-lg prose-pre:p-3 prose-pre:font-mono prose-pre:text-xs",
-                "prose-blockquote:border-l-accent prose-blockquote:bg-accent/5 prose-blockquote:py-1 prose-blockquote:px-3 prose-blockquote:rounded-r prose-blockquote:italic"
+                "prose-blockquote:border-l-accent prose-blockquote:bg-accent/5 prose-blockquote:py-1 prose-blockquote:px-3 prose-blockquote:rounded-r prose-blockquote:italic",
+                // GFM tables → real bordered tables (horizontally scrollable on overflow)
+                "prose-table:my-3 prose-table:block prose-table:overflow-x-auto prose-th:border prose-th:border-slate-300 prose-th:bg-slate-100 prose-th:px-3 prose-th:py-1.5 prose-th:font-semibold prose-th:text-left prose-td:border prose-td:border-slate-200 prose-td:px-3 prose-td:py-1.5",
+                "prose-code:before:content-none prose-code:after:content-none prose-code:bg-slate-100 prose-code:text-[0.85em] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-normal"
               )}>
-                <ReactMarkdown>{cleanedContent}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanedContent}</ReactMarkdown>
 
                 {/* Edit Button Hook */}
                 {isStudent && onEdit && !isEditing && (

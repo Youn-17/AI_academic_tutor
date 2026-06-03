@@ -139,7 +139,17 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
         const studentIds = await ClassService.getMyStudents();
         if (!studentIds.length) { setConversations([]); return; }
         const chats = await ConversationService.getAllStudentConversations(studentIds);
-        setConversations(chats);
+        // getAllStudentConversations returns only the LAST message per chat (a
+        // preview). If we've already loaded the full thread for a chat (e.g. the
+        // selected one, populated by the getMessages effect), KEEP it — otherwise
+        // this refresh/30s-poll would clobber the history down to a single message
+        // (which is why the student↔AI history vanished right after an intervention).
+        setConversations(prev => chats.map(c => {
+          const existing = prev.find(p => p.id === c.id);
+          return existing && existing.messages.length > c.messages.length
+            ? { ...c, messages: existing.messages }
+            : c;
+        }));
       } catch (err) {
         console.error('Failed to load supervisor data:', err);
       }
