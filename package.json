@@ -10,6 +10,7 @@
     "deploy:functions": "cd backend && npx supabase functions deploy chat --project-ref oztozjwngekmqtuylypt --no-verify-jwt"
   },
   "dependencies": {
+    "@remixicon/react": "^4.9.0",
     "@supabase/supabase-js": "^2.93.3",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",

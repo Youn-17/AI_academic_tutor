@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  ArrowRight, BrainCircuit, Search, ShieldCheck,
-  Quote, Lightbulb, Menu, X, MessageSquare,
-  FileText, Eye, Users, Network, GraduationCap, ChevronRight,
-  Globe, ChevronDown, Check
-} from 'lucide-react';
+  RiBrainLine, RiSearchEyeLine, RiShieldCheckLine, RiDoubleQuotesL,
+  RiLightbulbFlashLine, RiBookOpenLine, RiGraduationCapLine, RiEyeLine,
+  RiTeamLine, RiUserVoiceLine, RiQuillPenLine, RiArrowRightLine, RiArrowRightUpLine,
+  RiGlobalLine, RiMenuLine, RiCloseLine, RiCheckLine, RiArrowDownSLine,
+  RiSparkling2Line, RiRobot2Line, RiMoonLine, RiSunLine, RiFlaskLine,
+  RiChatQuoteLine, RiHistoryLine, RiNodeTree, RiScales3Line, RiSeedlingLine,
+} from '@remixicon/react';
 import { Locale, Theme } from '@/types';
 
 interface LandingPageProps {
@@ -16,793 +18,545 @@ interface LandingPageProps {
 }
 
 // ─────────────────────────────────────────────
-// Translations
+// Trilingual copy (content from docs/homepage_content.md)
 // ─────────────────────────────────────────────
-const QUOTES = {
-  'zh-CN': [
-    { text: 'AI 的角色是促进思考，而非替代思考。', source: '苏格拉底式教学法', author: 'Paul & Elder, 2006' },
-    { text: '有效的学术成长依赖于监控、反馈与调整的不间断运行。', source: '持续反馈循环', author: 'Zimmerman, 2000' },
-    { text: '导师必须保持在环可见与可干预。', source: '人在环治理', author: 'Mosqueira-Rey et al., 2023' },
-    { text: '让研究过程更加透明，让学术支持更加连续，让思维发展更加可见。', source: '平台愿景', author: 'HAKHub' },
-  ],
-  'zh-TW': [
-    { text: 'AI 的角色是促進思考，而非替代思考。', source: '蘇格拉底式教學法', author: 'Paul & Elder, 2006' },
-    { text: '有效的學術成長依賴於監控、反饋與調整的不間斷運行。', source: '持續反饋循環', author: 'Zimmerman, 2000' },
-    { text: '導師必須保持在環可見與可干預。', source: '人在環治理', author: 'Mosqueira-Rey et al., 2023' },
-    { text: '讓研究過程更加透明，讓學術支持更加連續，讓思維發展更加可見。', source: '平台願景', author: 'HAKHub' },
-  ],
-  'en': [
-    { text: 'AI should promote thinking, not replace it.', source: 'Socratic Method', author: 'Paul & Elder, 2006' },
-    { text: 'Effective academic growth depends on uninterrupted cycles of monitoring, feedback, and adjustment.', source: 'Continuous Feedback Loop', author: 'Zimmerman, 2000' },
-    { text: 'Supervisors must remain visible and intervenable.', source: 'Human-in-the-Loop', author: 'Mosqueira-Rey et al., 2023' },
-    { text: 'Make research processes transparent, academic support continuous, and thinking development visible.', source: 'Platform Vision', author: 'HAKHub' },
-  ],
-};
-
-const T = {
+const T: Record<Locale, any> = {
   'zh-CN': {
     brand: 'HAKHub Scholar',
-    nav_features: '功能', nav_philosophy: '理念',
-    badge: '学生 · AI · 导师 三元互动',
-    h1_line1: '科研支持与', h1_line2: '监督平台',
-    subtitle: '让科研进展可见、可追踪、可干预',
-    mission: '我们并非试图用 AI 替代导师，也并非鼓励学生把思考外包给模型。',
-    cta_primary: '立即使用', cta_secondary: '了解理念',
-    stats: [
-      { value: '三元', label: '协同互动模型' },
-      { value: '6+', label: '核心功能模块' },
-      { value: '100%', label: '循证设计原则' },
-    ],
-    features_label: '功能特性',
-    features_h2: '围绕研究过程，重新组织支持系统',
-    features_sub: '基于自我调节学习理论的设计',
-    f: [
-      { title: '研究项目中心化', desc: '所有对话、文献、任务与导师反馈都归属于研究项目，支持从选题到完成的全过程追踪。', svg: '/SVG/ai-1.svg' },
-      { title: '进展与障碍并重', desc: '显式记录尚未解决的困惑、方法难点、理论分歧与写作瓶颈。', svg: '/SVG/student-profile.svg' },
-      { title: '导师及时介入', desc: '识别谁长期停滞、谁过度依赖 AI，在更合适的时机精准介入。', svg: '/SVG/teacher-dashboard.svg' },
-      { title: '证据增强检索', desc: '接入 Semantic Scholar，AI 回应附带可追溯的文献来源。', svg: '/SVG/resource-collaboration.svg' },
-      { title: '苏格拉底式引导', desc: '通过追问与澄清帮助学生识别问题边界、显化隐含假设，而非直接给出答案。', svg: '/SVG/workflow-cycle.svg' },
-      { title: '三元协同治理', desc: '学生、AI 与导师在同一系统中协同，导师保持最终判断权。', svg: '/SVG/team.svg' },
-    ],
-    how_h2: '三元互动机制',
-    roles: [
-      { title: '学生端', desc: '围绕研究主题、文献综述、方法设计等持续对话，发展认知主体性与研究判断力。' },
-      { title: 'AI 端', desc: '苏格拉底式引导 + 证据增强检索，可治理的学术支持，不替代导师的最终裁量权。' },
-      { title: '导师端', desc: '从"事后查看"转向"及时介入"，通过结构化面板识别需要帮助的学生。' },
-    ],
-    quotes_h2: '核心理念', quotes_sub: '基于学习科学与人—AI 协同研究',
-    phil_h2: '四项核心原则',
-    phil: [
-      { title: '科研支持应是持续性的', desc: '嵌入整个研究过程，而非仅发生在汇报时刻，呼应自我调节学习理论。' },
-      { title: 'AI 促进而非替代思考', desc: '通过追问、澄清与反思引导学生形成更高质量的学术判断。' },
-      { title: '导师保持在环可见', desc: '导师被重新嵌入可见、可追踪、可及时介入的指导流程中。' },
-      { title: '证据与治理并重', desc: '强调文献依据与责任，符合循证实践原则与 AI 伦理要求。' },
-    ],
-    cta_h2: '加入 HAKHub Scholar', cta_desc: '重新设计科研指导的关系结构',
-    footer_copy: '© 2026 HAKHub Team · HAKHub Scholar',
-    footer_note: '让研究过程可见、可追踪、可干预',
+    nav: { philosophy: '理念', features: '功能', foundation: '学理' },
+    hero: {
+      badge: '学生 · AI · 导师 — 三元在环',
+      h1a: '让思考，', h1grad: '留在学生这一侧', h1b: '',
+      sub: '学生—AI—导师 三元协同的科研支持平台。用引导式追问守护你的认知主体性，让每个有依据的回答都连着真实文献。',
+      mission: '我们不替代导师，也不让你把思考外包给模型——在这里，AI 是那个"逼你想清楚"的人。',
+      ctaPrimary: '立即使用', ctaSecondary: '了解理念',
+      chips: ['苏格拉底式引导', '回答附真实来源', '导师可见可干预', '知识库：统计 · 学习科学'],
+    },
+    tension: {
+      eyebrow: '为什么需要它',
+      title: '当答案变得免费，学习反而更难',
+      body: '生成式 AI 让"得到一个答案"几乎零成本。但学习从不发生在答案被递到手上的那一刻——它发生在你自己设定问题、权衡证据、推进想法的过程里。当思考可以被一键外包，真正的风险不是答案出错，而是思考的能力没有长在你身上。',
+      foot: '认知卸载会削弱个体自身的能力（Risko & Gilbert, 2016）；适度的"合意困难"才是持久学习的条件（Bjork & Bjork, 2011）。',
+    },
+    principles: {
+      eyebrow: '核心理念',
+      title: '三条不可让渡的原则',
+      items: [
+        { title: '促进思考，而非替代思考', body: '遇到你想让它"代劳"的关键判断，它会指出哪些必须由你来做，并把框架还给你。', source: '认知主体性 · Scardamalia (2002)；Zhou et al. (2025)' },
+        { title: '导师必须在环：可见 · 可干预', body: '平台不取代导师的学术权威。学生的思考过程对导师可见，导师可在任意节点介入、纠偏。', source: '人在环治理 · 责任式 AI' },
+        { title: '循证、透明、不杜撰', body: '每个有依据的回答都连着真实来源——知识库的教材与论文，或真实文献；思考过程可展开查看。', source: '检索增强（RAG）+ 可解释性' },
+      ],
+    },
+    features: {
+      eyebrow: '功能',
+      title: '围绕研究过程，重新组织支持',
+      sub: '基于自我调节学习理论设计',
+      items: [
+        { title: '苏格拉底式对话', desc: '问题模糊先帮你界定；问题清晰给结构化框架 + 推进性追问，而非直接给完整答案。' },
+        { title: '循证检索智能体', desc: '需要依据时，它会自己去检索平台知识库与真实学术文献，并说明查阅了哪些来源。' },
+        { title: '真实引用', desc: '每条有依据的回答都附"来源"卡片，可点击核对，而非一段无法溯源的话。' },
+        { title: '思考过程可见', desc: '使用推理模型时，模型的思考过程独立呈现、可折叠，与正式回答分开。' },
+        { title: '过程记忆', desc: '记住你的研究进展、关键决策与反复出现的难点，让辅导得以延续。' },
+        { title: '导师视图', desc: '导师可查看（经授权的）对话、在关键处介入、留下反馈。' },
+      ],
+    },
+    roles: {
+      title: '一套系统，三种受益',
+      items: [
+        { title: '学生', tag: '把问题想清楚', desc: '在追问中澄清研究问题、找到真实文献线索、看清自己的假设与盲点。你始终是研究的作者。' },
+        { title: '导师 / 督导', tag: '让过程可见', desc: '看见过程而非只看结果，在关键节点介入，把有限的指导时间用在刀刃上。' },
+        { title: '研究者', tag: '循证可复现', desc: '支持对照设计（引导式 vs 直答式）与可解释的交互记录，用于研究 AI 如何影响学习。' },
+      ],
+    },
+    foundation: {
+      eyebrow: '学理基础',
+      title: '不是又一个 AI 工具，而是一套有学理依据的学习设计',
+      points: [
+        { claim: '学习的主权属于学生', body: '真正的成长发生在学生自己设定问题、评估证据、推进想法的时刻。', source: 'Scardamalia (2002)；Zhou et al. (2025)' },
+        { claim: '被外包的思考，不会变成你的能力', body: '认知卸载在当下高效，却可能削弱个体自身的能力。', source: 'Risko & Gilbert (2016)' },
+        { claim: '适度的困难是学习的条件，不是障碍', body: '"合意困难"让记忆与理解更持久。', source: 'Bjork & Bjork (2011)' },
+        { claim: '好的反馈让你学会自我调节', body: '回答"我要去哪 / 现在在哪 / 下一步怎么走"，把监控能力交还给学习者。', source: 'Hattie & Timperley (2007)' },
+        { claim: '教学是持续的"会话"，而非单向传递', body: '学习在陈述—行动—反馈—调整的循环中发生。', source: 'Laurillard (2012)' },
+        { claim: '主动建构胜过被动接收', body: '处于"互动 / 建构"状态的学习显著优于被动接收。', source: 'Chi & Wylie (2014)' },
+        { claim: '脚手架要懂得"退场"', body: '好的支持随能力增长而逐步撤除；永不退场的帮助会固化为依赖。', source: 'Collins, Brown & Newman (1989)' },
+        { claim: '有依据，才敢说；说了，就能溯源', body: '每个有依据的回答都连着真实来源，绝不编造文献。', source: '本平台 RAG + 工具设计' },
+      ],
+    },
+    cta: { title: '把答案变便宜的时代，更需要守护思考', desc: '立即开始，或先了解我们的设计理念。', button: '进入平台' },
+    footer: {
+      tagline: '让研究过程可见、可追踪、可干预。',
+      ethics: '本平台为学术研究与教学支持工具，生成内容仅供参考，不构成专业建议。',
+      copy: '© 2026 HAKHub Team · HAKHub Scholar',
+    },
   },
   'zh-TW': {
     brand: 'HAKHub Scholar',
-    nav_features: '功能', nav_philosophy: '理念',
-    badge: '學生 · AI · 導師 三元互動',
-    h1_line1: '科研支持與', h1_line2: '監督平台',
-    subtitle: '讓科研進展可見、可追蹤、可干預',
-    mission: '我們並非試圖用 AI 替代導師，也並非鼓勵學生把思考外包給模型。',
-    cta_primary: '立即使用', cta_secondary: '了解理念',
-    stats: [
-      { value: '三元', label: '協同互動模型' },
-      { value: '6+', label: '核心功能模塊' },
-      { value: '100%', label: '循證設計原則' },
-    ],
-    features_label: '功能特性',
-    features_h2: '圍繞研究過程，重新組織支持系統',
-    features_sub: '基於自我調節學習理論的設計',
-    f: [
-      { title: '研究項目中心化', desc: '所有對話、文獻、任務與導師反饋都歸屬於研究項目，支持全程追蹤。', svg: '/SVG/ai-1.svg' },
-      { title: '進展與障礙並重', desc: '顯式記錄尚未解決的困惑、方法難點、理論分歧與寫作瓶頸。', svg: '/SVG/student-profile.svg' },
-      { title: '導師及時介入', desc: '識別誰長期停滯、誰過度依賴 AI，在更合適的時機精準介入。', svg: '/SVG/teacher-dashboard.svg' },
-      { title: '證據增強檢索', desc: '接入 Semantic Scholar，AI 回應附帶可追蹤的文獻來源。', svg: '/SVG/resource-collaboration.svg' },
-      { title: '蘇格拉底式引導', desc: '通過追問與澄清幫助學生識別問題邊界、顯化隱含假設，而非直接給出答案。', svg: '/SVG/workflow-cycle.svg' },
-      { title: '三元協同治理', desc: '學生、AI 與導師在同一系統中協同，導師保持最終判斷權。', svg: '/SVG/team.svg' },
-    ],
-    how_h2: '三元互動機制',
-    roles: [
-      { title: '學生端', desc: '圍繞研究主題、文獻綜述、方法設計等持續對話，發展認知主體性與研究判斷力。' },
-      { title: 'AI 端', desc: '蘇格拉底式引導 + 證據增強檢索，可治理的學術支持，不替代導師的最終裁量權。' },
-      { title: '導師端', desc: '從「事後查看」轉向「及時介入」，通過結構化面板識別需要幫助的學生。' },
-    ],
-    quotes_h2: '核心理念', quotes_sub: '基於學習科學與人—AI 協同研究',
-    phil_h2: '四項核心原則',
-    phil: [
-      { title: '科研支持應是持續性的', desc: '嵌入整個研究過程，而非僅發生在匯報時刻，呼應自我調節學習理論。' },
-      { title: 'AI 促進而非替代思考', desc: '通過追問、澄清與反思引導學生形成更高質量的學術判斷。' },
-      { title: '導師保持在環可見', desc: '導師被重新嵌入可見、可追蹤、可及時介入的指導流程中。' },
-      { title: '證據與治理並重', desc: '強調文獻依據與責任，符合循證實踐原則與 AI 倫理要求。' },
-    ],
-    cta_h2: '加入 HAKHub Scholar', cta_desc: '重新設計科研指導的關係結構',
-    footer_copy: '© 2026 HAKHub Team · HAKHub Scholar',
-    footer_note: '讓研究過程可見、可追蹤、可干預',
+    nav: { philosophy: '理念', features: '功能', foundation: '學理' },
+    hero: {
+      badge: '學生 · AI · 導師 — 三元在環',
+      h1a: '讓思考，', h1grad: '留在學生這一側', h1b: '',
+      sub: '學生—AI—導師 三元協同的科研支持平台。用引導式追問守護你的認知主體性，讓每個有依據的回答都連著真實文獻。',
+      mission: '我們不替代導師，也不讓你把思考外包給模型——在這裡，AI 是那個「逼你想清楚」的人。',
+      ctaPrimary: '立即使用', ctaSecondary: '了解理念',
+      chips: ['蘇格拉底式引導', '回答附真實來源', '導師可見可干預', '知識庫：統計 · 學習科學'],
+    },
+    tension: {
+      eyebrow: '為什麼需要它',
+      title: '當答案變得免費，學習反而更難',
+      body: '生成式 AI 讓「得到一個答案」幾乎零成本。但學習從不發生在答案被遞到手上的那一刻——它發生在你自己設定問題、權衡證據、推進想法的過程裡。當思考可以被一鍵外包，真正的風險不是答案出錯，而是思考的能力沒有長在你身上。',
+      foot: '認知卸載會削弱個體自身的能力（Risko & Gilbert, 2016）；適度的「合意困難」才是持久學習的條件（Bjork & Bjork, 2011）。',
+    },
+    principles: {
+      eyebrow: '核心理念',
+      title: '三條不可讓渡的原則',
+      items: [
+        { title: '促進思考，而非替代思考', body: '遇到你想讓它「代勞」的關鍵判斷，它會指出哪些必須由你來做，並把框架還給你。', source: '認知主體性 · Scardamalia (2002)；Zhou et al. (2025)' },
+        { title: '導師必須在環：可見 · 可干預', body: '平台不取代導師的學術權威。學生的思考過程對導師可見，導師可在任意節點介入、糾偏。', source: '人在環治理 · 責任式 AI' },
+        { title: '循證、透明、不杜撰', body: '每個有依據的回答都連著真實來源——知識庫的教材與論文，或真實文獻；思考過程可展開查看。', source: '檢索增強（RAG）+ 可解釋性' },
+      ],
+    },
+    features: {
+      eyebrow: '功能',
+      title: '圍繞研究過程，重新組織支持',
+      sub: '基於自我調節學習理論設計',
+      items: [
+        { title: '蘇格拉底式對話', desc: '問題模糊先幫你界定；問題清晰給結構化框架 + 推進性追問，而非直接給完整答案。' },
+        { title: '循證檢索智能體', desc: '需要依據時，它會自己去檢索平台知識庫與真實學術文獻，並說明查閱了哪些來源。' },
+        { title: '真實引用', desc: '每條有依據的回答都附「來源」卡片，可點擊核對，而非一段無法溯源的話。' },
+        { title: '思考過程可見', desc: '使用推理模型時，模型的思考過程獨立呈現、可折疊，與正式回答分開。' },
+        { title: '過程記憶', desc: '記住你的研究進展、關鍵決策與反覆出現的難點，讓輔導得以延續。' },
+        { title: '導師視圖', desc: '導師可查看（經授權的）對話、在關鍵處介入、留下反饋。' },
+      ],
+    },
+    roles: {
+      title: '一套系統，三種受益',
+      items: [
+        { title: '學生', tag: '把問題想清楚', desc: '在追問中澄清研究問題、找到真實文獻線索、看清自己的假設與盲點。你始終是研究的作者。' },
+        { title: '導師 / 督導', tag: '讓過程可見', desc: '看見過程而非只看結果，在關鍵節點介入，把有限的指導時間用在刀刃上。' },
+        { title: '研究者', tag: '循證可復現', desc: '支持對照設計（引導式 vs 直答式）與可解釋的互動記錄，用於研究 AI 如何影響學習。' },
+      ],
+    },
+    foundation: {
+      eyebrow: '學理基礎',
+      title: '不是又一個 AI 工具，而是一套有學理依據的學習設計',
+      points: [
+        { claim: '學習的主權屬於學生', body: '真正的成長發生在學生自己設定問題、評估證據、推進想法的時刻。', source: 'Scardamalia (2002)；Zhou et al. (2025)' },
+        { claim: '被外包的思考，不會變成你的能力', body: '認知卸載在當下高效，卻可能削弱個體自身的能力。', source: 'Risko & Gilbert (2016)' },
+        { claim: '適度的困難是學習的條件，不是障礙', body: '「合意困難」讓記憶與理解更持久。', source: 'Bjork & Bjork (2011)' },
+        { claim: '好的反饋讓你學會自我調節', body: '回答「我要去哪 / 現在在哪 / 下一步怎麼走」，把監控能力交還給學習者。', source: 'Hattie & Timperley (2007)' },
+        { claim: '教學是持續的「會話」，而非單向傳遞', body: '學習在陳述—行動—反饋—調整的循環中發生。', source: 'Laurillard (2012)' },
+        { claim: '主動建構勝過被動接收', body: '處於「互動 / 建構」狀態的學習顯著優於被動接收。', source: 'Chi & Wylie (2014)' },
+        { claim: '腳手架要懂得「退場」', body: '好的支持隨能力增長而逐步撤除；永不退場的幫助會固化為依賴。', source: 'Collins, Brown & Newman (1989)' },
+        { claim: '有依據，才敢說；說了，就能溯源', body: '每個有依據的回答都連著真實來源，絕不編造文獻。', source: '本平台 RAG + 工具設計' },
+      ],
+    },
+    cta: { title: '把答案變便宜的時代，更需要守護思考', desc: '立即開始，或先了解我們的設計理念。', button: '進入平台' },
+    footer: {
+      tagline: '讓研究過程可見、可追蹤、可干預。',
+      ethics: '本平台為學術研究與教學支持工具，生成內容僅供參考，不構成專業建議。',
+      copy: '© 2026 HAKHub Team · HAKHub Scholar',
+    },
   },
   'en': {
     brand: 'HAKHub Scholar',
-    nav_features: 'Features', nav_philosophy: 'Philosophy',
-    badge: 'Student · AI · Supervisor Triadic Model',
-    h1_line1: 'Research Support &', h1_line2: 'Supervision Platform',
-    subtitle: 'Making research progress visible, trackable, and intervenable',
-    mission: 'We do not replace supervisors with AI, nor encourage students to outsource their thinking to models.',
-    cta_primary: 'Get Started', cta_secondary: 'Our Philosophy',
-    stats: [
-      { value: '3-Way', label: 'Collaborative Model' },
-      { value: '6+', label: 'Core Feature Modules' },
-      { value: '100%', label: 'Evidence-Based Design' },
-    ],
-    features_label: 'FEATURES',
-    features_h2: 'Organized Around the Research Process',
-    features_sub: 'Designed on Self-Regulated Learning Theory',
-    f: [
-      { title: 'Research Project Centered', desc: 'All conversations, literature, tasks, and feedback belong to research projects—trackable from topic to completion.', svg: '/SVG/ai-1.svg' },
-      { title: 'Progress & Obstacles', desc: 'Explicitly record unresolved questions, methodological difficulties, and theoretical disagreements.', svg: '/SVG/student-profile.svg' },
-      { title: 'Timely Supervisor Intervention', desc: 'Identify who is stalled or over-relying on AI, and intervene at exactly the right moment.', svg: '/SVG/teacher-dashboard.svg' },
-      { title: 'Evidence-Enhanced Search', desc: 'Integrated with Semantic Scholar—AI responses include traceable literature sources.', svg: '/SVG/resource-collaboration.svg' },
-      { title: 'Socratic Guidance', desc: 'AI identifies problem boundaries and surfaces assumptions through questioning, not by giving direct answers.', svg: '/SVG/workflow-cycle.svg' },
-      { title: 'Triadic Governance', desc: 'Students, AI, and supervisors collaborate in one system. Supervisors retain final judgment.', svg: '/SVG/team.svg' },
-    ],
-    how_h2: 'Triadic Interaction Mechanism',
-    roles: [
-      { title: 'Student', desc: 'Continuous dialogue around research topics, literature review, and methodology to develop epistemic agency.' },
-      { title: 'AI', desc: 'Socratic guidance + evidence-enhanced retrieval. Governable academic support—never replacing supervisor judgment.' },
-      { title: 'Supervisor', desc: 'Shift from post-hoc review to timely intervention via structured dashboards that highlight who needs help.' },
-    ],
-    quotes_h2: 'Core Principles', quotes_sub: 'Based on Learning Sciences & Human–AI Collaboration Research',
-    phil_h2: 'Four Core Principles',
-    phil: [
-      { title: 'Continuous Academic Support', desc: 'Embedded throughout the research process, not just at presentation milestones.' },
-      { title: 'AI Promotes, Not Replaces Thinking', desc: 'Guide students to higher-quality academic judgments through questioning and reflection.' },
-      { title: 'Supervisors Remain in the Loop', desc: 'Re-embedded into a visible, trackable, and timely-intervenable guidance process.' },
-      { title: 'Evidence & Governance', desc: 'Emphasize literature basis and accountability, aligning with AI ethics and evidence-based practice.' },
-    ],
-    cta_h2: 'Join HAKHub Scholar', cta_desc: 'Redesigning the relational structure of research supervision',
-    footer_copy: '© 2026 HAKHub Team · HAKHub Scholar',
-    footer_note: 'Making research progress visible, trackable, and intervenable',
+    nav: { philosophy: 'Philosophy', features: 'Features', foundation: 'Foundations' },
+    hero: {
+      badge: 'Student · AI · Mentor — A Triad in the Loop',
+      h1a: 'Keep the thinking ', h1grad: 'on the student’s side', h1b: '',
+      sub: 'A triadic research-support platform for student, AI, and mentor. We guard your epistemic agency through questioning, and anchor every grounded answer to real literature.',
+      mission: 'We don’t replace your mentor, nor let you outsource thinking to a model—here, the AI is the one that makes you think it through.',
+      ctaPrimary: 'Get Started', ctaSecondary: 'Our Philosophy',
+      chips: ['Socratic guidance', 'Sourced answers', 'Mentor in the loop', 'Corpus: stats · learning sci'],
+    },
+    tension: {
+      eyebrow: 'WHY IT MATTERS',
+      title: 'When answers get cheap, learning gets harder',
+      body: 'Generative AI makes "getting an answer" nearly free. But learning never happens the moment an answer is handed to you—it happens while you set the problem, weigh the evidence, and advance your own ideas. When thinking can be outsourced with one click, the real risk is not a wrong answer, but that the capability never grows in you.',
+      foot: 'Cognitive offloading can erode one’s own ability (Risko & Gilbert, 2016); "desirable difficulties" are what make learning durable (Bjork & Bjork, 2011).',
+    },
+    principles: {
+      eyebrow: 'CORE PHILOSOPHY',
+      title: 'Three non-negotiable principles',
+      items: [
+        { title: 'Promote thinking, never replace it', body: 'When you try to offload a judgment that should be yours, it names what only you can decide and hands the framework back.', source: 'Epistemic agency · Scardamalia (2002); Zhou et al. (2025)' },
+        { title: 'The mentor stays in the loop', body: 'It never replaces the mentor’s authority. The student’s thinking is visible to the mentor, who can step in at any point.', source: 'Human-in-the-loop · responsible AI' },
+        { title: 'Evidence-grounded, transparent, no fabrication', body: 'Every grounded answer links to real sources—textbooks and papers in the corpus, or real literature; reasoning is inspectable.', source: 'Retrieval-augmented (RAG) + explainability' },
+      ],
+    },
+    features: {
+      eyebrow: 'FEATURES',
+      title: 'Support organized around the research process',
+      sub: 'Designed on self-regulated learning theory',
+      items: [
+        { title: 'Socratic dialogue', desc: 'When the question is vague it helps you define it; when it’s clear it gives a framework plus probing questions—not a finished answer.' },
+        { title: 'Evidence-seeking agent', desc: 'When grounding is needed, it searches the knowledge base and real literature on its own—and tells you what it consulted.' },
+        { title: 'Real citations', desc: 'Every grounded answer carries clickable "source" cards you can verify—not an untraceable paragraph.' },
+        { title: 'Visible reasoning', desc: 'With reasoning models, the model’s thinking is shown separately and collapsibly, apart from the answer.' },
+        { title: 'Process memory', desc: 'It remembers your progress, key decisions, and recurring difficulties so guidance can continue.' },
+        { title: 'Mentor view', desc: 'Mentors can view (consented) conversations, step in at key moments, and leave feedback.' },
+      ],
+    },
+    roles: {
+      title: 'One system, three ways to benefit',
+      items: [
+        { title: 'Students', tag: 'Think it through', desc: 'Clarify your question, find real literature, and see your own assumptions. You remain the author of your research.' },
+        { title: 'Mentors', tag: 'Make process visible', desc: 'See the process, not just the result; step in at key points; spend scarce guidance time where it counts.' },
+        { title: 'Researchers', tag: 'Evidence-based', desc: 'Supports controlled designs (Socratic vs direct) and interpretable interaction logs to study how AI shapes learning.' },
+      ],
+    },
+    foundation: {
+      eyebrow: 'FOUNDATIONS',
+      title: 'Not another AI tool, but a learning design with a scholarly basis',
+      points: [
+        { claim: 'The student owns the learning', body: 'Real growth happens when the student sets the problem, weighs evidence, and advances ideas.', source: 'Scardamalia (2002); Zhou et al. (2025)' },
+        { claim: 'Outsourced thinking never becomes your ability', body: 'Cognitive offloading is efficient now but can erode one’s own capability.', source: 'Risko & Gilbert (2016)' },
+        { claim: 'Difficulty is a condition for learning, not an obstacle', body: '"Desirable difficulties" make memory and understanding durable.', source: 'Bjork & Bjork (2011)' },
+        { claim: 'Good feedback teaches self-regulation', body: 'It answers "where to, where now, what next," returning monitoring to the learner.', source: 'Hattie & Timperley (2007)' },
+        { claim: 'Teaching is a continuing conversation', body: 'Learning happens in cycles of stating, acting, feedback, and adjusting.', source: 'Laurillard (2012)' },
+        { claim: 'Active construction beats passive reception', body: 'Learning while interactive/constructive far outperforms passive reception.', source: 'Chi & Wylie (2014)' },
+        { claim: 'Scaffolding must fade', body: 'Good support is withdrawn as competence grows; help that never fades becomes dependence.', source: 'Collins, Brown & Newman (1989)' },
+        { claim: 'Grounded enough to say it; said, so you can trace it', body: 'Every grounded answer links to a real source. It never fabricates references.', source: 'This platform’s RAG + tools' },
+      ],
+    },
+    cta: { title: 'In an age of cheap answers, thinking needs protecting', desc: 'Start now, or explore our design philosophy first.', button: 'Enter Platform' },
+    footer: {
+      tagline: 'Make research visible, trackable, and intervenable.',
+      ethics: 'This platform is an academic and teaching-support tool; generated content is for reference only and is not professional advice.',
+      copy: '© 2026 HAKHub Team · HAKHub Scholar',
+    },
   },
-} as const;
+};
+
+// locale-independent icon sets (by index)
+const PRINCIPLE_ICONS = [RiBrainLine, RiUserVoiceLine, RiShieldCheckLine];
+const FEATURE_ICONS = [RiChatQuoteLine, RiRobot2Line, RiDoubleQuotesL, RiEyeLine, RiHistoryLine, RiTeamLine];
+const ROLE_ICONS = [RiGraduationCapLine, RiUserVoiceLine, RiFlaskLine];
+const FOUNDATION_ICONS = [RiSeedlingLine, RiBrainLine, RiScales3Line, RiQuillPenLine, RiChatQuoteLine, RiSparkling2Line, RiLightbulbFlashLine, RiShieldCheckLine];
 
 // ─────────────────────────────────────────────
-// Scroll-triggered fade using IntersectionObserver
+// Scroll reveal
 // ─────────────────────────────────────────────
-const FadeIn: React.FC<{
-  children: React.ReactNode;
-  delay?: number;
-  className?: string;
-  from?: 'bottom' | 'left' | 'right';
-}> = ({ children, delay = 0, className = '', from = 'bottom' }) => {
+const FadeIn: React.FC<{ children: React.ReactNode; delay?: number; className?: string }> = ({ children, delay = 0, className = '' }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-
+  const [v, setV] = useState(false);
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold: 0.12 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
+    const el = ref.current; if (!el) return;
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setV(true); obs.disconnect(); } }, { threshold: 0.12 });
+    obs.observe(el); return () => obs.disconnect();
   }, []);
-
-  const initial =
-    from === 'left' ? 'translate-x-8 opacity-0'
-    : from === 'right' ? '-translate-x-8 opacity-0'
-    : 'translate-y-8 opacity-0';
-
   return (
-    <div
-      ref={ref}
-      className={`transition-all duration-700 ease-out ${visible ? 'translate-x-0 translate-y-0 opacity-100' : initial} ${className}`}
-      style={{ transitionDelay: `${delay}ms` }}
-    >
+    <div ref={ref} className={`transition-all duration-700 ease-out ${v ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'} ${className}`} style={{ transitionDelay: `${delay}ms` }}>
       {children}
     </div>
   );
 };
 
-// ─────────────────────────────────────────────
-// Main Component
-// ─────────────────────────────────────────────
+// Mouse-following spotlight card (React-Bits style)
+const SpotlightCard: React.FC<{ children: React.ReactNode; className?: string; style?: React.CSSProperties }> = ({ children, className = '', style }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const onMove = (e: React.MouseEvent) => {
+    const el = ref.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--mx', `${e.clientX - r.left}px`);
+    el.style.setProperty('--my', `${e.clientY - r.top}px`);
+  };
+  return (
+    <div ref={ref} onMouseMove={onMove} className={`hak-spot relative overflow-hidden ${className}`} style={style}>
+      <span className="hak-spot-glow" aria-hidden />
+      <div className="relative" style={{ zIndex: 1 }}>{children}</div>
+    </div>
+  );
+};
+
 const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: loc, setLocale, theme, setTheme }) => {
   const t = T[loc];
   const isDark = theme === 'dark';
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [quoteIdx, setQuoteIdx] = useState(0);
   const [langOpen, setLangOpen] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
-  const quotes = QUOTES[loc];
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', fn, { passive: true });
     return () => window.removeEventListener('scroll', fn);
   }, []);
-
-  useEffect(() => {
-    const id = setInterval(() => setQuoteIdx(i => (i + 1) % quotes.length), 6000);
-    return () => clearInterval(id);
-  }, [quotes.length]);
-
   useEffect(() => {
     const fn = (e: MouseEvent) => { if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false); };
     document.addEventListener('mousedown', fn);
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
-  // ── Design tokens ──────────────────────────
-  const bg       = isDark ? '#07111A'  : '#F8FAFC';
-  const surface  = isDark ? '#0D1E2C'  : '#FFFFFF';
-  const border   = isDark ? 'rgba(255,255,255,0.07)' : '#E2E8F0';
-  const textBase = isDark ? '#E8F1F8'  : '#0F172A';
-  const textMuted= isDark ? '#7A9BB0'  : '#64748B';
-  const emerald  = '#059669';
+  // Design tokens
+  const bg = isDark ? '#06121C' : '#F7FAF9';
+  const surface = isDark ? '#0C1E2B' : '#FFFFFF';
+  const border = isDark ? 'rgba(255,255,255,0.08)' : '#E3EAE7';
+  const textBase = isDark ? '#E9F2F1' : '#0C1F1A';
+  const textMuted = isDark ? '#86A2A8' : '#5C7068';
+  const emerald = '#059669';
   const emeraldLight = '#10B981';
 
-  const navBg = scrolled
-    ? (isDark ? 'rgba(7,17,26,0.85)' : 'rgba(248,250,252,0.85)')
-    : 'transparent';
+  const navBg = scrolled ? (isDark ? 'rgba(6,18,28,0.82)' : 'rgba(247,250,249,0.82)') : 'transparent';
+  const cardBg = isDark ? 'rgba(255,255,255,0.025)' : '#FFFFFF';
+
+  const navLinks = [
+    { href: '#philosophy', label: t.nav.philosophy },
+    { href: '#features', label: t.nav.features },
+    { href: '#foundation', label: t.nav.foundation },
+  ];
 
   return (
-    <div className="min-h-screen antialiased" style={{ background: bg, color: textBase, fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div className="min-h-screen antialiased" style={{ background: bg, color: textBase, fontFamily: 'ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif' }}>
+      <style>{`
+        @keyframes hak-drift { 0%{transform:translate(0,0) scale(1)} 33%{transform:translate(7%,-9%) scale(1.12)} 66%{transform:translate(-6%,7%) scale(.94)} 100%{transform:translate(0,0) scale(1)} }
+        @keyframes hak-up { from{opacity:0;transform:translateY(26px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes hak-shimmer { to { background-position: 200% center } }
+        .hak-up { animation: hak-up .9s cubic-bezier(.16,.84,.3,1) both }
+        .hak-aurora { position:absolute; border-radius:9999px; filter: blur(72px); will-change: transform; pointer-events:none }
+        .hak-grad { background: linear-gradient(115deg, ${emerald}, ${emeraldLight} 45%, #0EA5E9); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; background-size:200% auto; animation: hak-shimmer 8s linear infinite }
+        .hak-spot-glow { position:absolute; inset:0; opacity:0; transition:opacity .35s ease; background: radial-gradient(360px circle at var(--mx,50%) var(--my,50%), ${emeraldLight}22, transparent 60%); pointer-events:none; z-index:0 }
+        .hak-spot:hover .hak-spot-glow { opacity:1 }
+        .hak-spot { transition: transform .3s cubic-bezier(.2,.7,.2,1), border-color .3s }
+        .hak-spot:hover { transform: translateY(-4px) }
+        .hak-link { position:relative }
+        .hak-link::after { content:''; position:absolute; left:0; bottom:-3px; height:1.5px; width:0; background:${emeraldLight}; transition:width .25s ease }
+        .hak-link:hover::after { width:100% }
+        @media (prefers-reduced-motion: reduce) { .hak-up,.hak-aurora,.hak-grad { animation:none !important } .hak-up{opacity:1;transform:none} }
+      `}</style>
 
-      {/* ── Ambient background orbs ── */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
-        <div className="absolute w-[600px] h-[600px] rounded-full opacity-20"
-          style={{ background: `radial-gradient(circle, ${emerald}22 0%, transparent 70%)`, top: '-100px', left: '-100px' }} />
-        <div className="absolute w-[500px] h-[500px] rounded-full opacity-10"
-          style={{ background: `radial-gradient(circle, #0EA5E922 0%, transparent 70%)`, bottom: '10%', right: '-80px' }} />
+      {/* ── Ambient aurora ── */}
+      <div className="fixed inset-0 overflow-hidden" style={{ zIndex: 0 }}>
+        <div className="hak-aurora" style={{ width: 620, height: 620, top: '-160px', left: '-120px', background: emerald, opacity: isDark ? 0.22 : 0.16, animation: 'hak-drift 19s ease-in-out infinite' }} />
+        <div className="hak-aurora" style={{ width: 520, height: 520, top: '20%', right: '-140px', background: '#0EA5E9', opacity: isDark ? 0.16 : 0.12, animation: 'hak-drift 24s ease-in-out infinite reverse' }} />
+        <div className="hak-aurora" style={{ width: 440, height: 440, bottom: '-120px', left: '30%', background: emeraldLight, opacity: isDark ? 0.14 : 0.1, animation: 'hak-drift 21s ease-in-out infinite' }} />
       </div>
 
-      {/* ══════════════════════════════════════
-          FLOATING NAVBAR
-      ══════════════════════════════════════ */}
+      {/* ══ NAVBAR ══ */}
       <nav className="fixed top-4 left-4 right-4 z-50 transition-all duration-300 rounded-2xl"
-        style={{
-          background: navBg,
-          backdropFilter: scrolled ? 'blur(16px)' : 'none',
-          borderBottom: scrolled ? `1px solid ${border}` : 'none',
-          boxShadow: scrolled ? (isDark ? '0 4px 24px rgba(0,0,0,0.4)' : '0 4px 24px rgba(0,0,0,0.08)') : 'none',
-        }}>
-        <div className="max-w-7xl mx-auto px-5 h-14 flex items-center justify-between">
-
-          {/* Logo */}
+        style={{ background: navBg, backdropFilter: scrolled ? 'blur(16px)' : 'none', border: scrolled ? `1px solid ${border}` : '1px solid transparent', boxShadow: scrolled ? (isDark ? '0 8px 30px rgba(0,0,0,0.4)' : '0 8px 30px rgba(2,40,30,0.07)') : 'none' }}>
+        <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5 cursor-pointer" onClick={onEnter}>
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: `linear-gradient(135deg, ${emerald}, ${emeraldLight})` }}>
-              <BrainCircuit size={16} className="text-white" />
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${emerald}, ${emeraldLight})`, boxShadow: `0 4px 14px ${emerald}55` }}>
+              <RiBrainLine size={18} className="text-white" />
             </div>
-            <span className="font-semibold text-sm tracking-tight">{t.brand}</span>
+            <span className="font-semibold text-[15px] tracking-tight" style={{ fontFamily: 'Crimson Pro, Georgia, serif' }}>{t.brand}</span>
           </div>
-
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-7">
-            {[{ href: '#features', label: t.nav_features }, { href: '#philosophy', label: t.nav_philosophy }].map(l => (
-              <a key={l.href} href={l.href}
-                className="text-sm font-medium transition-colors duration-200 cursor-pointer"
-                style={{ color: textMuted }}
-                onMouseEnter={e => (e.currentTarget.style.color = emeraldLight)}
-                onMouseLeave={e => (e.currentTarget.style.color = textMuted)}>
-                {l.label}
-              </a>
+          <div className="hidden md:flex items-center gap-8">
+            {navLinks.map(l => (
+              <a key={l.href} href={l.href} className="hak-link text-sm font-medium transition-colors" style={{ color: textMuted }}
+                onMouseEnter={e => (e.currentTarget.style.color = textBase)} onMouseLeave={e => (e.currentTarget.style.color = textMuted)}>{l.label}</a>
             ))}
           </div>
-
-          <div className="flex items-center gap-3">
-
-            {/* Globe language dropdown */}
+          <div className="flex items-center gap-2.5">
             <div className="hidden sm:block relative" ref={langRef}>
-              <button onClick={() => setLangOpen(!langOpen)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 cursor-pointer"
-                style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', color: textMuted }}>
-                <Globe size={14} />
-                <span>{loc === 'zh-CN' ? '简体中文' : loc === 'zh-TW' ? '繁體中文' : 'English'}</span>
-                <ChevronDown size={11} className={`transition-transform duration-200 ${langOpen ? 'rotate-180' : ''}`} />
+              <button onClick={() => setLangOpen(!langOpen)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer" style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(5,150,105,0.06)', color: textMuted }}>
+                <RiGlobalLine size={14} /><span>{loc === 'zh-CN' ? '简体' : loc === 'zh-TW' ? '繁體' : 'EN'}</span>
+                <RiArrowDownSLine size={13} className={`transition-transform ${langOpen ? 'rotate-180' : ''}`} />
               </button>
               {langOpen && (
-                <div className="absolute right-0 top-full mt-2 w-44 rounded-2xl overflow-hidden shadow-2xl z-50"
-                  style={{ background: surface, border: `1px solid ${border}` }}>
-                  {([
-                    { code: 'zh-CN' as Locale, label: '简体中文', sub: 'Simplified Chinese' },
-                    { code: 'zh-TW' as Locale, label: '繁體中文', sub: 'Traditional Chinese' },
-                    { code: 'en'    as Locale, label: 'English',  sub: 'English' },
-                  ]).map(({ code, label, sub }) => (
-                    <button key={code}
-                      onClick={() => { setLocale(code); localStorage.setItem('preferred-locale', code); setLangOpen(false); }}
-                      className="w-full px-4 py-3 text-left flex items-center justify-between gap-2 transition-colors duration-150 cursor-pointer"
-                      style={{ background: loc === code ? `${emerald}12` : 'transparent' }}
-                      onMouseEnter={e => { if (loc !== code) (e.currentTarget as HTMLButtonElement).style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'; }}
-                      onMouseLeave={e => { if (loc !== code) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}>
-                      <div>
-                        <p className="text-sm font-medium" style={{ color: loc === code ? emeraldLight : textBase }}>{label}</p>
-                        <p className="text-xs" style={{ color: textMuted }}>{sub}</p>
-                      </div>
-                      {loc === code && <Check size={13} style={{ color: emeraldLight, flexShrink: 0 }} />}
+                <div className="absolute right-0 top-full mt-2 w-44 rounded-2xl overflow-hidden shadow-2xl" style={{ background: surface, border: `1px solid ${border}` }}>
+                  {([{ code: 'zh-CN', label: '简体中文', sub: 'Simplified' }, { code: 'zh-TW', label: '繁體中文', sub: 'Traditional' }, { code: 'en', label: 'English', sub: 'English' }] as { code: Locale; label: string; sub: string }[]).map(({ code, label, sub }) => (
+                    <button key={code} onClick={() => { setLocale(code); localStorage.setItem('preferred-locale', code); setLangOpen(false); }}
+                      className="w-full px-4 py-3 text-left flex items-center justify-between transition-colors cursor-pointer" style={{ background: loc === code ? `${emerald}12` : 'transparent' }}>
+                      <div><p className="text-sm font-medium" style={{ color: loc === code ? emeraldLight : textBase }}>{label}</p><p className="text-xs" style={{ color: textMuted }}>{sub}</p></div>
+                      {loc === code && <RiCheckLine size={14} style={{ color: emeraldLight }} />}
                     </button>
                   ))}
                 </div>
               )}
             </div>
-
-            {/* Theme toggle */}
-            <button onClick={() => setTheme(isDark ? 'light' : 'dark')}
-              className="hidden sm:flex w-8 h-8 rounded-xl items-center justify-center transition-all duration-200 cursor-pointer"
-              style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', color: textMuted }}>
-              <span className="text-xs">{isDark ? '☀' : '◐'}</span>
+            <button onClick={() => setTheme(isDark ? 'light' : 'dark')} className="hidden sm:flex w-9 h-9 rounded-xl items-center justify-center transition-all cursor-pointer" style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(5,150,105,0.06)', color: textMuted }}>
+              {isDark ? <RiSunLine size={15} /> : <RiMoonLine size={15} />}
             </button>
-
-            {/* CTA */}
-            <button onClick={onEnter}
-              className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all duration-200 cursor-pointer"
-              style={{ background: `linear-gradient(135deg, ${emerald}, ${emeraldLight})`, boxShadow: `0 4px 14px ${emerald}40` }}
-              onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.03)')}
-              onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
-              {t.cta_primary} <ArrowRight size={14} />
+            <button onClick={onEnter} className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-transform cursor-pointer" style={{ background: `linear-gradient(135deg, ${emerald}, ${emeraldLight})`, boxShadow: `0 4px 14px ${emerald}40` }}
+              onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.04)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
+              {t.hero.ctaPrimary} <RiArrowRightLine size={15} />
             </button>
-
-            {/* Mobile hamburger */}
-            <button onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 rounded-lg cursor-pointer"
-              style={{ color: textMuted }}>
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
+            <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-2 rounded-lg cursor-pointer" style={{ color: textMuted }}>{mobileOpen ? <RiCloseLine size={20} /> : <RiMenuLine size={20} />}</button>
           </div>
         </div>
-
-        {/* Mobile dropdown */}
         {mobileOpen && (
-          <div className="md:hidden rounded-b-2xl px-5 pb-5 pt-3 border-t"
-            style={{ background: isDark ? '#0D1E2C' : 'white', borderColor: border }}>
-            <div className="flex flex-col gap-3 mb-4">
-              {[{ href: '#features', label: t.nav_features }, { href: '#philosophy', label: t.nav_philosophy }].map(l => (
-                <a key={l.href} href={l.href} onClick={() => setMobileOpen(false)}
-                  className="text-sm font-medium py-2" style={{ color: textMuted }}>{l.label}</a>
-              ))}
+          <div className="md:hidden rounded-b-2xl px-5 pb-5 pt-3 border-t" style={{ background: surface, borderColor: border }}>
+            <div className="flex flex-col gap-1 mb-4">
+              {navLinks.map(l => (<a key={l.href} href={l.href} onClick={() => setMobileOpen(false)} className="text-sm font-medium py-2.5" style={{ color: textMuted }}>{l.label}</a>))}
             </div>
-            <div className="mb-3 rounded-xl overflow-hidden" style={{ border: `1px solid ${border}` }}>
-              {([
-                { code: 'zh-CN' as Locale, label: '简体中文' },
-                { code: 'zh-TW' as Locale, label: '繁體中文' },
-                { code: 'en'    as Locale, label: 'English' },
-              ]).map(({ code, label }, i) => (
-                <button key={code} onClick={() => { setLocale(code); localStorage.setItem('preferred-locale', code); setMobileOpen(false); }}
-                  className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium cursor-pointer transition-colors"
-                  style={{
-                    background: loc === code ? `${emerald}12` : 'transparent',
-                    color: loc === code ? emeraldLight : textMuted,
-                    borderTop: i > 0 ? `1px solid ${border}` : 'none',
-                  }}>
-                  <span className="flex items-center gap-2"><Globe size={14} />{label}</span>
-                  {loc === code && <Check size={13} style={{ color: emeraldLight }} />}
-                </button>
+            <div className="flex items-center gap-2 mb-3">
+              {([{ code: 'zh-CN', label: '简体' }, { code: 'zh-TW', label: '繁體' }, { code: 'en', label: 'EN' }] as { code: Locale; label: string }[]).map(({ code, label }) => (
+                <button key={code} onClick={() => { setLocale(code); localStorage.setItem('preferred-locale', code); }} className="flex-1 py-2 rounded-lg text-xs font-medium cursor-pointer" style={{ background: loc === code ? `${emerald}14` : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'), color: loc === code ? emeraldLight : textMuted }}>{label}</button>
               ))}
+              <button onClick={() => setTheme(isDark ? 'light' : 'dark')} className="w-9 h-9 rounded-lg flex items-center justify-center cursor-pointer" style={{ background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)', color: textMuted }}>{isDark ? <RiSunLine size={15} /> : <RiMoonLine size={15} />}</button>
             </div>
-            <button onClick={() => { onEnter(); setMobileOpen(false); }}
-              className="w-full py-3 rounded-xl text-white font-semibold text-sm cursor-pointer"
-              style={{ background: `linear-gradient(135deg, ${emerald}, ${emeraldLight})` }}>
-              {t.cta_primary}
-            </button>
+            <button onClick={() => { onEnter(); setMobileOpen(false); }} className="w-full py-3 rounded-xl text-white font-semibold text-sm cursor-pointer" style={{ background: `linear-gradient(135deg, ${emerald}, ${emeraldLight})` }}>{t.hero.ctaPrimary}</button>
           </div>
         )}
       </nav>
 
-      {/* ══════════════════════════════════════
-          HERO
-      ══════════════════════════════════════ */}
-      <section className="relative min-h-screen flex items-center pt-20 pb-16 px-5" style={{ zIndex: 1 }}>
-        <div className="max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-16 items-center">
+      {/* ══ SECTION 1 · HERO ══ */}
+      <section className="relative min-h-screen flex items-center pt-28 pb-16 px-5" style={{ zIndex: 1 }}>
+        <div className="max-w-4xl mx-auto w-full text-center">
+          <div className="hak-up inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-9 border" style={{ borderColor: `${emerald}33`, color: emeraldLight, background: `${emerald}0E`, animationDelay: '0ms' }}>
+            <RiNodeTree size={13} /> {t.hero.badge}
+          </div>
+          <h1 className="hak-up font-bold mb-7" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(2.7rem, 7vw, 5rem)', lineHeight: 1.08, animationDelay: '90ms' }}>
+            <span style={{ color: textBase }}>{t.hero.h1a}</span><span className="hak-grad">{t.hero.h1grad}</span><span style={{ color: textBase }}>{t.hero.h1b}</span>
+          </h1>
+          <p className="hak-up mx-auto max-w-2xl text-lg leading-relaxed mb-5" style={{ color: textMuted, animationDelay: '180ms' }}>{t.hero.sub}</p>
+          <p className="hak-up mx-auto max-w-2xl text-[15px] leading-relaxed mb-9 italic" style={{ color: textBase, opacity: 0.82, fontFamily: 'Crimson Pro, Georgia, serif', animationDelay: '250ms' }}>“{t.hero.mission}”</p>
+          <div className="hak-up flex flex-wrap items-center justify-center gap-3 mb-12" style={{ animationDelay: '330ms' }}>
+            <button onClick={onEnter} className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl text-[15px] font-semibold text-white transition-transform cursor-pointer" style={{ background: `linear-gradient(135deg, ${emerald}, ${emeraldLight})`, boxShadow: `0 10px 30px ${emerald}45` }}
+              onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')} onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}>
+              {t.hero.ctaPrimary} <RiArrowRightLine size={17} />
+            </button>
+            <a href="#philosophy" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl text-[15px] font-semibold transition-all cursor-pointer border" style={{ color: textBase, borderColor: border, background: cardBg }}>
+              {t.hero.ctaSecondary} <RiArrowDownSLine size={17} />
+            </a>
+          </div>
+          <div className="hak-up flex flex-wrap items-center justify-center gap-x-6 gap-y-3" style={{ animationDelay: '410ms' }}>
+            {[RiChatQuoteLine, RiSearchEyeLine, RiUserVoiceLine, RiBookOpenLine].map((Icon, i) => (
+              <span key={i} className="inline-flex items-center gap-2 text-xs font-medium" style={{ color: textMuted }}>
+                <Icon size={15} style={{ color: emeraldLight }} /> {t.hero.chips[i]}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
 
-          {/* Left */}
-          <div>
-            {/* Badge */}
-            <FadeIn delay={0}>
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-8 border"
-                style={{ borderColor: `${emerald}40`, color: emeraldLight, background: `${emerald}10` }}>
-                <Network size={12} />
-                {t.badge}
-              </div>
-            </FadeIn>
+      {/* ══ SECTION 2 · TENSION + PHILOSOPHY ══ */}
+      <section id="philosophy" className="relative py-24 px-5" style={{ zIndex: 1 }}>
+        <div className="max-w-5xl mx-auto">
+          {/* Tension */}
+          <FadeIn>
+            <div className="rounded-3xl p-9 md:p-12 mb-16 border relative overflow-hidden" style={{ background: cardBg, borderColor: border }}>
+              <RiDoubleQuotesL size={72} className="absolute -top-2 -left-1" style={{ color: emerald, opacity: 0.07 }} />
+              <p className="text-xs font-bold tracking-[0.2em] mb-4" style={{ color: emeraldLight }}>{t.tension.eyebrow}</p>
+              <h2 className="font-bold mb-5" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(1.7rem, 3.6vw, 2.7rem)', color: textBase, lineHeight: 1.15 }}>{t.tension.title}</h2>
+              <p className="text-[17px] leading-relaxed max-w-3xl" style={{ color: textMuted }}>{t.tension.body}</p>
+              <p className="mt-5 text-[13px] leading-relaxed pl-4 border-l-2" style={{ color: textMuted, borderColor: `${emerald}55`, opacity: 0.85 }}>{t.tension.foot}</p>
+            </div>
+          </FadeIn>
+          {/* 3 principles */}
+          <FadeIn><p className="text-xs font-bold tracking-[0.2em] mb-3 text-center" style={{ color: emeraldLight }}>{t.principles.eyebrow}</p></FadeIn>
+          <FadeIn delay={60}><h2 className="font-bold text-center mb-14" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(1.9rem, 4vw, 3rem)', color: textBase }}>{t.principles.title}</h2></FadeIn>
+          <div className="grid md:grid-cols-3 gap-6">
+            {t.principles.items.map((p: any, i: number) => {
+              const Icon = PRINCIPLE_ICONS[i];
+              return (
+                <FadeIn key={i} delay={i * 100}>
+                  <SpotlightCard className="h-full rounded-3xl p-7 border" style={{ background: cardBg, borderColor: border }}>
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5" style={{ background: `${emerald}12`, color: emeraldLight }}><Icon size={24} /></div>
+                    <div className="text-5xl font-bold leading-none mb-3 select-none" style={{ fontFamily: 'Crimson Pro, Georgia, serif', color: `${emerald}22` }}>0{i + 1}</div>
+                    <h3 className="font-bold text-lg mb-2.5" style={{ color: textBase }}>{p.title}</h3>
+                    <p className="text-sm leading-relaxed mb-4" style={{ color: textMuted }}>{p.body}</p>
+                    <p className="text-[11px] font-medium pt-3 border-t" style={{ color: textMuted, borderColor: border, opacity: 0.8 }}>{p.source}</p>
+                  </SpotlightCard>
+                </FadeIn>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
-            {/* Headline */}
-            <FadeIn delay={80}>
-              <h1 className="font-bold leading-[1.1] mb-6" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(2.6rem, 6vw, 4.5rem)' }}>
-                <span style={{ color: textBase }}>{t.h1_line1}</span>
-                <br />
-                <span style={{
-                  background: `linear-gradient(135deg, ${emerald}, ${emeraldLight}, #0EA5E9)`,
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                }}>
-                  {t.h1_line2}
-                </span>
-              </h1>
-            </FadeIn>
+      {/* ══ SECTION 3 · FEATURES + ROLES ══ */}
+      <section id="features" className="relative py-24 px-5" style={{ zIndex: 1, background: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(5,150,105,0.025)' }}>
+        <div className="max-w-6xl mx-auto">
+          <FadeIn><p className="text-xs font-bold tracking-[0.2em] mb-3" style={{ color: emeraldLight }}>{t.features.eyebrow}</p></FadeIn>
+          <FadeIn delay={60}>
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+              <h2 className="font-bold" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(1.9rem, 4vw, 3rem)', color: textBase }}>{t.features.title}</h2>
+              <p className="text-sm font-medium" style={{ color: textMuted }}>{t.features.sub}</p>
+            </div>
+          </FadeIn>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-20">
+            {t.features.items.map((f: any, i: number) => {
+              const Icon = FEATURE_ICONS[i];
+              return (
+                <FadeIn key={i} delay={(i % 3) * 90}>
+                  <SpotlightCard className="h-full rounded-2xl p-6 border" style={{ background: surface, borderColor: border }}>
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4" style={{ background: `linear-gradient(135deg, ${emerald}1A, ${emeraldLight}10)`, color: emeraldLight, border: `1px solid ${emerald}22` }}><Icon size={22} /></div>
+                    <h3 className="font-bold text-base mb-2" style={{ color: textBase }}>{f.title}</h3>
+                    <p className="text-sm leading-relaxed" style={{ color: textMuted }}>{f.desc}</p>
+                  </SpotlightCard>
+                </FadeIn>
+              );
+            })}
+          </div>
+          {/* Roles */}
+          <FadeIn><h2 className="font-bold text-center mb-12" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(1.6rem, 3.4vw, 2.4rem)', color: textBase }}>{t.roles.title}</h2></FadeIn>
+          <div className="grid md:grid-cols-3 gap-6">
+            {t.roles.items.map((r: any, i: number) => {
+              const Icon = ROLE_ICONS[i];
+              return (
+                <FadeIn key={i} delay={i * 100}>
+                  <div className="h-full rounded-3xl p-7 border text-center" style={{ background: cardBg, borderColor: border }}>
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ background: `linear-gradient(135deg, ${emerald}, ${emeraldLight})`, color: '#fff', boxShadow: `0 8px 22px ${emerald}40` }}><Icon size={26} /></div>
+                    <h3 className="font-bold text-lg mb-1" style={{ color: textBase }}>{r.title}</h3>
+                    <p className="text-xs font-semibold mb-3" style={{ color: emeraldLight }}>{r.tag}</p>
+                    <p className="text-sm leading-relaxed" style={{ color: textMuted }}>{r.desc}</p>
+                  </div>
+                </FadeIn>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
-            {/* Subtitle */}
-            <FadeIn delay={160}>
-              <p className="text-xl font-medium mb-4" style={{ color: textBase, opacity: 0.8 }}>
-                {t.subtitle}
-              </p>
-            </FadeIn>
-
-            {/* Mission */}
-            <FadeIn delay={220}>
-              <p className="text-sm leading-relaxed italic mb-10 max-w-lg" style={{ color: textMuted, borderLeft: `2px solid ${emerald}60`, paddingLeft: '14px' }}>
-                "{t.mission}"
-              </p>
-            </FadeIn>
-
-            {/* CTAs */}
-            <FadeIn delay={280}>
-              <div className="flex flex-wrap gap-3 mb-14">
-                <button onClick={onEnter}
-                  className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-white font-semibold text-sm transition-all duration-200 cursor-pointer"
-                  style={{ background: `linear-gradient(135deg, ${emerald}, ${emeraldLight})`, boxShadow: `0 8px 24px ${emerald}40` }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 14px 32px ${emerald}50`; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = `0 8px 24px ${emerald}40`; }}>
-                  {t.cta_primary} <ArrowRight size={16} />
-                </button>
-                <button onClick={() => document.getElementById('philosophy')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-sm border transition-all duration-200 cursor-pointer"
-                  style={{ borderColor: border, color: textMuted }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = emeraldLight; e.currentTarget.style.color = emeraldLight; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = border; e.currentTarget.style.color = textMuted; }}>
-                  {t.cta_secondary} <ChevronRight size={14} />
-                </button>
-              </div>
-            </FadeIn>
-
-            {/* Stats row */}
-            <FadeIn delay={360}>
-              <div className="flex flex-wrap gap-6">
-                {t.stats.map((s, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    {i > 0 && <div className="w-px h-8 hidden sm:block" style={{ background: border }} />}
+      {/* ══ SECTION 4 · FOUNDATIONS + CTA + FOOTER ══ */}
+      <section id="foundation" className="relative py-24 px-5" style={{ zIndex: 1 }}>
+        <div className="max-w-4xl mx-auto">
+          <FadeIn><p className="text-xs font-bold tracking-[0.2em] mb-3" style={{ color: emeraldLight }}>{t.foundation.eyebrow}</p></FadeIn>
+          <FadeIn delay={60}><h2 className="font-bold mb-12" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(1.8rem, 3.8vw, 2.7rem)', color: textBase, lineHeight: 1.2 }}>{t.foundation.title}</h2></FadeIn>
+          <div className="space-y-px">
+            {t.foundation.points.map((pt: any, i: number) => {
+              const Icon = FOUNDATION_ICONS[i];
+              return (
+                <FadeIn key={i} delay={Math.min(i, 4) * 50}>
+                  <div className="group flex gap-5 py-6 border-b" style={{ borderColor: border }}>
+                    <div className="flex-shrink-0 flex items-start gap-3">
+                      <span className="text-sm font-mono pt-1.5" style={{ color: `${emeraldLight}`, opacity: 0.6 }}>{String(i + 1).padStart(2, '0')}</span>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors" style={{ background: `${emerald}10`, color: emeraldLight }}><Icon size={20} /></div>
+                    </div>
                     <div>
-                      <p className="text-2xl font-bold leading-none" style={{ color: emeraldLight, fontFamily: 'Crimson Pro, Georgia, serif' }}>{s.value}</p>
-                      <p className="text-xs mt-0.5" style={{ color: textMuted }}>{s.label}</p>
+                      <h3 className="font-bold text-lg mb-1.5" style={{ fontFamily: 'Crimson Pro, Georgia, serif', color: textBase }}>{pt.claim}</h3>
+                      <p className="text-[15px] leading-relaxed mb-1.5" style={{ color: textMuted }}>{pt.body}</p>
+                      <p className="text-xs font-medium" style={{ color: emeraldLight, opacity: 0.85 }}>{pt.source}</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </FadeIn>
-          </div>
-
-          {/* Right - Hero visual */}
-          <FadeIn delay={200} from="right">
-            <div className="relative">
-              {/* Main screenshot */}
-              <div className="rounded-2xl overflow-hidden"
-                style={{ boxShadow: isDark ? '0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06)' : '0 40px 80px rgba(0,0,0,0.15), 0 0 0 1px #E2E8F0' }}>
-                <img src="/images/Home1.png" alt="HAKHub Scholar Platform" className="w-full h-auto object-cover block" />
-              </div>
-
-              {/* Floating badge - AI thinking */}
-              <div className="absolute -bottom-5 -left-6 flex items-center gap-3 px-4 py-3 rounded-2xl"
-                style={{ background: surface, boxShadow: isDark ? '0 16px 40px rgba(0,0,0,0.5)' : '0 16px 40px rgba(0,0,0,0.12)', border: `1px solid ${border}` }}>
-                <img src="/SVG/ai-2.svg" alt="AI" className="w-10 h-10 flex-shrink-0" />
-                <div>
-                  <p className="text-xs font-semibold" style={{ color: textBase }}>{loc === 'en' ? 'AI Thinking Tool' : 'AI 思考工具'}</p>
-                  <p className="text-xs" style={{ color: emeraldLight }}>{loc === 'en' ? 'Socratic, not prescriptive' : '苏格拉底式，非处方式'}</p>
-                </div>
-              </div>
-
-              {/* Floating badge - Triadic */}
-              <div className="absolute -top-4 -right-4 px-4 py-2.5 rounded-xl flex items-center gap-2"
-                style={{ background: `${emerald}18`, border: `1px solid ${emerald}40`, backdropFilter: 'blur(8px)' }}>
-                <Users size={14} style={{ color: emeraldLight }} />
-                <span className="text-xs font-semibold" style={{ color: emeraldLight }}>
-                  {loc === 'en' ? 'Triadic System' : '三元协同'}
-                </span>
-              </div>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          FEATURES — BENTO GRID
-      ══════════════════════════════════════ */}
-      <section id="features" className="py-28 px-5 relative" style={{ zIndex: 1 }}>
-        <div className="max-w-7xl mx-auto">
-          <FadeIn>
-            <div className="text-center mb-16">
-              <span className="inline-block px-3 py-1 rounded-full text-xs font-bold tracking-widest mb-4"
-                style={{ background: `${emerald}15`, color: emeraldLight, letterSpacing: '0.1em' }}>
-                {t.features_label}
-              </span>
-              <h2 className="font-bold mb-4"
-                style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(2.2rem, 4.5vw, 3.4rem)', color: textBase }}>
-                {t.features_h2}
-              </h2>
-              <p className="text-lg max-w-xl mx-auto" style={{ color: textMuted }}>{t.features_sub}</p>
-            </div>
-          </FadeIn>
-
-          {/* Bento Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Large card — Feature 1 */}
-            <FadeIn delay={0} className="lg:col-span-2">
-              <FeatureCard isDark={isDark} surface={surface} border={border} textBase={textBase} textMuted={textMuted} emerald={emerald} emeraldLight={emeraldLight} feature={t.f[0]} large />
-            </FadeIn>
-
-            {/* Regular — Feature 2 */}
-            <FadeIn delay={60}>
-              <FeatureCard isDark={isDark} surface={surface} border={border} textBase={textBase} textMuted={textMuted} emerald={emerald} emeraldLight={emeraldLight} feature={t.f[1]} />
-            </FadeIn>
-
-            {/* Regular — Feature 3 */}
-            <FadeIn delay={120}>
-              <FeatureCard isDark={isDark} surface={surface} border={border} textBase={textBase} textMuted={textMuted} emerald={emerald} emeraldLight={emeraldLight} feature={t.f[2]} />
-            </FadeIn>
-
-            {/* Large card — Feature 5 */}
-            <FadeIn delay={180} className="lg:col-span-2">
-              <FeatureCard isDark={isDark} surface={surface} border={border} textBase={textBase} textMuted={textMuted} emerald={emerald} emeraldLight={emeraldLight} feature={t.f[4]} large />
-            </FadeIn>
-
-            {/* Regular — Feature 4 */}
-            <FadeIn delay={100}>
-              <FeatureCard isDark={isDark} surface={surface} border={border} textBase={textBase} textMuted={textMuted} emerald={emerald} emeraldLight={emeraldLight} feature={t.f[3]} />
-            </FadeIn>
-
-            {/* Regular — Feature 6 */}
-            <FadeIn delay={140}>
-              <FeatureCard isDark={isDark} surface={surface} border={border} textBase={textBase} textMuted={textMuted} emerald={emerald} emeraldLight={emeraldLight} feature={t.f[5]} />
-            </FadeIn>
+                </FadeIn>
+              );
+            })}
           </div>
         </div>
-      </section>
 
-      {/* ══════════════════════════════════════
-          TRIADIC MECHANISM
-      ══════════════════════════════════════ */}
-      <section className="py-24 px-5 relative" style={{ zIndex: 1 }}>
-        <div className="max-w-6xl mx-auto">
-          <FadeIn>
-            <div className="text-center mb-16">
-              <Network size={28} className="inline-block mb-4" style={{ color: emeraldLight }} />
-              <h2 className="font-bold" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(2rem, 4vw, 3.2rem)', color: textBase }}>
-                {t.how_h2}
-              </h2>
-            </div>
-          </FadeIn>
-
-          <div className="grid md:grid-cols-3 gap-6 relative">
-            {/* Connecting line on desktop */}
-            <div className="hidden md:block absolute top-14 left-1/3 right-1/3 h-px"
-              style={{ background: `linear-gradient(90deg, transparent, ${emerald}60, transparent)` }} />
-
-            {[
-              { icon: GraduationCap, color: '#3B82F6', role: t.roles[0] },
-              { icon: BrainCircuit, color: emerald,    role: t.roles[1] },
-              { icon: ShieldCheck,  color: '#F59E0B',  role: t.roles[2] },
-            ].map(({ icon: Icon, color, role }, i) => (
-              <FadeIn key={i} delay={i * 120}>
-                <div className="p-7 rounded-2xl h-full transition-all duration-300 group cursor-default"
-                  style={{ background: surface, border: `1px solid ${border}` }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.border = `1px solid ${color}60`; (e.currentTarget as HTMLDivElement).style.boxShadow = `0 16px 40px ${color}18`; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.border = `1px solid ${border}`; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; }}>
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-transform duration-200 group-hover:scale-105"
-                    style={{ background: `${color}18` }}>
-                    <Icon size={22} style={{ color }} />
-                  </div>
-                  <h3 className="font-bold text-base mb-3" style={{ color: textBase }}>{role.title}</h3>
-                  <p className="text-sm leading-relaxed" style={{ color: textMuted }}>{role.desc}</p>
-                </div>
-              </FadeIn>
-            ))}
+        {/* CTA */}
+        <FadeIn>
+          <div className="max-w-4xl mx-auto mt-24 rounded-[2rem] p-10 md:p-14 text-center relative overflow-hidden border" style={{ background: isDark ? 'linear-gradient(135deg, rgba(5,150,105,0.16), rgba(14,165,233,0.08))' : 'linear-gradient(135deg, rgba(5,150,105,0.08), rgba(14,165,233,0.05))', borderColor: `${emerald}33` }}>
+            <RiSeedlingLine size={120} className="absolute -bottom-6 -right-4" style={{ color: emerald, opacity: 0.08 }} />
+            <h2 className="font-bold mb-4 relative" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(1.8rem, 4vw, 2.9rem)', color: textBase, lineHeight: 1.18 }}>{t.cta.title}</h2>
+            <p className="text-base mb-8 relative" style={{ color: textMuted }}>{t.cta.desc}</p>
+            <button onClick={onEnter} className="relative inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-semibold text-white transition-transform cursor-pointer" style={{ background: `linear-gradient(135deg, ${emerald}, ${emeraldLight})`, boxShadow: `0 12px 34px ${emerald}50` }}
+              onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')} onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}>
+              {t.cta.button} <RiArrowRightUpLine size={18} />
+            </button>
           </div>
-        </div>
+        </FadeIn>
       </section>
 
-      {/* ══════════════════════════════════════
-          ACADEMIC QUOTES
-      ══════════════════════════════════════ */}
-      <section className="py-24 px-5 relative" style={{ zIndex: 1 }}>
-        <div className="max-w-4xl mx-auto">
-          <FadeIn>
-            <div className="text-center mb-12">
-              <Quote size={24} className="inline-block mb-4" style={{ color: emeraldLight }} />
-              <h2 className="font-bold mb-2" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)', color: textBase }}>
-                {t.quotes_h2}
-              </h2>
-              <p className="text-sm" style={{ color: textMuted }}>{t.quotes_sub}</p>
+      {/* ══ FOOTER ══ */}
+      <footer className="relative py-12 px-5 border-t" style={{ zIndex: 1, borderColor: border }}>
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${emerald}, ${emeraldLight})` }}><RiBrainLine size={16} className="text-white" /></div>
+            <div>
+              <p className="font-semibold text-sm" style={{ fontFamily: 'Crimson Pro, Georgia, serif', color: textBase }}>{t.brand}</p>
+              <p className="text-xs" style={{ color: textMuted }}>{t.footer.tagline}</p>
             </div>
-          </FadeIn>
-
-          <FadeIn delay={120}>
-            <div className="p-10 md:p-14 rounded-3xl relative overflow-hidden"
-              style={{ background: surface, border: `1px solid ${border}`, boxShadow: isDark ? '0 24px 60px rgba(0,0,0,0.3)' : '0 24px 60px rgba(0,0,0,0.07)' }}>
-
-              {/* Decorative large quote mark */}
-              <div className="absolute top-6 right-8 text-8xl font-serif leading-none select-none pointer-events-none"
-                style={{ color: `${emerald}12`, fontFamily: 'Georgia, serif' }}>"</div>
-
-              {/* Quote dots */}
-              <div className="flex justify-center gap-2 mb-10">
-                {quotes.map((_, i) => (
-                  <button key={i} onClick={() => setQuoteIdx(i)}
-                    className="rounded-full transition-all duration-300 cursor-pointer"
-                    style={{ width: i === quoteIdx ? '28px' : '8px', height: '8px', background: i === quoteIdx ? emeraldLight : `${textMuted}40` }} />
-                ))}
-              </div>
-
-              <p className="text-xl md:text-2xl leading-relaxed text-center mb-8 transition-all duration-500"
-                style={{ fontFamily: 'Crimson Pro, Georgia, serif', color: textBase }}>
-                "{quotes[quoteIdx].text}"
-              </p>
-
-              <div className="flex items-center justify-center gap-3 text-sm">
-                <span className="px-3 py-1 rounded-lg font-medium" style={{ background: `${emerald}12`, color: emeraldLight }}>
-                  {quotes[quoteIdx].source}
-                </span>
-                <span style={{ color: textMuted }}>— {quotes[quoteIdx].author}</span>
-              </div>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          PHILOSOPHY — 4 PRINCIPLES
-      ══════════════════════════════════════ */}
-      <section id="philosophy" className="py-24 px-5 relative" style={{ zIndex: 1 }}>
-        <div className="max-w-6xl mx-auto">
-          <FadeIn>
-            <div className="text-center mb-16">
-              <Lightbulb size={28} className="inline-block mb-4" style={{ color: '#F59E0B' }} />
-              <h2 className="font-bold" style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(2rem, 4vw, 3.2rem)', color: textBase }}>
-                {t.phil_h2}
-              </h2>
-            </div>
-          </FadeIn>
-
-          <div className="grid md:grid-cols-2 gap-5">
-            {t.phil.map((p, i) => (
-              <FadeIn key={i} delay={i * 90}>
-                <div className="p-7 rounded-2xl flex gap-5 group transition-all duration-300"
-                  style={{ background: surface, border: `1px solid ${border}` }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.border = `1px solid ${emerald}50`; (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = `0 16px 40px ${emerald}12`; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.border = `1px solid ${border}`; (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; }}>
-                  <div className="text-4xl font-bold leading-none flex-shrink-0 mt-1"
-                    style={{ fontFamily: 'Crimson Pro, Georgia, serif', color: `${emerald}25`, WebkitTextStroke: `1px ${emerald}40` }}>
-                    {String(i + 1).padStart(2, '0')}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-base mb-2" style={{ color: textBase }}>{p.title}</h3>
-                    <p className="text-sm leading-relaxed" style={{ color: textMuted }}>{p.desc}</p>
-                  </div>
-                </div>
-              </FadeIn>
-            ))}
           </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          CTA SECTION
-      ══════════════════════════════════════ */}
-      <section className="py-24 px-5 relative" style={{ zIndex: 1 }}>
-        <div className="max-w-4xl mx-auto">
-          <FadeIn>
-            <div className="p-14 md:p-20 rounded-3xl text-center relative overflow-hidden"
-              style={{
-                background: isDark
-                  ? `linear-gradient(135deg, #0D2A1E 0%, #0D1E2C 100%)`
-                  : `linear-gradient(135deg, #ECFDF5 0%, #EFF6FF 100%)`,
-                border: `1px solid ${emerald}30`,
-                boxShadow: `0 40px 80px ${emerald}12`,
-              }}>
-
-              {/* Background decoration */}
-              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
-                <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full"
-                  style={{ background: `${emerald}08` }} />
-                <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full"
-                  style={{ background: `${emerald}06` }} />
-              </div>
-
-              <div className="relative z-10">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-6"
-                  style={{ background: `linear-gradient(135deg, ${emerald}, ${emeraldLight})`, boxShadow: `0 8px 24px ${emerald}50` }}>
-                  <BrainCircuit size={26} className="text-white" />
-                </div>
-
-                <h2 className="font-bold mb-4"
-                  style={{ fontFamily: 'Crimson Pro, Georgia, serif', fontSize: 'clamp(2.2rem, 4.5vw, 3.4rem)', color: textBase }}>
-                  {t.cta_h2}
-                </h2>
-                <p className="text-base mb-10 max-w-md mx-auto" style={{ color: textMuted }}>
-                  {t.cta_desc}
-                </p>
-
-                <button onClick={onEnter}
-                  className="inline-flex items-center gap-2 px-10 py-4 rounded-xl text-white font-semibold text-base transition-all duration-200 cursor-pointer"
-                  style={{ background: `linear-gradient(135deg, ${emerald}, ${emeraldLight})`, boxShadow: `0 10px 28px ${emerald}50` }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 18px 40px ${emerald}60`; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = `0 10px 28px ${emerald}50`; }}>
-                  {t.cta_primary} <ArrowRight size={18} />
-                </button>
-              </div>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          FOOTER
-      ══════════════════════════════════════ */}
-      <footer className="py-12 px-5 relative" style={{ zIndex: 1, borderTop: `1px solid ${border}` }}>
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={onEnter}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: `linear-gradient(135deg, ${emerald}, ${emeraldLight})` }}>
-              <BrainCircuit size={18} className="text-white" />
-            </div>
-            <span className="font-semibold text-sm" style={{ color: textBase }}>{t.brand}</span>
+          <div className="md:text-right">
+            <p className="text-xs max-w-md leading-relaxed mb-1" style={{ color: textMuted, opacity: 0.8 }}>{t.footer.ethics}</p>
+            <p className="text-xs" style={{ color: textMuted }}>{t.footer.copy}</p>
           </div>
-
-          <p className="text-xs text-center" style={{ color: textMuted }}>{t.footer_copy}</p>
-          <p className="text-xs" style={{ color: textMuted, opacity: 0.6 }}>{t.footer_note}</p>
         </div>
       </footer>
-    </div>
-  );
-};
-
-// ─────────────────────────────────────────────
-// Feature Card (extracted for reuse)
-// ─────────────────────────────────────────────
-interface FeatureCardProps {
-  isDark: boolean;
-  surface: string;
-  border: string;
-  textBase: string;
-  textMuted: string;
-  emerald: string;
-  emeraldLight: string;
-  feature: { title: string; desc: string; svg: string };
-  large?: boolean;
-}
-
-const FeatureCard: React.FC<FeatureCardProps> = ({ isDark, surface, border, textBase, textMuted, emerald, emeraldLight, feature, large }) => {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <div
-      className="p-7 rounded-2xl h-full transition-all duration-300 cursor-default"
-      style={{
-        background: hovered ? (isDark ? '#0D2518' : `${emerald}06`) : surface,
-        border: `1px solid ${hovered ? `${emerald}50` : border}`,
-        boxShadow: hovered ? `0 16px 40px ${emerald}15` : 'none',
-        transform: hovered ? 'translateY(-3px)' : 'translateY(0)',
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      <div className="flex flex-col h-full">
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-all duration-200"
-          style={{ background: hovered ? `${emerald}20` : (isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9'), transform: hovered ? 'scale(1.08)' : 'scale(1)' }}>
-          <img src={feature.svg} alt={feature.title} className="w-7 h-7" />
-        </div>
-        <h3 className="font-bold mb-2.5 text-base" style={{ color: textBase }}>{feature.title}</h3>
-        <p className="text-sm leading-relaxed flex-1" style={{ color: textMuted, maxWidth: large ? '480px' : undefined }}>{feature.desc}</p>
-        {hovered && (
-          <div className="mt-4 flex items-center gap-1 text-xs font-medium" style={{ color: emeraldLight }}>
-            <span>{feature.title.includes('检索') || feature.title.includes('Search') ? 'Semantic Scholar' : 'Learn more'}</span>
-            <ChevronRight size={12} />
-          </div>
-        )}
-      </div>
     </div>
   );
 };
