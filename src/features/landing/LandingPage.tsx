@@ -335,7 +335,17 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: loc, setLoca
         .hak-spot:hover .hak-spot-glow { opacity:1 }
         .hak-spot { transition: transform .3s cubic-bezier(.2,.7,.2,1) }
         .hak-spot:hover { transform: translateY(-4px) }
-        @media (prefers-reduced-motion: reduce){ .hak-up,.hak-page,.hak-aurora,.hak-grad{animation:none!important} .hak-up,.hak-page{opacity:1;transform:none} }
+        .hak-logo { transition: transform .65s cubic-bezier(.4,0,.2,1) }
+        .hak-logo:hover { transform: rotate(360deg) }
+        .hak-pill { position:relative; height:38px; padding:0 18px; border:none; border-radius:9999px; overflow:hidden; cursor:pointer; display:inline-flex; align-items:center; transition: background .3s ease }
+        .hak-pill-circle { position:absolute; left:50%; bottom:0; width:160%; aspect-ratio:1/1; background:var(--pa); border-radius:50%; transform:translate(-50%,68%) scale(0); transform-origin:center bottom; transition:transform .5s cubic-bezier(.4,0,.2,1); z-index:0 }
+        .hak-pill:hover .hak-pill-circle { transform:translate(-50%,20%) scale(1.05) }
+        .hak-pill-labels { position:relative; z-index:1; display:block; height:1.3em; line-height:1.3em; overflow:hidden; font-size:14px; font-weight:500 }
+        .hak-pill-label,.hak-pill-label-hover { display:block; white-space:nowrap; transition:transform .5s cubic-bezier(.4,0,.2,1) }
+        .hak-pill-label-hover { position:absolute; top:0; left:0; transform:translateY(130%); color:#fff }
+        .hak-pill:hover .hak-pill-label { transform:translateY(-130%) }
+        .hak-pill:hover .hak-pill-label-hover { transform:translateY(0) }
+        @media (prefers-reduced-motion: reduce){ .hak-up,.hak-page,.hak-aurora,.hak-grad{animation:none!important} .hak-up,.hak-page{opacity:1;transform:none} .hak-pill-circle,.hak-pill-label,.hak-pill-label-hover,.hak-logo{transition:none!important} }
       `}</style>
 
       {/* ── WebGL Aurora background (React Bits port · navy → royal → sky) ── */}
@@ -350,20 +360,25 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: loc, setLoca
         style={{ background: navBg, backdropFilter: scrolled ? 'blur(16px)' : 'none', border: scrolled ? `1px solid ${border}` : '1px solid transparent', boxShadow: scrolled ? '0 8px 30px rgba(4,18,48,0.18)' : 'none' }}>
         <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => go('home')}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${navy}, ${primary} 60%, ${sky})`, boxShadow: `0 4px 14px ${primary}55` }}>
+            <div className="hak-logo w-9 h-9 rounded-full flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${navy}, ${primary} 60%, ${sky})`, boxShadow: `0 4px 14px ${primary}55` }}>
               <RiBrainLine size={18} className="text-white" />
             </div>
             <span className="font-semibold text-[15px] tracking-tight" style={{ fontFamily: 'Crimson Pro, Georgia, serif' }}>{t.brand}</span>
           </div>
-          <div className="hidden md:flex items-center gap-1">
-            {PAGES.map(({ id, accent }) => (
-              <button key={id} onClick={() => go(id)} className="px-3.5 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer"
-                style={{ color: page === id ? accent : textMuted, background: page === id ? `${accent}14` : 'transparent' }}
-                onMouseEnter={e => { if (page !== id) e.currentTarget.style.color = textBase; }}
-                onMouseLeave={e => { if (page !== id) e.currentTarget.style.color = textMuted; }}>
-                {t.nav[id]}
-              </button>
-            ))}
+          <div className="hidden md:flex items-center gap-1.5">
+            {PAGES.map(({ id, accent }) => {
+              const active = page === id;
+              return (
+                <button key={id} onClick={() => go(id)} className="hak-pill"
+                  style={{ '--pa': accent, background: active ? accent : (isDark ? 'rgba(120,170,255,0.07)' : 'rgba(37,99,235,0.05)') } as React.CSSProperties}>
+                  <span className="hak-pill-circle" />
+                  <span className="hak-pill-labels">
+                    <span className="hak-pill-label" style={{ color: active ? '#fff' : textMuted }}>{t.nav[id]}</span>
+                    <span className="hak-pill-label-hover">{t.nav[id]}</span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
           <div className="flex items-center gap-2.5">
             <div className="hidden sm:block relative" ref={langRef}>
