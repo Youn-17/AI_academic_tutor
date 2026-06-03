@@ -219,14 +219,26 @@ const WEB_SEARCH_TOOL = { type: 'function', function: {
   }, required: ['query'] },
 }};
 
+// Code-interpreter backend (Cloud Run) — runs LLM-written Python in an E2B sandbox.
+const CODE_INTERPRETER_URL = Deno.env.get('CODE_INTERPRETER_URL') || 'https://ci-backend-546443218324.asia-east1.run.app';
+const CODE_INTERPRETER_TOOL = { type: 'function', function: {
+  name: 'run_python',
+  description: '在隔离沙箱里执行 Python 做数据分析/计算/画图/生成文件（已装 pandas、numpy、matplotlib、openpyxl、python-docx）。当需要：对表格/数据做统计或计算、画图表、生成 Excel/Word/Markdown 文件时调用。要求：代码完整可独立运行；用 print() 输出关键结论；画图直接 plt.show()（会自动展示给用户）；要让用户下载的文件存到 /data/ 目录并在 return_files 里列出文件名。绝不编造数据。',
+  parameters: { type: 'object', properties: {
+    code: { type: 'string', description: '完整可运行的 Python 代码' },
+    return_files: { type: 'array', items: { type: 'string' }, description: '可选：/data/ 下要返回给用户下载的文件名，如 ["report.xlsx"]' },
+  }, required: ['code'] },
+}};
+
 interface ToolCtx {
   serviceClient: any;
   user: { id: string };
   course_id: string | null;
   resolvedApiKey: string;
   tavilyKey?: string;
+  userToken?: string;   // original "Bearer ..." header, forwarded to the code-interpreter backend
 }
-type ToolResult = { content: string; sources: any[] };
+type ToolResult = { content: string; sources: any[]; artifacts?: { charts: string[]; files: { name: string; b64: string }[] } };
 
 async function executeTool(name: string, args: any, ctx: ToolCtx): Promise<ToolResult> {
   try {
@@ -332,6 +344,35 @@ async function executeTool(name: string, args: any, ctx: ToolCtx): Promise<ToolR
         : '未检索到结果。');
       return { content, sources };
     }
+
+    if (name === 'run_python') {
+      if (!ctx.userToken) return { content: '（代码执行未授权）', sources: [] };
+      const r = await fetchWithTimeout(`${CODE_INTERPRETER_URL}/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': ctx.userToken },
+        body: JSON.stringify({
+          code: String(args.code || ''),
+          return_files: Array.isArray(args.return_files) ? args.return_files.slice(0, 5) : [],
+        }),
+      }, 90_000);
+      if (!r.ok) {
+        const t = await r.text().catch(() => '');
+        return { content: `代码执行服务出错（${r.status}）：${t.slice(0, 200)}`, sources: [] };
+      }
+      const j = await r.json();
+      const charts: string[] = Array.isArray(j.charts) ? j.charts : [];
+      const files = Array.isArray(j.files) ? j.files : [];
+      const parts: string[] = [];
+      if (j.stdout) parts.push(`输出：\n${String(j.stdout).slice(0, 6000)}`);
+      if (j.error) parts.push(`运行错误：${String(j.error).slice(0, 600)}`);
+      if (charts.length) parts.push(`（已生成 ${charts.length} 张图表并展示给用户）`);
+      if (files.length) parts.push(`（已生成文件供用户下载：${files.map((f: any) => f.name).join('、')}）`);
+      return {
+        content: parts.join('\n\n') || '（代码已执行，无文本输出）',
+        sources: [],
+        artifacts: (charts.length || files.length) ? { charts, files } : undefined,
+      };
+    }
   } catch (e) {
     console.error('tool error', name, e);
     return { content: `工具 ${name} 执行出错。`, sources: [] };
@@ -393,8 +434,10 @@ async function runAgentStream(controller: ReadableStreamDefaultController, opts:
           let args: any = {};
           try { args = JSON.parse(tc.function?.arguments || '{}'); } catch (_) { continue; /* skip malformed */ }
           send({ _agent_step: { tool: tc.function?.name, args, status: 'running' } });
-          const { content, sources } = await executeTool(tc.function?.name, args, opts.ctx);
+          const res = await executeTool(tc.function?.name, args, opts.ctx);
+          const { content, sources } = res;
           if (sources?.length) allSources.push(...sources);
+          if (res.artifacts) send({ _artifacts: res.artifacts });   // charts/files → frontend
           send({ _agent_step: { tool: tc.function?.name, status: 'done', found: sources?.length || 0 } });
           msgs.push({ role: 'tool', tool_call_id: tc.id, content });
         }
@@ -619,10 +662,10 @@ serve(async (req: Request) => {
         if (tv?.api_key) tavilyKey = tv.api_key;
       } catch (_) { /* no tavily key configured */ }
 
-      const ctx: ToolCtx = { serviceClient, user, course_id: course_id || null, resolvedApiKey, tavilyKey };
-      const tools = tavilyKey ? [...TOOL_DEFS, WEB_SEARCH_TOOL] : TOOL_DEFS;
+      const ctx: ToolCtx = { serviceClient, user, course_id: course_id || null, resolvedApiKey, tavilyKey, userToken: authHeader || undefined };
+      const tools = [...TOOL_DEFS, ...(tavilyKey ? [WEB_SEARCH_TOOL] : []), CODE_INTERPRETER_TOOL];
       const webNote = tavilyKey ? '、web_search(联网搜索最新/实时信息，知识库没有时用)' : '';
-      const note = `\n\n你具备工具能力：search_knowledge_base(检索平台知识库——已含多本统计/学习科学教材与论文，稳定可靠，概念或事实依据优先用它)${webNote}、recall_memory(回忆该学生过往)、save_memory(保存关键决策/进展/待办)。需要依据时优先调用工具，绝不编造文献或数据。调用工具后，请在回答中自然地说明你查阅了哪些来源（书名/论文/网址），便于学生核对。`;
+      const note = `\n\n你具备工具能力：search_knowledge_base(检索平台知识库——已含多本统计/学习科学教材与论文，稳定可靠，概念或事实依据优先用它)${webNote}、run_python(需要对数据/表格做计算统计、画图表、或生成 Excel/Word 文件时，在隔离沙箱里跑 Python)、recall_memory(回忆该学生过往)、save_memory(保存关键决策/进展/待办)。需要依据或计算时优先调用工具，绝不编造文献或数据。调用工具后，请在回答中自然地说明你查阅了哪些来源（书名/论文/网址）或做了什么计算，便于学生核对。`;
       const sysIdx = messages.findIndex((m: any) => m.role === 'system');
       const agentMsgs = sysIdx >= 0
         ? messages.map((m: any, i: number) => i === sysIdx ? { ...m, content: m.content + note } : m)
