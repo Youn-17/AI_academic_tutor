@@ -453,19 +453,19 @@ export const AI_MODELS: Record<string, { id: string; name: string; provider: AIP
     // === DeepSeek — direct API ===
     'deepseek-chat': {
         id: 'deepseek-chat',
-        name: 'DeepSeek V3',
+        name: 'DeepSeek V4 Flash',
         provider: 'deepseek',
-        model: 'deepseek-chat',
-        description: '深度求索对话模型',
+        model: 'deepseek-v4-flash',
+        description: '深度求索 V4 · 快速',
         category: 'free',
         color: 'bg-sky-500',
     },
     'deepseek-reasoner': {
         id: 'deepseek-reasoner',
-        name: 'DeepSeek R1',
+        name: 'DeepSeek V4 Pro',
         provider: 'deepseek',
-        model: 'deepseek-reasoner',
-        description: '深度求索推理模型',
+        model: 'deepseek-v4-pro',
+        description: '深度求索 V4 · 深度思考',
         category: 'free',
         color: 'bg-sky-600',
     },
@@ -578,11 +578,11 @@ export const AI_MODELS: Record<string, { id: string; name: string; provider: AIP
 export const AI_CONFIGS = {
     deepseekChat: {
         provider: 'deepseek' as AIProvider,
-        model: 'deepseek-chat'
+        model: 'deepseek-v4-flash'
     },
     deepseekReasoner: {
         provider: 'deepseek' as AIProvider,
-        model: 'deepseek-reasoner'
+        model: 'deepseek-v4-pro'
     },
     zhipuGLM4: {
         provider: 'zhipu' as AIProvider,

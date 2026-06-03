@@ -43,6 +43,7 @@ const SSE_HEADERS = {
 const DMXAPI_EMBED_URL = 'https://www.dmxapi.cn/v1/embeddings';
 const EMBED_MODEL      = 'text-embedding-3-small';
 const SS_API           = 'https://api.semanticscholar.org/graph/v1';
+const SS_API_KEY       = Deno.env.get('SEMANTIC_SCHOLAR_API_KEY') || ''; // optional — lifts rate limits
 
 const MAX_MESSAGE_LENGTH = 10_000;
 const MAX_MESSAGES_COUNT = 50;
@@ -67,6 +68,20 @@ async function fetchWithTimeout(url: string, init: RequestInit, ms: number): Pro
   } finally {
     clearTimeout(t);
   }
+}
+
+// Semantic Scholar fetch: send the API key if configured, and retry on 429
+// (the unauthenticated pool is heavily rate-limited → frequent 429s).
+async function ssFetch(url: string): Promise<Response> {
+  const headers: Record<string, string> = {};
+  if (SS_API_KEY) headers['x-api-key'] = SS_API_KEY;
+  let resp: Response | null = null;
+  for (let i = 0; i < 3; i++) {
+    resp = await fetchWithTimeout(url, { headers }, T_SS);
+    if (resp.status !== 429) return resp;
+    await new Promise((r) => setTimeout(r, 1200 * (i + 1))); // backoff: 1.2s, 2.4s
+  }
+  return resp!;
 }
 
 // ── in-memory rate limit (fast path / fallback for S1) ─────────────────────
@@ -204,8 +219,8 @@ async function executeTool(name: string, args: any, ctx: ToolCtx): Promise<ToolR
     if (name === 'search_academic_papers') {
       const limit = Math.min(Math.max(Number(args.limit) || 5, 1), 10);
       const url = `${SS_API}/paper/search?query=${encodeURIComponent(String(args.query || ''))}&limit=${limit}&fields=title,authors,year,abstract,url,citationCount,externalIds`;
-      const r = await fetchWithTimeout(url, {}, T_SS);
-      if (!r.ok) return { content: '文献检索暂时不可用，请稍后再试。', sources: [] };
+      const r = await ssFetch(url);
+      if (!r.ok) return { content: '外部文献库暂时限流，未取到论文。请改用 search_knowledge_base 从平台知识库(已含多本教材与论文)检索，或稍后再试；不要编造文献。', sources: [] };
       const j = await r.json();
       const papers: any[] = j.data || [];
       const sources = papers.map((p) => ({ id: p.paperId || p.url || p.title, source_title: p.title, layer: 0, url: p.url }));
@@ -222,8 +237,8 @@ async function executeTool(name: string, args: any, ctx: ToolCtx): Promise<ToolR
 
     if (name === 'get_paper_details') {
       const url = `${SS_API}/paper/${encodeURIComponent(String(args.paper_id || ''))}?fields=title,authors,year,abstract,citationCount,url,venue`;
-      const r = await fetchWithTimeout(url, {}, T_SS);
-      if (!r.ok) return { content: '未获取到论文详情。', sources: [] };
+      const r = await ssFetch(url);
+      if (!r.ok) return { content: '外部文献库暂时限流，未获取到论文详情，请稍后再试。', sources: [] };
       const p = await r.json();
       const au = (p.authors || []).map((a: any) => a.name).join(', ');
       return {
@@ -486,7 +501,7 @@ serve(async (req: Request) => {
     if (use_agent) {
       const ctx: ToolCtx = { serviceClient, user, course_id: course_id || null, resolvedApiKey };
       // Add a brief tool-usage note to the system message (or prepend one).
-      const note = '\n\n你可以调用工具检索知识库、查找真实学术文献、回忆与保存过程记忆。需要事实依据时优先调用工具，绝不编造文献或数据。';
+      const note = '\n\n你具备工具能力：search_knowledge_base(检索平台知识库——已含多本统计/学习科学教材与论文，稳定可靠，概念性问题优先用它)、search_academic_papers(检索真实外部文献，用于查找具体论文)、get_paper_details、recall_memory、save_memory。需要事实依据时优先调用工具，绝不编造文献或数据。若外部文献库限流失败，改用知识库。调用工具后，请在回答中自然地说明你查阅了哪些来源（书名/论文），便于学生核对。';
       const sysIdx = messages.findIndex((m: any) => m.role === 'system');
       const agentMsgs = sysIdx >= 0
         ? messages.map((m: any, i: number) => i === sysIdx ? { ...m, content: m.content + note } : m)
