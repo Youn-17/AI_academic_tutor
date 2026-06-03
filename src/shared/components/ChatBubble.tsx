@@ -128,7 +128,9 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit }) => {
                 "prose-blockquote:border-l-accent prose-blockquote:bg-accent/5 prose-blockquote:py-1 prose-blockquote:px-3 prose-blockquote:rounded-r prose-blockquote:italic",
                 // GFM tables → real bordered tables (horizontally scrollable on overflow)
                 "prose-table:my-3 prose-table:block prose-table:overflow-x-auto prose-th:border prose-th:border-slate-300 prose-th:bg-slate-100 prose-th:px-3 prose-th:py-1.5 prose-th:font-semibold prose-th:text-left prose-td:border prose-td:border-slate-200 prose-td:px-3 prose-td:py-1.5",
-                "prose-code:before:content-none prose-code:after:content-none prose-code:bg-slate-100 prose-code:text-[0.85em] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-normal"
+                "prose-code:before:content-none prose-code:after:content-none prose-code:bg-slate-100 prose-code:text-pink-600 prose-code:text-[0.85em] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-normal",
+                // code BLOCKS: force readable light-on-dark; the inline-code bg above must NOT bleed into <pre><code>
+                "[&_pre]:!bg-slate-900 [&_pre]:!text-slate-100 [&_pre]:!p-3.5 [&_pre]:!rounded-xl [&_pre]:!overflow-x-auto [&_pre_code]:!bg-transparent [&_pre_code]:!text-slate-100 [&_pre_code]:!p-0 [&_pre_code]:!font-normal [&_pre_code]:!text-[0.8rem] [&_pre_code]:!leading-relaxed"
               )}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanedContent}</ReactMarkdown>
 
