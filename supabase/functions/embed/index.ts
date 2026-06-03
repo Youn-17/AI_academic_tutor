@@ -26,6 +26,17 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+// ── Fetch with timeout (abort hung provider) ───────────────
+async function fetchWithTimeout(url: string, init: RequestInit, ms: number): Promise<Response> {
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: c.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 interface EmbedRequest {
   text: string | string[];
   provider?: 'dmxapi' | 'zhipu' | 'openai';
@@ -100,14 +111,22 @@ serve(async (req: Request) => {
 
     // Call embedding API
     const input = Array.isArray(text) ? text : [text];
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({ model: embedModel, input }),
-    });
+    let response: Response;
+    try {
+      response = await fetchWithTimeout(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({ model: embedModel, input }),
+      }, 10_000);
+    } catch (fetchErr) {
+      console.error('Embedding API fetch failed:', fetchErr);
+      return new Response(JSON.stringify({ error: 'Embedding service timed out' }), {
+        status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     if (!response.ok) {
       const errText = await response.text().catch(() => '');

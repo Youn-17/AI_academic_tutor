@@ -24,6 +24,7 @@ interface AuthContextType {
     signOut: () => Promise<void>;
     resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
     refreshProfile: () => Promise<void>;
+    profileError: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,46 +34,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [profile, setProfile] = useState<Profile | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
+    const [profileError, setProfileError] = useState(false);
 
-    const fetchProfile = async (_userId: string): Promise<Profile | null> => {
-        // Use security definer RPC to avoid RLS self-reference recursion
-        const { data, error } = await supabase.rpc('get_my_profile');
-        if (error) {
-            console.error('fetchProfile error:', error.message);
+    // Fetch profile via SECURITY DEFINER RPC, bounded by a hard timeout so a slow
+    // or hung request can never freeze the auth gate (R1 fix).
+    const fetchProfile = async (): Promise<Profile | null> => {
+        try {
+            const result: any = await Promise.race([
+                supabase.rpc('get_my_profile'),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('profile-timeout')), 12_000)),
+            ]);
+            if (result?.error) {
+                console.error('fetchProfile error:', result.error.message);
+                return null;
+            }
+            return (result?.data?.[0] ?? null) as Profile | null;
+        } catch (e) {
+            console.error('fetchProfile failed/timeout:', e);
             return null;
         }
-        return (data?.[0] ?? null) as Profile | null;
     };
 
     useEffect(() => {
         let mounted = true;
+        // Safety net: the gate must NEVER stick on the spinner > 10s, even if no
+        // auth event arrives (corrupt local token / SDK hiccup) — C2 fix.
+        const safety = setTimeout(() => { if (mounted) setLoading(false); }, 10_000);
 
-        // Single source of truth: onAuthStateChange handles all session events
-        // including INITIAL_SESSION (fired on page load with existing session)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
-                if (!mounted) return;
-
-                // While profile is being fetched, keep loading=true to prevent
-                // premature routing (avoids flash of wrong view)
-                if (session?.user) setLoading(true);
-
-                setSession(session);
-                setUser(session?.user ?? null);
-
-                if (session?.user) {
-                    const p = await fetchProfile(session.user.id);
-                    if (mounted) setProfile(p);
-                } else {
-                    setProfile(null);
+        const handleSession = async (session: Session | null) => {
+            if (!mounted) return;
+            setSession(session);
+            setUser(session?.user ?? null);
+            if (session?.user) {
+                setProfileError(false);
+                try {
+                    const p = await fetchProfile();
+                    if (!mounted) return;
+                    setProfile(p);
+                    // resolved but no row → surface an error/retry screen, NOT an endless spinner
+                    if (p === null) setProfileError(true);
+                } catch {
+                    if (mounted) setProfileError(true);
+                } finally {
+                    if (mounted) setLoading(false);   // always clears the gate
                 }
-
-                if (mounted) setLoading(false);
+            } else {
+                setProfile(null);
+                setProfileError(false);
+                setLoading(false);
             }
+        };
+
+        // Primary: onAuthStateChange fires INITIAL_SESSION on load + all later events.
+        // We do NOT re-raise loading on later events (token refresh) — that previously
+        // re-locked the whole app on every refresh.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            (_event, session) => { handleSession(session); }
         );
+        // Bootstrap fallback in case INITIAL_SESSION never fires.
+        supabase.auth.getSession()
+            .then(({ data }) => { if (mounted && !data.session) setLoading(false); })
+            .catch(() => { if (mounted) setLoading(false); });
 
         return () => {
             mounted = false;
+            clearTimeout(safety);
             subscription.unsubscribe();
         };
     }, []);
@@ -97,8 +123,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const refreshProfile = async () => {
         if (user) {
-            const p = await fetchProfile(user.id);
-            if (p) setProfile(p);
+            const p = await fetchProfile();
+            setProfile(p);
+            setProfileError(p === null);
         }
     };
 
@@ -119,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return (
         <AuthContext.Provider value={{
-            user, profile, session, loading,
+            user, profile, session, loading, profileError,
             signIn, signUp, signOut, resetPassword, refreshProfile,
         }}>
             {children}

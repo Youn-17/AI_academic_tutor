@@ -32,6 +32,9 @@ interface StudentChatViewProps {
     onClearChat?: () => Promise<void>;
     onExportChat?: () => Promise<void>;
     onCompareModels?: (models: string[]) => Promise<void>;
+    agentSteps?: { tool?: string; status?: string; found?: number }[];
+    reasoning?: string;
+    onStop?: () => void;
 }
 
 type RightPanelTab = 'graph' | 'sources' | 'compare' | null;
@@ -42,7 +45,8 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     activeChat, messages, loading, streamingContent,
     onSendMessage, onEditMessage, selectedModel, onModelSelect,
     useRag = false, onToggleRag,
-    theme, onToggleTheme, locale, onLocaleChange, onClearChat, onExportChat
+    theme, onToggleTheme, locale, onLocaleChange, onClearChat, onExportChat,
+    agentSteps, reasoning, onStop
 }) => {
     const [inputValue, setInputValue] = useState('');
     const [attachedFile, setAttachedFile] = useState<File | null>(null);
@@ -201,12 +205,13 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     const handleRunCompare = useCallback(async () => {
         if (messages.length === 0) return;
 
-        setIsComparing(true);
         setCompareResults([]);
 
         // Get last user message
         const lastUserMessage = [...messages].reverse().find(m => m.sender === Role.STUDENT);
-        if (!lastUserMessage) return;
+        if (!lastUserMessage) return;   // R4: guard BEFORE setting the spinner (else it spins forever)
+
+        setIsComparing(true);
 
         const chatHistory = messages.slice(0, messages.indexOf(lastUserMessage)).map(m => ({
             role: (m.sender === Role.STUDENT ? 'user' : 'assistant') as 'user' | 'assistant',
@@ -282,6 +287,14 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
         primary: '#10b981',
         headerBg: isDark ? 'rgba(7,17,26,0.92)' : 'rgba(255,255,255,0.95)',
     };
+
+    const toolLabel = (t?: string): string => (({
+        search_knowledge_base: isEN ? 'Searching knowledge base' : '检索知识库',
+        search_academic_papers: isEN ? 'Searching papers' : '检索学术文献',
+        get_paper_details: isEN ? 'Fetching paper details' : '获取论文详情',
+        recall_memory: isEN ? 'Recalling memory' : '回忆过往记录',
+        save_memory: isEN ? 'Saving memory' : '保存到记忆',
+    } as Record<string, string>)[t || ''] || t || '');
 
     return (
         <div className={`flex h-full w-full relative overflow-hidden ${fontSizeClass}`} style={{ backgroundColor: colors.bg }}>
@@ -492,10 +505,33 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                         {loading && (
                             <div className="flex items-start gap-3 animate-in fade-in">
                                 <AITutorAvatar size="lg" theme={theme} animate />
-                                <div className="px-5 py-4 rounded-2xl rounded-tl-none border shadow-sm max-w-2xl" style={{ backgroundColor: colors.card, borderColor: colors.border, color: colors.text }}>
+                                <div className="px-5 py-4 rounded-2xl rounded-tl-none border shadow-sm max-w-2xl space-y-3" style={{ backgroundColor: colors.card, borderColor: colors.border, color: colors.text }}>
+                                    {/* Agent tool activity (live) */}
+                                    {agentSteps && agentSteps.length > 0 && (
+                                        <div className="space-y-1.5">
+                                            {agentSteps.map((s, i) => (
+                                                <div key={i} className="flex items-center gap-2 text-xs">
+                                                    {s.status === 'done'
+                                                        ? <Check size={13} className="text-emerald-500 shrink-0" />
+                                                        : <Loader2 size={13} className="animate-spin text-emerald-500 shrink-0" />}
+                                                    <span style={{ color: colors.textSecondary }}>
+                                                        {toolLabel(s.tool)}{s.status === 'done' && s.found ? ` · ${s.found}${isEN ? ' found' : ' 条'}` : '…'}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {/* Reasoning (collapsible) */}
+                                    {reasoning && (
+                                        <details className="text-xs rounded-lg p-2" style={{ backgroundColor: isDark ? 'rgba(16,185,129,0.06)' : '#f1f5f9' }}>
+                                            <summary className="cursor-pointer select-none font-medium" style={{ color: colors.textSecondary }}>{isEN ? 'Reasoning' : '思考过程'}</summary>
+                                            <div className="mt-2 whitespace-pre-wrap leading-relaxed" style={{ color: colors.textSecondary }}>{reasoning}</div>
+                                        </details>
+                                    )}
+                                    {/* Streamed answer or thinking dots */}
                                     {streamingContent ? (
                                         <div className="text-sm whitespace-pre-wrap leading-relaxed">{streamingContent}</div>
-                                    ) : (
+                                    ) : (!agentSteps || agentSteps.length === 0) ? (
                                         <div className="flex items-center gap-3 text-sm">
                                             <div className="flex gap-1">
                                                 {[0, 1, 2].map(i => (
@@ -504,6 +540,12 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                             </div>
                                             <span style={{ color: colors.textSecondary }}>{isEN ? 'Thinking...' : '思考中...'}</span>
                                         </div>
+                                    ) : null}
+                                    {/* Stop generating */}
+                                    {onStop && (
+                                        <button onClick={onStop} className="text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-colors text-rose-500 hover:bg-rose-500/10" style={{ borderColor: colors.border }}>
+                                            <XCircle size={12} /> {isEN ? 'Stop generating' : '停止生成'}
+                                        </button>
                                     )}
                                 </div>
                             </div>

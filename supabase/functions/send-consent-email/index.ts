@@ -17,6 +17,17 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+// ── Fetch with timeout (abort hung provider) ───────────────
+async function fetchWithTimeout(url: string, init: RequestInit, ms: number): Promise<Response> {
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: c.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -219,19 +230,25 @@ serve(async (req: Request) => {
     `;
 
     const sendEmail = async (to: string, subject: string, html: string) => {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: 'TechEdu平台 <noreply@techedu.icu>',
-          to,
-          subject,
-          html,
-        }),
-      });
+      let res: Response;
+      try {
+        res = await fetchWithTimeout('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'TechEdu平台 <noreply@techedu.icu>',
+            to,
+            subject,
+            html,
+          }),
+        }, 30_000);
+      } catch (fetchErr) {
+        console.error(`Email send to ${to} timed out or failed:`, fetchErr);
+        return false;
+      }
       if (!res.ok) {
         const err = await res.text();
         console.error(`Email send failed to ${to}:`, err);

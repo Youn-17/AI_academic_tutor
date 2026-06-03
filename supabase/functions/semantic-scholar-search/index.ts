@@ -4,13 +4,26 @@
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SEMANTIC_SCHOLAR_API = "https://api.semanticscholar.org/graph/v1/paper/search";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+// Fetch with timeout (abort hung provider)
+async function fetchWithTimeout(url: string, init: RequestInit, ms: number): Promise<Response> {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), ms);
+    try {
+        return await fetch(url, { ...init, signal: c.signal });
+    } finally {
+        clearTimeout(t);
+    }
+}
 
 interface SearchRequest {
     query: string;
@@ -26,20 +39,30 @@ interface SearchRequest {
 serve(async (req) => {
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders });
+        return new Response('ok', { status: 200, headers: corsHeaders });
+    }
+
+    // Verify authentication (JWT)
+    const authHeader = req.headers.get('Authorization');
+    const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_ANON_KEY')!,
+        { global: { headers: { Authorization: authHeader ?? '' } } }
+    );
+    const { data: { user }, error: authErr } = await supabaseClient.auth.getUser();
+    if (authErr || !user) {
+        return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
     }
 
     try {
-        // Verify authentication
-        const authHeader = req.headers.get('authorization');
-        if (!authHeader) {
-            throw new Error('Missing authorization header');
-        }
-
         const { query, fields, limit = 10, offset = 0, year, venue, publicationTypes, openAccessPdf } = await req.json() as SearchRequest;
 
         if (!query || query.trim().length === 0) {
-            throw new Error('Query parameter is required');
+            return new Response(JSON.stringify({ success: false, error: 'Query parameter is required' }), {
+                status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
         }
 
         // Build search URL with parameters
@@ -60,16 +83,27 @@ serve(async (req) => {
 
         console.log('Searching Semantic Scholar:', searchUrl);
 
-        const response = await fetch(searchUrl, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-            },
-        });
+        let response: Response;
+        try {
+            response = await fetchWithTimeout(searchUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                },
+            }, 30_000);
+        } catch (fetchErr) {
+            console.error('Semantic Scholar fetch failed:', fetchErr);
+            return new Response(JSON.stringify({ success: false, error: '查询失败，请稍后重试' }), {
+                status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+        }
 
         if (!response.ok) {
             const error = await response.text();
-            throw new Error(`Semantic Scholar API Error: ${response.status} - ${error}`);
+            console.error(`Semantic Scholar API Error: ${response.status} - ${error}`);
+            return new Response(JSON.stringify({ success: false, error: '查询失败，请稍后重试' }), {
+                status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
         }
 
         const data = await response.json();
@@ -95,7 +129,7 @@ serve(async (req) => {
         console.error('Semantic Scholar Search Error:', error);
         return new Response(JSON.stringify({
             success: false,
-            error: error.message || 'Search failed'
+            error: '查询失败，请稍后重试'
         }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },

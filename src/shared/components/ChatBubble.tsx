@@ -18,6 +18,11 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(message.content);
 
+  // Defensive: strip any leaked <thinking>…</thinking> from display. streamChat
+  // already strips at the source; this also cleans messages stored earlier.
+  const cleanedContent = (message.content || '')
+    .replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/gi, '').trim() || message.content;
+
   const handleSave = () => {
     if (onEdit && editValue.trim() !== message.content) {
       onEdit(editValue);
@@ -118,7 +123,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit }) => {
                 "prose-pre:bg-slate-900 prose-pre:text-slate-50 prose-pre:rounded-lg prose-pre:p-3 prose-pre:font-mono prose-pre:text-xs",
                 "prose-blockquote:border-l-accent prose-blockquote:bg-accent/5 prose-blockquote:py-1 prose-blockquote:px-3 prose-blockquote:rounded-r prose-blockquote:italic"
               )}>
-                <ReactMarkdown>{message.content}</ReactMarkdown>
+                <ReactMarkdown>{cleanedContent}</ReactMarkdown>
 
                 {/* Edit Button Hook */}
                 {isStudent && onEdit && !isEditing && (

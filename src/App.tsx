@@ -29,7 +29,7 @@ function isConsentFlow(): boolean {
 
 // Inner App component that uses auth context
 const AppContent: React.FC = () => {
-  const { user, profile, loading, signOut } = useAuth();
+  const { user, profile, loading, profileError, signOut, refreshProfile } = useAuth();
   // 持久化到 sessionStorage，避免刷新后重新经历 Landing
   const [hasViewedLanding, setHasViewedLanding] = useState<boolean>(() => {
     return sessionStorage.getItem('hasViewedLanding') === 'true';
@@ -78,7 +78,20 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Show loading while checking auth state OR while user is logged in but profile not yet loaded
+  // Logged in but profile fetch failed/timed out → explicit error + retry (never an endless spinner)
+  if (user && !profile && profileError) {
+    return (
+      <div className={`min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center ${theme === 'dark' ? 'bg-[#0B0F19] text-slate-200' : 'bg-slate-50 text-slate-700'}`}>
+        <p className="text-sm max-w-sm">{locale === 'en' ? 'Could not load your profile (slow network or session issue).' : '无法加载个人资料(网络较慢或登录态异常)。'}</p>
+        <div className="flex gap-3">
+          <button onClick={() => refreshProfile()} className="px-4 py-2 rounded-lg bg-indigo-500 text-white text-sm font-medium hover:bg-indigo-600 transition-colors">{locale === 'en' ? 'Retry' : '重试'}</button>
+          <button onClick={handleLogout} className="px-4 py-2 rounded-lg border text-sm font-medium hover:bg-black/5 transition-colors">{locale === 'en' ? 'Sign out' : '重新登录'}</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading while checking auth state OR while profile is still being fetched (not errored)
   if (loading || (user && !profile)) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-[#0B0F19]' : 'bg-slate-50'}`}>

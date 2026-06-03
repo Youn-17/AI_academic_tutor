@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Conversation, Message, Role, Locale, Theme } from '@/types';
 import StudentClassroomView from '@/features/student/StudentClassroomView';
 import StudentDashboard from '@/features/student/components/StudentDashboard';
@@ -37,6 +37,12 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
   const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-6');
   const [useRag, setUseRag] = useState(false);
   const [condition, setCondition] = useState<StudyCondition | null>(null);  // A/B 实验条件(非参与者=null)
+  const [agentSteps, setAgentSteps] = useState<{ tool?: string; status?: string; found?: number }[]>([]);
+  const [reasoning, setReasoning] = useState('');
+  const sendingRef = useRef(false);                       // in-flight guard — no concurrent send/edit (H2)
+  const abortRef = useRef<AbortController | null>(null);  // current stream's aborter (Stop / chat-switch)
+  // A_direct = clean control (no tools); B_socratic & non-participants get the tool-using agent
+  const useAgent = condition !== 'A_direct';
 
   // Find active chat
   const activeChat = conversations.find(c => c.id === activeChatId);
@@ -65,8 +71,11 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     });
   }, []);
 
-  // Load Messages
+  // Load Messages — abort any in-flight stream when switching chats (H3)
   useEffect(() => {
+    abortRef.current?.abort();
+    setAgentSteps([]);
+    setReasoning('');
     if (activeChatId) {
       const loadMessages = async () => {
         try {
@@ -132,11 +141,19 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
 
   const handleSendMessage = async (content: string, file?: File) => {
     if (!activeChatId) return;
+    if (sendingRef.current) return;          // H2: ignore re-entrant send while one is streaming
+    sendingRef.current = true;
 
     let fullContent = content;
-    if (file) {
-      const fileContent = await readFileContent(file);
-      fullContent = `[Attachment: ${file.name}]\n\nContent:\n${fileContent}\n\nUser Question: ${content}`;
+    try {
+      if (file) {
+        const fileContent = await readFileContent(file);
+        fullContent = `[Attachment: ${file.name}]\n\nContent:\n${fileContent}\n\nUser Question: ${content}`;
+      }
+    } catch (e) {
+      console.error('File read failed:', e);
+      sendingRef.current = false;
+      return;
     }
 
     // Optimistic Update
@@ -152,9 +169,15 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     setMessages(prev => [...prev, optimisticUserMsg]);
     setIsThinking(true);
     setStreamingContent('');
+    setAgentSteps([]);
+    setReasoning('');
+
+    const abort = new AbortController();
+    abortRef.current = abort;
+    const convId = activeChatId;
 
     try {
-      const userMessage = await ConversationService.sendMessage(activeChatId, fullContent, Role.STUDENT);
+      const userMessage = await ConversationService.sendMessage(convId, fullContent, Role.STUDENT);
       setMessages(prev => prev.map(m => m.id === tempUserMsgId ? userMessage : m));
 
       const chatHistory: ChatMessage[] = messages.map(msg => ({
@@ -167,7 +190,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       const config = modelInfo
         ? { provider: modelInfo.provider, model: modelInfo.model }
         : AI_CONFIGS.deepseekChat;
-      // A/B:A_direct=普通提示+无RAG;B_socratic=苏格拉底提示+强制RAG;null(非参与者)=默认苏格拉底+手动RAG开关
+      // A/B:A_direct=普通提示+无RAG+无工具(对照);B_socratic=苏格拉底+RAG+智能体;null(非参与者)=默认苏格拉底+智能体
       const sysPrompt = condition === 'A_direct' ? SYSTEM_PROMPTS.direct : SYSTEM_PROMPTS.academic;
       const ragOptions = condition === 'A_direct'
         ? undefined
@@ -176,22 +199,30 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       let ragSources: { id: string; source_title: string; layer: number }[] = [];
 
       try {
-        for await (const chunk of streamChat(chatHistory, config, sysPrompt, ragOptions, (s) => { ragSources = s; })) {
+        for await (const chunk of streamChat(chatHistory, config, sysPrompt, ragOptions,
+          (s) => { ragSources = s; },
+          {
+            signal: abort.signal,
+            use_agent: useAgent,
+            onAgentStep: (step) => setAgentSteps(prev => [...prev, step]),
+            onReasoning: (t) => setReasoning(prev => prev + t),
+          })) {
           fullResponse += chunk;
           setStreamingContent(fullResponse);
         }
       } catch (aiError) {
-        fullResponse = `AI Error: ${(aiError as Error).message}`;
+        if (abort.signal.aborted) { if (!fullResponse) fullResponse = '（已停止生成）'; }
+        else if (!fullResponse) fullResponse = `AI 出错：${(aiError as Error).message}`;
       }
 
       // 检索到的知识块 → 引用卡片(只有真实来源才会被存储与展示)
       const citations = ragSources.map(s => ({ id: s.id, title: s.source_title, author: '', year: '', url: '' }));
-      const aiMessage = await ConversationService.sendMessage(activeChatId, fullResponse, Role.AI, selectedModel, citations);
+      const aiMessage = await ConversationService.sendMessage(convId, fullResponse, Role.AI, selectedModel, citations);
       setMessages(prev => [...prev, aiMessage]);
 
       if (messages.length === 0) {
         const newTitle = content.slice(0, 20) || 'New Chat';
-        ConversationService.updateConversationTitle(activeChatId, newTitle).then(loadConversations);
+        ConversationService.updateConversationTitle(convId, newTitle).then(loadConversations);
       }
 
     } catch (err) {
@@ -200,14 +231,19 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     } finally {
       setIsThinking(false);
       setStreamingContent('');
+      setAgentSteps([]);
+      setReasoning('');
+      sendingRef.current = false;
+      abortRef.current = null;
     }
   };
 
   const handleEditMessage = async (messageId: string, newContent: string) => {
     if (!activeChatId) return;
-
+    if (sendingRef.current) return;          // H2: shared in-flight lock with send
     const msgIndex = messages.findIndex(m => m.id === messageId);
     if (msgIndex === -1) return;
+    sendingRef.current = true;
 
     const keptMessages = messages.slice(0, msgIndex);
 
@@ -220,9 +256,15 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     setMessages([...keptMessages, editedUserMsg]);
     setIsThinking(true);
     setStreamingContent('');
+    setAgentSteps([]);
+    setReasoning('');
+
+    const abort = new AbortController();
+    abortRef.current = abort;
+    const convId = activeChatId;
 
     try {
-      await ConversationService.sendMessage(activeChatId, newContent, Role.STUDENT);
+      await ConversationService.sendMessage(convId, newContent, Role.STUDENT);
 
       const chatHistory: ChatMessage[] = keptMessages.map(msg => ({
         role: msg.sender === Role.STUDENT ? 'user' : 'assistant',
@@ -234,7 +276,6 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       const config = modelInfo
         ? { provider: modelInfo.provider, model: modelInfo.model }
         : AI_CONFIGS.deepseekChat;
-      // A/B:A_direct=普通提示+无RAG;B_socratic=苏格拉底提示+强制RAG;null(非参与者)=默认苏格拉底+手动RAG开关
       const sysPrompt = condition === 'A_direct' ? SYSTEM_PROMPTS.direct : SYSTEM_PROMPTS.academic;
       const ragOptions = condition === 'A_direct'
         ? undefined
@@ -243,16 +284,24 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       let ragSources: { id: string; source_title: string; layer: number }[] = [];
 
       try {
-        for await (const chunk of streamChat(chatHistory, config, sysPrompt, ragOptions, (s) => { ragSources = s; })) {
+        for await (const chunk of streamChat(chatHistory, config, sysPrompt, ragOptions,
+          (s) => { ragSources = s; },
+          {
+            signal: abort.signal,
+            use_agent: useAgent,
+            onAgentStep: (step) => setAgentSteps(prev => [...prev, step]),
+            onReasoning: (t) => setReasoning(prev => prev + t),
+          })) {
           fullResponse += chunk;
           setStreamingContent(fullResponse);
         }
       } catch (aiError) {
-        fullResponse = `AI Error: ${(aiError as Error).message}`;
+        if (abort.signal.aborted) { if (!fullResponse) fullResponse = '（已停止生成）'; }
+        else if (!fullResponse) fullResponse = `AI 出错：${(aiError as Error).message}`;
       }
 
       const citations = ragSources.map(s => ({ id: s.id, title: s.source_title, author: '', year: '', url: '' }));
-      const aiMessage = await ConversationService.sendMessage(activeChatId, fullResponse, Role.AI, selectedModel, citations);
+      const aiMessage = await ConversationService.sendMessage(convId, fullResponse, Role.AI, selectedModel, citations);
       setMessages(prev => [...prev, aiMessage]);
 
     } catch (err) {
@@ -260,6 +309,10 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     } finally {
       setIsThinking(false);
       setStreamingContent('');
+      setAgentSteps([]);
+      setReasoning('');
+      sendingRef.current = false;
+      abortRef.current = null;
     }
   };
 
@@ -365,6 +418,9 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
             onClearChat={handleClearChat}
             onExportChat={handleExportChat}
             onCompareModels={handleCompareModels}
+            agentSteps={agentSteps}
+            reasoning={reasoning}
+            onStop={() => abortRef.current?.abort()}
           />
         )}
       </div>

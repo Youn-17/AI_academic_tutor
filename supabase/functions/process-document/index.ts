@@ -26,6 +26,20 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+// Error marker for embedding fetch timeout/network failure (surfaced as HTTP 504)
+const EMBED_FETCH_FAILED = 'EMBED_FETCH_FAILED';
+
+// ── Fetch with timeout (abort hung provider) ───────────────────────────
+async function fetchWithTimeout(url: string, init: RequestInit, ms: number): Promise<Response> {
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: c.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 // ── Text chunking ──────────────────────────────────────────────────────
 function chunkText(text: string, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP): string[] {
   const chunks: string[] = [];
@@ -57,11 +71,17 @@ async function embedTexts(texts: string[], apiKey: string, provider = 'dmxapi'):
   const all: number[][] = [];
   for (let i = 0; i < texts.length; i += 20) {
     const batch = texts.slice(i, i + 20);
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: JSON.stringify({ model, input: batch }),
-    });
+    let resp: Response;
+    try {
+      resp = await fetchWithTimeout(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({ model, input: batch }),
+      }, 15_000);
+    } catch (fetchErr) {
+      console.error('Embedding API fetch failed:', fetchErr);
+      throw new Error(EMBED_FETCH_FAILED);
+    }
     if (!resp.ok) throw new Error(`Embedding API ${resp.status}: ${await resp.text()}`);
     const data = await resp.json();
     all.push(...data.data.map((d: { embedding: number[] }) => d.embedding));
@@ -220,16 +240,22 @@ serve(async (req: Request) => {
 
   } catch (error) {
     console.error('process-document error:', error);
+    const isTimeout = error instanceof Error && error.message === EMBED_FETCH_FAILED;
     // Mark failed
     try {
       const body = await req.json().catch(() => ({})) as { document_id?: string };
       if (body.document_id) {
         await serviceClient.from('documents').update({
           processing_status: 'failed',
-          processing_error: String(error),
+          processing_error: isTimeout ? 'Embedding service timed out' : String(error),
         }).eq('id', body.document_id);
       }
     } catch { /* ignore */ }
+    if (isTimeout) {
+      return new Response(JSON.stringify({ error: 'Embedding service timed out' }), {
+        status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     return new Response(JSON.stringify({ error: 'Processing failed' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

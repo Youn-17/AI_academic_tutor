@@ -50,78 +50,164 @@ function validateMessages(messages: ChatMessage[]): void {
     }
 }
 
+export interface StreamOptions {
+    signal?: AbortSignal;                       // caller-controlled abort (Stop button / chat switch)
+    use_agent?: boolean;                        // enable tool-calling agent loop
+    thinking?: { type: 'enabled' | 'disabled' };// DeepSeek thinking toggle
+    reasoning_effort?: 'high' | 'max';
+    onAgentStep?: (step: { tool?: string; args?: any; status?: string; found?: number }) => void;
+    onReasoning?: (text: string) => void;       // reasoning_content / _reasoning channel
+}
+
+// Stateful stripper that removes leaked <thinking>…</thinking> blocks from a
+// token stream, correctly handling tags split across chunks (R3 / <thinking> fix).
+function makeThinkingStripper() {
+    let buf = '';
+    let inside = false;
+    const OPEN = /<think(?:ing)?>/i;
+    const CLOSE = /<\/think(?:ing)?>/i;
+    const isTagPrefix = (s: string) => {
+        const t = s.toLowerCase();
+        return '<thinking>'.startsWith(t) || '<think>'.startsWith(t)
+            || '</thinking>'.startsWith(t) || '</think>'.startsWith(t);
+    };
+    const run = (flush: boolean): string => {
+        let out = '';
+        // loop because a chunk may contain multiple open/close transitions
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+            if (!inside) {
+                const m = buf.match(OPEN);
+                if (m) { out += buf.slice(0, m.index); buf = buf.slice((m.index ?? 0) + m[0].length); inside = true; continue; }
+                const lt = buf.lastIndexOf('<');
+                if (flush || lt === -1) { out += buf; buf = ''; }
+                else {
+                    const tail = buf.slice(lt);
+                    if (isTagPrefix(tail)) { out += buf.slice(0, lt); buf = tail; } // hold possible partial open tag
+                    else { out += buf; buf = ''; }
+                }
+                break;
+            } else {
+                const m = buf.match(CLOSE);
+                if (m) { buf = buf.slice((m.index ?? 0) + m[0].length); inside = false; continue; }
+                if (flush) { buf = ''; }
+                else {
+                    const lt = buf.lastIndexOf('<');
+                    buf = (lt !== -1 && isTagPrefix(buf.slice(lt))) ? buf.slice(lt) : '';
+                }
+                break;
+            }
+        }
+        return out;
+    };
+    return { push: (t: string) => { buf += t; return run(false); }, flush: () => run(true) };
+}
+
 /**
- * Stream chat completion from AI
- * Returns an async generator that yields content chunks
+ * Stream chat completion from AI. Yields content chunks (with <thinking> stripped).
+ * Robust against hangs: caller AbortSignal + internal idle watchdog + reader cancel.
  */
 export async function* streamChat(
     messages: ChatMessage[],
     config: AIConfig,
     systemPrompt?: string,
     ragOptions?: { use_rag?: boolean; course_id?: string; layer_filter?: number[] },
-    onSources?: (sources: { id: string; source_title: string; layer: number }[]) => void
+    onSources?: (sources: { id: string; source_title: string; layer: number }[]) => void,
+    opts: StreamOptions = {}
 ): AsyncGenerator<string, void, unknown> {
     const fullMessages: ChatMessage[] = systemPrompt
         ? [{ role: 'system', content: systemPrompt }, ...messages]
         : messages;
 
     validateMessages(fullMessages);
-
     const headers = await getAuthHeaders();
-    const response = await fetch(`${EDGE_FUNCTION_URL}/chat`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-            messages: fullMessages,
-            provider: config.provider,
-            model: config.model,
-            stream: true,
-            api_key: config.apiKey,
-            base_url: config.baseUrl,
-            ...(ragOptions?.use_rag ? ragOptions : {}),
-        }),
-    });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`AI Service Error: ${response.status} - ${errorText}`);
+    // Abort = external signal OR internal idle timeout (no chunk for 60s → give up)
+    const ctrl = new AbortController();
+    if (opts.signal) {
+        if (opts.signal.aborted) ctrl.abort();
+        else opts.signal.addEventListener('abort', () => ctrl.abort(), { once: true });
     }
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
+    const resetIdle = () => { if (idleTimer) clearTimeout(idleTimer); idleTimer = setTimeout(() => ctrl.abort(), 60_000); };
 
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error('No response body');
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+    const stripper = makeThinkingStripper();
+    try {
+        resetIdle();
+        const response = await fetch(`${EDGE_FUNCTION_URL}/chat`, {
+            method: 'POST',
+            headers,
+            signal: ctrl.signal,
+            body: JSON.stringify({
+                messages: fullMessages,
+                provider: config.provider,
+                model: config.model,
+                stream: true,
+                api_key: config.apiKey,
+                base_url: config.baseUrl,
+                ...(ragOptions?.use_rag ? ragOptions : {}),
+                ...(opts.use_agent ? { use_agent: true } : {}),
+                ...(opts.thinking ? { thinking: opts.thinking } : {}),
+                ...(opts.reasoning_effort ? { reasoning_effort: opts.reasoning_effort } : {}),
+            }),
+        });
 
-    const decoder = new TextDecoder();
-    let buffer = '';
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`AI Service Error: ${response.status} - ${errorText}`);
+        }
 
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        reader = response.body?.getReader();
+        if (!reader) throw new Error('No response body');
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        const decoder = new TextDecoder();
+        let buffer = '';
 
-        for (const line of lines) {
-            if (line.startsWith('data: ')) {
+        while (true) {
+            let result: ReadableStreamReadResult<Uint8Array>;
+            try {
+                result = await reader.read();
+            } catch {
+                break; // aborted / idle-timeout / network drop → stop cleanly (finally cancels)
+            }
+            if (result.done) break;
+            resetIdle();
+
+            buffer += decoder.decode(result.value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
                 const data = line.slice(6);
-                if (data === '[DONE]') return;
-
+                if (data === '[DONE]') {
+                    const tail = stripper.flush();
+                    if (tail) yield tail;
+                    return;
+                }
                 try {
                     const parsed = JSON.parse(data);
-                    // RAG 来源由 edge function 以自定义事件前置注入,先取出,不当作正文
-                    if (parsed._rag_sources) {
-                        onSources?.(parsed._rag_sources);
-                        continue;
-                    }
-                    const content = parsed.choices?.[0]?.delta?.content;
-                    if (content) {
-                        yield content;
+                    if (parsed._rag_sources) { onSources?.(parsed._rag_sources); continue; }
+                    if (parsed._agent_step) { opts.onAgentStep?.(parsed._agent_step); continue; }
+                    if (parsed._reasoning) { opts.onReasoning?.(String(parsed._reasoning)); continue; }
+                    if (parsed.error) { continue; } // stream-level error; loop ends on [DONE]/close
+                    const delta = parsed.choices?.[0]?.delta || {};
+                    if (typeof delta.reasoning_content === 'string') opts.onReasoning?.(delta.reasoning_content);
+                    if (typeof delta.content === 'string' && delta.content) {
+                        const out = stripper.push(delta.content);
+                        if (out) yield out;
                     }
                 } catch {
                     // Skip invalid JSON
                 }
             }
         }
+        const tail = stripper.flush();
+        if (tail) yield tail;
+    } finally {
+        if (idleTimer) clearTimeout(idleTimer);
+        try { await reader?.cancel(); } catch { /* ignore */ }
     }
 }
 
