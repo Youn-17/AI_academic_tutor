@@ -28,7 +28,8 @@ gcloud run deploy ci-backend \
   --memory 512Mi --cpu 1 --timeout 300 \
   --min-instances 0 \                # set 1 to kill cold-start lag (small cost)
   --set-env-vars "ALLOWED_ORIGINS=https://techedu.icu,http://localhost:5173" \
-  --set-env-vars "E2B_API_KEY=YOUR_E2B_KEY,SUPABASE_JWT_SECRET=YOUR_SUPABASE_JWT_SECRET"
+  --set-env-vars "SUPABASE_URL=https://oztozjwngekmqtuylypt.supabase.co,SUPABASE_ANON_KEY=YOUR_ANON_KEY" \
+  --set-env-vars "E2B_API_KEY=YOUR_E2B_KEY"
 ```
 → prints a URL like `https://ci-backend-xxxx.asia-east1.run.app`.
 

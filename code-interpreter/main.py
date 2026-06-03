@@ -21,10 +21,14 @@ import base64
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import json
+import urllib.request
 import jwt
 
 E2B_API_KEY = os.environ.get("E2B_API_KEY", "")
-SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET", "")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
+SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET", "")  # optional fallback
 ALLOWED_ORIGINS = [o.strip() for o in os.environ.get(
     "ALLOWED_ORIGINS", "https://techedu.icu,http://localhost:5173").split(",") if o.strip()]
 SANDBOX_TIMEOUT = int(os.environ.get("SANDBOX_TIMEOUT", "60"))
@@ -38,17 +42,29 @@ app.add_middleware(
 
 
 def verify_user(authorization: str) -> str:
-    """Return the Supabase user id from the bearer JWT, or 401."""
+    """Verify the Supabase access token → user id (401 if invalid).
+
+    Primary: ask Supabase who the token belongs to (works for both legacy HS256 and
+    the new asymmetric signing keys — only needs the public anon key, no shared secret).
+    Falls back to a local JWT secret, then (dev only) an unverified decode.
+    """
     if not authorization.startswith("Bearer "):
         raise HTTPException(401, "missing bearer token")
     token = authorization.split(" ", 1)[1]
+    if SUPABASE_URL and SUPABASE_ANON_KEY:
+        try:
+            req = urllib.request.Request(
+                f"{SUPABASE_URL}/auth/v1/user",
+                headers={"Authorization": f"Bearer {token}", "apikey": SUPABASE_ANON_KEY})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                return json.loads(r.read()).get("id") or "anon"
+        except Exception as e:
+            raise HTTPException(401, f"invalid token: {e}")
     try:
         if SUPABASE_JWT_SECRET:
-            payload = jwt.decode(token, SUPABASE_JWT_SECRET,
-                                 algorithms=["HS256"], audience="authenticated")
-        else:  # dev fallback only — DO NOT run prod without the secret
-            payload = jwt.decode(token, options={"verify_signature": False})
-        return payload.get("sub") or "anon"
+            return jwt.decode(token, SUPABASE_JWT_SECRET, algorithms=["HS256"],
+                              audience="authenticated").get("sub") or "anon"
+        return jwt.decode(token, options={"verify_signature": False}).get("sub") or "anon"
     except Exception as e:
         raise HTTPException(401, f"invalid token: {e}")
 
