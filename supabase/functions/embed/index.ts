@@ -92,7 +92,8 @@ serve(async (req: Request) => {
     if (!apiKey) {
       const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
       const providerFilter = provider === 'zhipu' ? ['zhipu'] : ['dmxapi', 'openai', 'anthropic'];
-      const { data: ownKey } = await serviceClient
+      // caller's own key first…
+      let { data: keyRow } = await serviceClient
         .from('ai_api_configs')
         .select('api_key')
         .in('provider', providerFilter)
@@ -100,7 +101,20 @@ serve(async (req: Request) => {
         .eq('is_active', true)
         .limit(1)
         .single();
-      if (ownKey?.api_key) apiKey = ownKey.api_key;
+      // …then ANY active key for the provider (so a student with no own key can
+      // still embed via the teacher's class key / a platform key).
+      if (!keyRow?.api_key) {
+        const fallback = await serviceClient
+          .from('ai_api_configs')
+          .select('api_key')
+          .in('provider', providerFilter)
+          .eq('is_active', true)
+          .not('api_key', 'is', null)
+          .limit(1)
+          .single();
+        keyRow = fallback.data;
+      }
+      if (keyRow?.api_key) apiKey = keyRow.api_key;
     }
 
     if (!apiKey) {

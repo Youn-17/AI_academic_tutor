@@ -508,6 +508,17 @@ serve(async (req: Request) => {
           .in('provider', pf).eq('scope', 'platform').eq('is_active', true).limit(1).single();
         if (adminKey?.api_key) resolvedApiKey = adminKey.api_key;
       }
+
+      // Priority 4: ANY active key for this provider (single-class/pilot fallback,
+      // so a teacher's class-scoped key works even for students not yet enrolled).
+      if (!resolvedApiKey) {
+        const pf = provider === 'dmxapi' ? ['dmxapi', 'openai', 'anthropic', 'google']
+          : provider === 'moonshot' ? ['moonshot', 'kimi'] : [provider];
+        const { data: anyKey } = await serviceClient
+          .from('ai_api_configs').select('api_key')
+          .in('provider', pf).eq('is_active', true).not('api_key', 'is', null).limit(1).single();
+        if (anyKey?.api_key) resolvedApiKey = anyKey.api_key;
+      }
     } catch (_) { /* fall through to env key */ }
     if (!resolvedApiKey) resolvedApiKey = resolvePlatformKey(provider);
     if (!resolvedApiKey) {
