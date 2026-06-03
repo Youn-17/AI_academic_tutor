@@ -360,7 +360,31 @@ serve(async (req: Request) => {
     }
 
     if (stream) {
-      return new Response(response.body, {
+      // 无 RAG 来源:直接透传 provider 流。
+      if (ragSources.length === 0) {
+        return new Response(response.body, {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          },
+        });
+      }
+      // 有 RAG 来源:先以自定义 SSE 事件前置发送 _rag_sources,再拼接 provider 流。
+      const encoder = new TextEncoder();
+      const sourcesEvent = encoder.encode(`data: ${JSON.stringify({ _rag_sources: ragSources })}\n\n`);
+      const upstream = response.body!.getReader();
+      const merged = new ReadableStream({
+        start(controller) { controller.enqueue(sourcesEvent); },
+        async pull(controller) {
+          const { done, value } = await upstream.read();
+          if (done) { controller.close(); return; }
+          controller.enqueue(value);
+        },
+        cancel() { upstream.cancel(); },
+      });
+      return new Response(merged, {
         headers: {
           ...corsHeaders,
           'Content-Type': 'text/event-stream',

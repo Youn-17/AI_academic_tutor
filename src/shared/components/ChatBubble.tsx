@@ -174,10 +174,12 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit }) => {
                 <button className="p-1.5 hover:bg-secondary/50 rounded-md text-secondary-light hover:text-rose-500 transition-colors" title="Not Helpful">
                   <ThumbsDown size={14} />
                 </button>
-                <span className="text-[10px] text-secondary-light ml-auto font-mono flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  RAG Verified
-                </span>
+                {message.citations && message.citations.length > 0 && (
+                  <span className="text-[10px] text-secondary-light ml-auto font-mono flex items-center gap-1" title="本回答检索到知识库来源">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    RAG · {message.citations.length} sources
+                  </span>
+                )}
               </div>
             )}
           </div>

@@ -11,6 +11,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import * as ConversationService from '@/services/ConversationService';
 import { streamChat, AI_CONFIGS, AI_MODELS, SYSTEM_PROMPTS, ChatMessage } from '@/services/RealAIService';
 import { readFileContent } from '@/services/DocumentService';
+import { getMyCondition, type StudyCondition } from '@/services/StudyService';
 
 interface StudentViewProps {
   onLogout: () => void;
@@ -35,6 +36,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
   const [streamingContent, setStreamingContent] = useState('');
   const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-6');
   const [useRag, setUseRag] = useState(false);
+  const [condition, setCondition] = useState<StudyCondition | null>(null);  // A/B 实验条件(非参与者=null)
 
   // Find active chat
   const activeChat = conversations.find(c => c.id === activeChatId);
@@ -52,6 +54,15 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
   // Initial load
   useEffect(() => {
     loadConversations();
+  }, []);
+
+  // A/B 条件:入组并同意的学生按条件走;B 默认开 RAG,A 关 RAG
+  useEffect(() => {
+    getMyCondition().then(c => {
+      setCondition(c);
+      if (c === 'B_socratic') setUseRag(true);
+      else if (c === 'A_direct') setUseRag(false);
+    });
   }, []);
 
   // Load Messages
@@ -156,11 +167,16 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       const config = modelInfo
         ? { provider: modelInfo.provider, model: modelInfo.model }
         : AI_CONFIGS.deepseekChat;
-      const ragOptions = useRag ? { use_rag: true } : undefined;
+      // A/B:A_direct=普通提示+无RAG;B_socratic=苏格拉底提示+强制RAG;null(非参与者)=默认苏格拉底+手动RAG开关
+      const sysPrompt = condition === 'A_direct' ? SYSTEM_PROMPTS.direct : SYSTEM_PROMPTS.academic;
+      const ragOptions = condition === 'A_direct'
+        ? undefined
+        : ((condition === 'B_socratic' || useRag) ? { use_rag: true } : undefined);
       let fullResponse = '';
+      let ragSources: { id: string; source_title: string; layer: number }[] = [];
 
       try {
-        for await (const chunk of streamChat(chatHistory, config, SYSTEM_PROMPTS.academic, ragOptions)) {
+        for await (const chunk of streamChat(chatHistory, config, sysPrompt, ragOptions, (s) => { ragSources = s; })) {
           fullResponse += chunk;
           setStreamingContent(fullResponse);
         }
@@ -168,7 +184,9 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
         fullResponse = `AI Error: ${(aiError as Error).message}`;
       }
 
-      const aiMessage = await ConversationService.sendMessage(activeChatId, fullResponse, Role.AI, selectedModel);
+      // 检索到的知识块 → 引用卡片(只有真实来源才会被存储与展示)
+      const citations = ragSources.map(s => ({ id: s.id, title: s.source_title, author: '', year: '', url: '' }));
+      const aiMessage = await ConversationService.sendMessage(activeChatId, fullResponse, Role.AI, selectedModel, citations);
       setMessages(prev => [...prev, aiMessage]);
 
       if (messages.length === 0) {
@@ -216,11 +234,16 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       const config = modelInfo
         ? { provider: modelInfo.provider, model: modelInfo.model }
         : AI_CONFIGS.deepseekChat;
-      const ragOptions = useRag ? { use_rag: true } : undefined;
+      // A/B:A_direct=普通提示+无RAG;B_socratic=苏格拉底提示+强制RAG;null(非参与者)=默认苏格拉底+手动RAG开关
+      const sysPrompt = condition === 'A_direct' ? SYSTEM_PROMPTS.direct : SYSTEM_PROMPTS.academic;
+      const ragOptions = condition === 'A_direct'
+        ? undefined
+        : ((condition === 'B_socratic' || useRag) ? { use_rag: true } : undefined);
       let fullResponse = '';
+      let ragSources: { id: string; source_title: string; layer: number }[] = [];
 
       try {
-        for await (const chunk of streamChat(chatHistory, config, SYSTEM_PROMPTS.academic, ragOptions)) {
+        for await (const chunk of streamChat(chatHistory, config, sysPrompt, ragOptions, (s) => { ragSources = s; })) {
           fullResponse += chunk;
           setStreamingContent(fullResponse);
         }
@@ -228,7 +251,8 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
         fullResponse = `AI Error: ${(aiError as Error).message}`;
       }
 
-      const aiMessage = await ConversationService.sendMessage(activeChatId, fullResponse, Role.AI, selectedModel);
+      const citations = ragSources.map(s => ({ id: s.id, title: s.source_title, author: '', year: '', url: '' }));
+      const aiMessage = await ConversationService.sendMessage(activeChatId, fullResponse, Role.AI, selectedModel, citations);
       setMessages(prev => [...prev, aiMessage]);
 
     } catch (err) {

@@ -58,7 +58,8 @@ export async function* streamChat(
     messages: ChatMessage[],
     config: AIConfig,
     systemPrompt?: string,
-    ragOptions?: { use_rag?: boolean; course_id?: string; layer_filter?: number[] }
+    ragOptions?: { use_rag?: boolean; course_id?: string; layer_filter?: number[] },
+    onSources?: (sources: { id: string; source_title: string; layer: number }[]) => void
 ): AsyncGenerator<string, void, unknown> {
     const fullMessages: ChatMessage[] = systemPrompt
         ? [{ role: 'system', content: systemPrompt }, ...messages]
@@ -107,6 +108,11 @@ export async function* streamChat(
 
                 try {
                     const parsed = JSON.parse(data);
+                    // RAG 来源由 edge function 以自定义事件前置注入,先取出,不当作正文
+                    if (parsed._rag_sources) {
+                        onSources?.(parsed._rag_sources);
+                        continue;
+                    }
                     const content = parsed.choices?.[0]?.delta?.content;
                     if (content) {
                         yield content;
@@ -616,6 +622,12 @@ export const SYSTEM_PROMPTS = {
 ## 导师升级触发条件
 
 遇到以下情况时，主动建议导师介入：研究问题失焦 3 轮以上、不可逆的高风险判断、学生明显焦虑、试图让 AI 替其完成核心学术决策。`,
+
+    /**
+     * 对照组(A_direct)系统提示词 —— 普通"直接答题"助手,作为 A/B 实验对照。
+     * 仍不得捏造,但直接给答案、不做苏格拉底式引导、不强制引用。
+     */
+    direct: `你是一位学术研究助手。请直接、清晰、准确地回答学生的学术问题,提供有用的信息、解释、示例和可操作的建议。回答应具体、完整、便于学生直接使用。不要编造文献、数据或引用。`,
 
     methodology: `你是一位研究方法论专家。帮助学生理解和应用定量、定性及混合研究方法。`,
 

@@ -99,7 +99,8 @@ export async function sendMessage(
     conversationId: string,
     content: string,
     sender: Role,
-    modelUsed?: string
+    modelUsed?: string,
+    citations?: any[]   // RAG/检索来源,持久化到 messages.citations(默认空数组)
 ): Promise<Message> {
     const { data, error } = await supabase
         .from('messages')
@@ -107,7 +108,8 @@ export async function sendMessage(
             conversation_id: conversationId,
             sender,
             content,
-            model_used: modelUsed
+            model_used: modelUsed,
+            citations: citations ?? []
         })
         .select()
         .single();

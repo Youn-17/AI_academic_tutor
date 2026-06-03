@@ -32,3 +32,6 @@ backend/
 design-system/
 metadata.json
 supabase/.temp/
+
+# generated RAG corpus (large, do not commit)
+scripts/corpus_chunks.jsonl
