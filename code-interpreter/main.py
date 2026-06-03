@@ -75,6 +75,13 @@ class RunReq(BaseModel):
     return_files: list[str] = []    # filenames under /data/ to return as base64
 
 
+@app.get("/")
+@app.head("/")
+def root():
+    # 200 on "/" so any HTTP startup/liveness probe that hits the root passes.
+    return {"service": "code-interpreter", "ok": True}
+
+
 @app.get("/healthz")
 def healthz():
     return {"ok": True, "e2b_key_set": bool(E2B_API_KEY)}
