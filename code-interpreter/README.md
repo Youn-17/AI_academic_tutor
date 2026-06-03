@@ -16,16 +16,39 @@ function can't host. Full design: `../CODE_INTERPRETER_AND_RAG_BACKEND_PLAN.md`.
 (Railway/Fly) where E2B is reachable. Students' browsers hit THIS backend (not E2B
 directly) → they work fine from China. Local dev against E2B needs a VPN/proxy.
 
-## Deploy on Railway (recommended)
-1. Repo is already on GitHub `main`.
-2. Railway → New Project → Deploy from GitHub repo → pick this repo.
-3. **Settings → Root Directory = `code-interpreter`** (so it finds `main.py` / `requirements.txt` / `Procfile`).
-4. **Variables** (Railway secret store — never in git):
-   - `E2B_API_KEY` = your `e2b_...` key
-   - `SUPABASE_JWT_SECRET` = Supabase → Project Settings → API → **JWT Secret**
-   - `ALLOWED_ORIGINS` = `https://techedu.icu,http://localhost:5173`
-5. Deploy → Railway gives `https://xxx.up.railway.app`.
-6. Validate: `curl https://xxx.up.railway.app/healthz` → `{"ok":true,"e2b_key_set":true}`.
+## Deploy on Google Cloud Run (recommended — Docker)
+Prereqs: a GCP project with **billing enabled** + `gcloud` CLI (`gcloud auth login`; `gcloud config set project <PROJECT_ID>`). One command builds the Dockerfile and deploys (no manual `docker build/push`):
+
+```bash
+cd code-interpreter
+gcloud run deploy ci-backend \
+  --source . \
+  --region asia-east1 \              # Taiwan: low latency for CN users; reaches E2B fine
+  --allow-unauthenticated \          # app-level auth is the Supabase JWT, not Cloud Run IAM
+  --memory 512Mi --cpu 1 --timeout 300 \
+  --min-instances 0 \                # set 1 to kill cold-start lag (small cost)
+  --set-env-vars "ALLOWED_ORIGINS=https://techedu.icu,http://localhost:5173" \
+  --set-env-vars "E2B_API_KEY=YOUR_E2B_KEY,SUPABASE_JWT_SECRET=YOUR_SUPABASE_JWT_SECRET"
+```
+→ prints a URL like `https://ci-backend-xxxx.asia-east1.run.app`.
+
+**Better for secrets** — use Secret Manager instead of plain env vars:
+```bash
+echo -n "YOUR_E2B_KEY" | gcloud secrets create e2b-api-key --data-file=-
+gcloud run deploy ci-backend --source . --region asia-east1 --allow-unauthenticated \
+  --update-secrets "E2B_API_KEY=e2b-api-key:latest"
+```
+Validate: `curl https://<url>/healthz` → `{"ok":true,"e2b_key_set":true}`.
+
+### Cloud Run gotchas
+- **$PORT**: handled — the Dockerfile binds `$PORT` (Cloud Run sends 8080). Don't hardcode a port.
+- **China 可达性**: `*.run.app` 从中国大陆可能不稳。给学生用就**绑自定义域**(Cloud Run → Manage Custom Domains)或用你的 **EdgeOne** CDN 兜一层。E2B ← Cloud Run 这一跳没问题(Google 网络)。
+- **冷启动**: 缩容到 0 → 首次调用慢;`--min-instances 1` 可消除。
+- **区域**: `asia-east1`(台湾)延迟好且能连 E2B;`us-central1` 亦可。
+- **沙箱在远端**: 重活在 E2B 上跑,所以容器 512Mi/1CPU 足够。
+
+## Alternative: Railway
+Deploy from GitHub repo → **Root Directory = `code-interpreter`**(用 Procfile)→ 设 `E2B_API_KEY` / `SUPABASE_JWT_SECRET` / `ALLOWED_ORIGINS` → `curl .../healthz`。
 
 ## Validate /run end-to-end
 ```bash
