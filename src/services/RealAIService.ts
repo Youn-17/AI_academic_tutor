@@ -605,36 +605,14 @@ export const AI_CONFIGS = {
 /**
  * Model categories for better organization
  */
+// Only show models that actually have an API key configured on this deployment,
+// so students aren't overwhelmed and can't pick an unconfigured model that 503s.
+// Configured providers (verified): dmxapi (Claude/ChatGPT), deepseek, zhipu(glm-5).
 export const MODEL_CATEGORIES = {
-    openai: {
-        name: 'ChatGPT (via DMXAPI)',
-        models: ['gpt-5.4', 'gpt-5.3-chat'],
-        color: 'bg-emerald-500',
-    },
-    anthropic: {
-        name: 'Claude (via DMXAPI)',
-        models: ['claude-sonnet-4-6', 'claude-sonnet-4-6-thinking', 'claude-opus-4-6', 'claude-opus-4-6-thinking', 'claude-opus-4-5-20251101', 'claude-opus-4-5-20251101-thinking', 'claude-sonnet-4-5-20250929', 'claude-sonnet-4-5-20250929-thinking'],
-        color: 'bg-amber-500',
-    },
-    google: {
-        name: 'Gemini (官方 API)',
-        models: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'],
+    recommended: {
+        name: '推荐 · 已就绪',
+        models: ['claude-sonnet-4-6', 'deepseek-chat', 'deepseek-reasoner', 'glm-5', 'gpt-5.4'],
         color: 'bg-blue-500',
-    },
-    deepseek: {
-        name: 'DeepSeek (直连)',
-        models: ['deepseek-chat', 'deepseek-reasoner'],
-        color: 'bg-sky-500',
-    },
-    zhipu: {
-        name: 'GLM · 智谱 (直连)',
-        models: ['glm-4-flash', 'glm-4-air', 'glm-4-plus', 'glm-4.7', 'glm-z1-flash', 'glm-z1', 'glm-5'],
-        color: 'bg-teal-500',
-    },
-    moonshot: {
-        name: 'Kimi (直连)',
-        models: ['moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k', 'kimi-latest'],
-        color: 'bg-violet-500',
     },
 };
 

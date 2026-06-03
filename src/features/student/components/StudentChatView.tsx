@@ -413,14 +413,8 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                             )}
                         </div>
 
-                        {/* Panel Toggles */}
-                        <button onClick={handleToggleCompareMode} className={`p-2 rounded-lg transition-all ${compareMode || rightPanelTab === 'compare' ? 'bg-purple-500/10 text-purple-500' : ''}`} title={isEN ? 'Compare AI Models' : 'AI 模型对比'}>
-                            <GitCompare size={18} />
-                        </button>
-                        <button onClick={() => setRightPanelTab(rightPanelTab === 'sources' ? null : 'sources')} className={`p-2 rounded-lg transition-all ${rightPanelTab === 'sources' ? 'bg-emerald-500/10 text-emerald-500' : ''}`}>
-                            <BookOpen size={18} />
-                        </button>
-                        <button onClick={() => setRightPanelTab(rightPanelTab === 'graph' ? null : 'graph')} className={`p-2 rounded-lg transition-all ${rightPanelTab === 'graph' ? 'bg-emerald-500/10 text-emerald-500' : ''}`}>
+                        {/* Knowledge Graph toggle */}
+                        <button onClick={() => setRightPanelTab(rightPanelTab === 'graph' ? null : 'graph')} className={`p-2 rounded-lg transition-all ${rightPanelTab === 'graph' ? 'bg-blue-500/10 text-blue-500' : ''}`} title={isEN ? 'Knowledge Graph' : '知识图谱'}>
                             <Network size={18} />
                         </button>
                     </div>
@@ -563,22 +557,12 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                             </div>
                         )}
 
-                        {showSearchInput && (
-                            <div className="mx-2 mt-2 mb-2 flex items-center gap-2">
-                                <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl border" style={{ backgroundColor: isDark ? '#1c1917' : '#f5f5f4', borderColor: colors.border }}>
-                                    <Search size={16} style={{ color: colors.textSecondary }} />
-                                    <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} placeholder={isEN ? 'Search papers...' : '搜索论文...'} className="flex-1 bg-transparent border-none outline-none text-sm" style={{ color: colors.text }} />
-                                    {isSearching ? <Loader2 size={16} className="animate-spin text-emerald-500" /> : searchQuery ? <button onClick={handleSearch} className="text-emerald-500"><SparklesIcon size={16} /></button> : null}
-                                </div>
-                                <button onClick={() => setShowSearchInput(false)} style={{ color: colors.textSecondary }}><XCircle size={16} /></button>
-                            </div>
-                        )}
+                        {/* paper search removed */}
 
                         <div className="flex items-end gap-2">
                             <div className="flex items-center gap-1 shrink-0 pb-1 pl-1">
                                 <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelect} />
                                 <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full transition-all hover:scale-110" style={{ color: colors.textSecondary }}><Plus size={20} /></button>
-                                <button onClick={() => setShowSearchInput(!showSearchInput)} className={`p-2 rounded-full transition-all hover:scale-110 ${showSearchInput ? 'text-emerald-500 bg-emerald-500/10' : ''}`} style={{ color: showSearchInput ? undefined : colors.textSecondary }}><Search size={20} /></button>
                                 {onToggleRag && (
                                     <button
                                         onClick={onToggleRag}
