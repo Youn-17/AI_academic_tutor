@@ -13,6 +13,8 @@ import AITutorAvatar from '@/shared/components/AITutorAvatar';
 import { AI_MODELS, MODEL_CATEGORIES, COMPARE_RECOMMENDATIONS, compareAIModels } from '@/services/RealAIService';
 import * as SemanticScholar from '@/services/SemanticScholarService';
 import type { PaperBasic } from '@/services/SemanticScholarService';
+import { createPortal } from 'react-dom';
+import { saveSnippetToKnowledgeBase } from '@/services/SnippetService';
 
 interface StudentChatViewProps {
     activeChat: Conversation;
@@ -74,6 +76,37 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     const [compareResults, setCompareResults] = useState<{ model: string; response: string; error?: string }[]>([]);
     const [isComparing, setIsComparing] = useState(false);
     const [showComparePanel, setShowComparePanel] = useState(false);
+
+    // ── Save-to-knowledge-base: highlight any chat text → student's personal RAG ──
+    const [kbSel, setKbSel] = useState<{ text: string; x: number; y: number } | null>(null);
+    const [kbModalText, setKbModalText] = useState<string | null>(null);
+    const [kbReason, setKbReason] = useState('');
+    const [kbSaving, setKbSaving] = useState(false);
+    const [kbToast, setKbToast] = useState<{ ok: boolean; msg: string } | null>(null);
+
+    const handleTextSelection = useCallback(() => {
+        const sel = window.getSelection();
+        const t = sel?.toString().trim() || '';
+        if (!sel || sel.rangeCount === 0 || t.length < 4) { setKbSel(null); return; }
+        const rect = sel.getRangeAt(0).getBoundingClientRect();
+        if (!rect || (rect.width === 0 && rect.height === 0)) { setKbSel(null); return; }
+        const x = Math.min(Math.max(rect.left + rect.width / 2, 90), window.innerWidth - 90);
+        const y = Math.min(rect.bottom + 8, window.innerHeight - 60);
+        setKbSel({ text: t, x, y });
+    }, []);
+
+    const handleSaveSnippet = useCallback(async () => {
+        if (kbModalText === null || !kbReason.trim()) return;
+        setKbSaving(true); setKbToast(null);
+        try {
+            await saveSnippetToKnowledgeBase(kbModalText, kbReason);
+            setKbModalText(null); setKbReason('');
+            setKbToast({ ok: true, msg: '已保存到你的知识库' });
+            setTimeout(() => setKbToast(null), 3000);
+        } catch (e) {
+            setKbToast({ ok: false, msg: (e as Error).message || '保存失败' });
+        } finally { setKbSaving(false); }
+    }, [kbModalText, kbReason]);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -422,7 +455,48 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                 </header>
 
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto w-full">
+                <div className="flex-1 overflow-y-auto w-full" onMouseUp={handleTextSelection} onScroll={() => setKbSel(null)}>
+                    {createPortal(
+                        <>
+                            {kbSel && (
+                                <button
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => { setKbModalText(kbSel.text); setKbReason(''); setKbToast(null); setKbSel(null); }}
+                                    className="fixed z-[60] -translate-x-1/2 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white shadow-lg shadow-blue-500/30 bg-gradient-to-r from-blue-600 to-sky-500 hover:scale-105 transition-transform"
+                                    style={{ left: kbSel.x, top: kbSel.y }}
+                                >
+                                    <BookOpen size={14} /> 保存到知识库
+                                </button>
+                            )}
+                            {kbModalText !== null && (
+                                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }} onClick={() => { if (!kbSaving) { setKbModalText(null); setKbToast(null); } }}>
+                                    <div className="w-full max-w-lg rounded-2xl shadow-2xl p-6" style={{ backgroundColor: colors.card, border: `1px solid ${colors.border}` }} onClick={(e) => e.stopPropagation()}>
+                                        <div className="flex items-center gap-2.5 mb-1">
+                                            <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center"><BookOpen size={17} className="text-blue-500" /></div>
+                                            <h3 className="font-bold text-base" style={{ color: colors.text }}>保存到我的知识库</h3>
+                                        </div>
+                                        <p className="text-xs mb-3 leading-relaxed" style={{ color: colors.textSecondary }}>这段内容会加入你的<b>个人知识库</b>，AI 在以后的对话中可检索它、据此更懂你的研究。</p>
+                                        <div className="rounded-xl border p-3 mb-4 text-sm max-h-32 overflow-y-auto leading-relaxed" style={{ borderColor: colors.border, backgroundColor: isDark ? 'rgba(37,99,235,0.07)' : '#f8fafc', color: colors.text }}>{kbModalText}</div>
+                                        <label className="text-xs font-semibold mb-1.5 block" style={{ color: colors.text }}>为什么保存它？<span className="text-rose-500">*</span> <span className="font-normal" style={{ color: colors.textSecondary }}>（帮你和 AI 理解它的价值）</span></label>
+                                        <textarea value={kbReason} onChange={(e) => setKbReason(e.target.value)} rows={3} autoFocus placeholder="例如：这是关于 X 的关键定义；我想用这个方法做我的研究…" className="w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400/40 resize-none" style={{ borderColor: colors.border, backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#fff', color: colors.text }} />
+                                        {kbToast && !kbToast.ok && <p className="text-xs text-rose-500 mt-2 flex items-center gap-1"><XCircle size={12} /> {kbToast.msg}</p>}
+                                        <div className="flex justify-end gap-2 mt-4">
+                                            <button onClick={() => { setKbModalText(null); setKbToast(null); }} disabled={kbSaving} className="px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50" style={{ color: colors.textSecondary }}>取消</button>
+                                            <button onClick={handleSaveSnippet} disabled={kbSaving || !kbReason.trim()} className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-40 flex items-center gap-1.5 transition-colors">
+                                                {kbSaving ? <><Loader2 size={14} className="animate-spin" /> 保存中…</> : <><Check size={14} /> 保存</>}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {kbToast?.ok && (
+                                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white shadow-lg bg-blue-600">
+                                    <Check size={15} /> {kbToast.msg}
+                                </div>
+                            )}
+                        </>,
+                        document.body
+                    )}
                     <div className={`${maxWidthClass} mx-auto px-4 py-6 space-y-6`}>
                         {/* Welcome State */}
                         {messages.length === 0 && !loading && (
