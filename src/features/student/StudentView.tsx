@@ -247,6 +247,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
         : ((condition === 'B_socratic' || useRag) ? { use_rag: true } : undefined);
       let fullResponse = '';
       let ragSources: { id: string; source_title: string; layer: number }[] = [];
+      let collectedArtifacts: { charts: string[]; files: { name: string; b64: string }[] } | undefined;
 
       try {
         for await (const chunk of streamChat(chatHistory, config, sysPrompt, ragOptions,
@@ -256,6 +257,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
             use_agent: useAgent,
             onAgentStep: (step) => setAgentSteps(prev => [...prev, step]),
             onReasoning: (t) => setReasoning(prev => prev + t),
+            onArtifacts: (a) => { collectedArtifacts = a; },
           })) {
           fullResponse += chunk;
           if (convId === activeChatIdRef.current) setStreamingContent(fullResponse);
@@ -268,7 +270,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       // 检索到的知识块 → 引用卡片(只有真实来源才会被存储与展示)
       const citations = ragSources.map(s => ({ id: s.id, title: s.source_title, source: s.source_title, author: '', year: 0, url: '' }));
       const aiMessage = await ConversationService.sendMessage(convId, fullResponse, Role.AI, selectedModel, citations);
-      if (convId === activeChatIdRef.current) setMessages(prev => [...prev, aiMessage]);
+      if (convId === activeChatIdRef.current) setMessages(prev => [...prev, collectedArtifacts ? { ...aiMessage, artifacts: collectedArtifacts } : aiMessage]);
 
       if (chatHistory.length === 1) {
         const newTitle = content.slice(0, 20) || 'New Chat';
@@ -335,6 +337,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
         : ((condition === 'B_socratic' || useRag) ? { use_rag: true } : undefined);
       let fullResponse = '';
       let ragSources: { id: string; source_title: string; layer: number }[] = [];
+      let collectedArtifacts: { charts: string[]; files: { name: string; b64: string }[] } | undefined;
 
       try {
         for await (const chunk of streamChat(chatHistory, config, sysPrompt, ragOptions,
@@ -344,6 +347,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
             use_agent: useAgent,
             onAgentStep: (step) => setAgentSteps(prev => [...prev, step]),
             onReasoning: (t) => setReasoning(prev => prev + t),
+            onArtifacts: (a) => { collectedArtifacts = a; },
           })) {
           fullResponse += chunk;
           if (convId === activeChatIdRef.current) setStreamingContent(fullResponse);
@@ -355,7 +359,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
 
       const citations = ragSources.map(s => ({ id: s.id, title: s.source_title, source: s.source_title, author: '', year: 0, url: '' }));
       const aiMessage = await ConversationService.sendMessage(convId, fullResponse, Role.AI, selectedModel, citations);
-      if (convId === activeChatIdRef.current) setMessages(prev => [...prev, aiMessage]);
+      if (convId === activeChatIdRef.current) setMessages(prev => [...prev, collectedArtifacts ? { ...aiMessage, artifacts: collectedArtifacts } : aiMessage]);
 
     } catch (err) {
       console.error('Edit failed:', err);

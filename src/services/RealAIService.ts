@@ -61,6 +61,7 @@ export interface StreamOptions {
     reasoning_effort?: 'high' | 'max';
     onAgentStep?: (step: { tool?: string; args?: any; status?: string; found?: number }) => void;
     onReasoning?: (text: string) => void;       // reasoning_content / _reasoning channel
+    onArtifacts?: (a: { charts: string[]; files: { name: string; b64: string }[] }) => void;  // run_python charts/files
 }
 
 // Stateful stripper that removes leaked <thinking>…</thinking> blocks from a
@@ -194,6 +195,7 @@ export async function* streamChat(
                     const parsed = JSON.parse(data);
                     if (parsed._rag_sources) { onSources?.(parsed._rag_sources); continue; }
                     if (parsed._agent_step) { opts.onAgentStep?.(parsed._agent_step); continue; }
+                    if (parsed._artifacts) { opts.onArtifacts?.(parsed._artifacts); continue; }
                     if (parsed._reasoning) { opts.onReasoning?.(String(parsed._reasoning)); continue; }
                     if (parsed.error) { continue; } // stream-level error; loop ends on [DONE]/close
                     const delta = parsed.choices?.[0]?.delta || {};

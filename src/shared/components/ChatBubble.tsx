@@ -173,6 +173,25 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit }) => {
               </div>
             )}
 
+            {/* run_python artifacts: charts (base64 PNG) + downloadable files */}
+            {!isEditing && message.artifacts && (((message.artifacts.charts?.length ?? 0) > 0) || ((message.artifacts.files?.length ?? 0) > 0)) && (
+              <div className="mt-4 space-y-3">
+                {message.artifacts.charts?.map((c, i) => (
+                  <img key={`ch${i}`} src={`data:image/png;base64,${c}`} alt={`图表 ${i + 1}`} className="max-w-full rounded-lg border border-border" />
+                ))}
+                {(message.artifacts.files?.length ?? 0) > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {message.artifacts.files!.map((f, i) => (
+                      <a key={`f${i}`} href={`data:application/octet-stream;base64,${f.b64}`} download={f.name}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-medium border border-blue-200 hover:bg-blue-100 transition-colors">
+                        ⬇ {f.name}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* AI Actions */}
             {isAI && (
               <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/50 opacity-0 group-hover:opacity-100 transition-opacity">

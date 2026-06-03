@@ -49,6 +49,8 @@ export interface Message {
   isIntervention?: boolean;
   contentType?: 'text' | 'chart' | 'image';
   chartData?: any;
+  // run_python (code-interpreter) outputs: base64 PNG charts + downloadable files (transient, not persisted)
+  artifacts?: { charts: string[]; files: { name: string; b64: string }[] };
 }
 
 export interface Conversation {
