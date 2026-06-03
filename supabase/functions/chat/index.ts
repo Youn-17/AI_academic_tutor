@@ -99,14 +99,15 @@ function checkRateLimitMem(userId: string): boolean {
 }
 // S1 fix: cross-isolate check via Postgres RPC, best-effort (falls back to mem).
 async function rateLimitOk(serviceClient: any, userId: string): Promise<boolean> {
-  if (!checkRateLimitMem(userId)) return false;
+  // Postgres RPC is authoritative (cross-isolate); only fall back to the in-memory
+  // counter when the RPC errors/absent — never charge both budgets on one request.
   try {
     const { data, error } = await serviceClient.rpc('check_rate_limit', {
       p_user_id: userId, p_max: RATE_LIMIT_MAX, p_window: 60,
     });
-    if (!error && data === false) return false;
-  } catch (_) { /* RPC absent → rely on in-memory */ }
-  return true;
+    if (!error) return data !== false;
+  } catch (_) { /* RPC absent → fall back to in-memory */ }
+  return checkRateLimitMem(userId);
 }
 
 // ── provider routing ───────────────────────────────────────
@@ -123,6 +124,19 @@ function resolvePlatformKey(p: Provider): string {
   if (p === 'moonshot' || p === 'kimi') return MOONSHOT_API_KEY;
   if (p === 'google')                   return GOOGLE_API_KEY;
   return DMXAPI_API_KEY;
+}
+
+// ── Multimodal helpers ─────────────────────────────────────
+const VISION_MODEL = 'glm-4v-flash';   // Zhipu free vision model (one place to update if renamed)
+function hasImage(messages: any[]): boolean {
+  return messages.some((m) => Array.isArray(m?.content) && m.content.some((p: any) => p?.type === 'image_url'));
+}
+function lastUserText(messages: any[]): string {
+  const u = [...messages].reverse().find((m: any) => m.role === 'user');
+  if (!u) return '';
+  if (typeof u.content === 'string') return u.content;
+  if (Array.isArray(u.content)) return u.content.filter((p: any) => p?.type === 'text').map((p: any) => p.text || '').join(' ');
+  return '';
 }
 
 // ── embedding (used by RAG + agent tools) ──────────────────
@@ -339,22 +353,23 @@ async function runAgentStream(controller: ReadableStreamDefaultController, opts:
   try {
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
       const forceFinal = round === MAX_TOOL_ROUNDS;
-      const params = {
-        ...opts.baseParams,
-        messages: msgs,
-        tools: opts.tools,
-        tool_choice: forceFinal ? 'none' : 'auto',
-      };
+      // #4: on the forced-final round OMIT tools entirely — DMXAPI/Zhipu proxies
+      // often ignore tool_choice:'none' and keep emitting empty tool-call turns.
+      const params: any = { ...opts.baseParams, messages: msgs };
+      if (!forceFinal) { params.tools = opts.tools; params.tool_choice = 'auto'; }
       const resp = await callProviderJSON(opts.apiUrl, opts.key, params);
-      const m = resp.choices?.[0]?.message || {};
+      const choice = resp.choices?.[0] || {};
+      const m = choice.message || {};
       if (m.reasoning_content) send({ _reasoning: String(m.reasoning_content) });
 
+      // #5: a length-truncated turn has malformed tool_calls JSON — don't run tools on it.
+      const truncated = choice.finish_reason === 'length';
       const toolCalls = m.tool_calls || [];
-      if (toolCalls.length && !forceFinal) {
+      if (toolCalls.length && !forceFinal && !truncated) {
         msgs.push({ role: 'assistant', content: m.content || '', tool_calls: toolCalls });
         for (const tc of toolCalls) {
           let args: any = {};
-          try { args = JSON.parse(tc.function?.arguments || '{}'); } catch (_) { /* ignore */ }
+          try { args = JSON.parse(tc.function?.arguments || '{}'); } catch (_) { continue; /* skip malformed */ }
           send({ _agent_step: { tool: tc.function?.name, args, status: 'running' } });
           const { content, sources } = await executeTool(tc.function?.name, args, opts.ctx);
           if (sources?.length) allSources.push(...sources);
@@ -371,7 +386,18 @@ async function runAgentStream(controller: ReadableStreamDefaultController, opts:
         if (seen.has(k)) return false; seen.add(k); return true;
       });
       if (sources.length) send({ _rag_sources: sources });
-      const clean = stripThinking(m.content || '');
+      let clean = stripThinking(m.content || '');
+      // #4: never close with a blank answer — retry once with tools omitted, then fall back.
+      if (!clean) {
+        try {
+          const retry = await callProviderJSON(opts.apiUrl, opts.key, {
+            ...opts.baseParams,
+            messages: [...msgs, { role: 'user', content: '请基于以上信息，现在直接用中文文字给出完整回答，不要再调用任何工具。' }],
+          });
+          clean = stripThinking(retry.choices?.[0]?.message?.content || '');
+        } catch (_) { /* ignore */ }
+      }
+      if (!clean) clean = '（抱歉，我没能生成有效回答，请换一种问法或重试。）';
       for (let i = 0; i < clean.length; i += 60) {
         send({ choices: [{ index: 0, delta: { content: clean.slice(i, i + 60) } }] });
       }
@@ -469,6 +495,23 @@ serve(async (req: Request) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
     }
+    // multimodal: cap image count + per-image dataURL size (~6MB)
+    let _imgCount = 0;
+    for (const msg of messages) {
+      if (Array.isArray(msg.content)) for (const part of msg.content) {
+        if (part?.type === 'image_url') {
+          _imgCount++;
+          if ((part.image_url?.url || '').length > 8_000_000) {
+            return new Response(JSON.stringify({ error: '图片过大，请压缩后再试（≤6MB）' }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          }
+        }
+      }
+    }
+    if (_imgCount > 4) {
+      return new Response(JSON.stringify({ error: '一次最多上传 4 张图片' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     // Normalise provider
     let provider: Provider;
@@ -478,6 +521,15 @@ serve(async (req: Request) => {
     else if (rawProvider === 'google') provider = 'google';
     else provider = 'dmxapi';
 
+    // ── 4a. Multimodal: if any message carries an image, force a vision-capable route
+    //   (deepseek/text models 400 on image parts; glm-4v-flash is free vision; Claude is multimodal).
+    const imagePresent = hasImage(messages);
+    let effModel: string = model;
+    if (imagePresent) {
+      if (typeof model === 'string' && model.startsWith('claude')) { provider = 'dmxapi'; }
+      else { provider = 'zhipu'; effModel = VISION_MODEL; }
+    }
+
     // ── 4. Resolve API key (teacher class > own > platform admin > env) ──
     let resolvedApiKey = '';
     try {
@@ -485,11 +537,11 @@ serve(async (req: Request) => {
         .from('class_members').select('class_id').eq('student_id', user.id).limit(5);
       if (membership?.length) {
         const classIds = membership.map((m: any) => m.class_id);
-        const pf = provider === 'dmxapi' ? ['dmxapi', 'openai', 'anthropic', 'google']
+        const pf = provider === 'dmxapi' ? ['dmxapi', 'openai', 'anthropic']
           : provider === 'moonshot' ? ['moonshot', 'kimi'] : [provider];
         const { data: teacherKey } = await serviceClient
           .from('ai_api_configs').select('api_key')
-          .in('provider', pf).eq('is_active', true).in('class_id', classIds).limit(1).single();
+          .in('provider', pf).eq('is_active', true).in('class_id', classIds).limit(1).maybeSingle();
         if (teacherKey?.api_key) resolvedApiKey = teacherKey.api_key;
       }
       if (!resolvedApiKey) {
@@ -497,7 +549,7 @@ serve(async (req: Request) => {
           : provider === 'moonshot' ? ['moonshot', 'kimi'] : [provider];
         const { data: ownKey } = await serviceClient
           .from('ai_api_configs').select('api_key')
-          .in('provider', pf).eq('owner_id', user.id).eq('is_active', true).limit(1).single();
+          .in('provider', pf).eq('owner_id', user.id).eq('is_active', true).limit(1).maybeSingle();
         if (ownKey?.api_key) resolvedApiKey = ownKey.api_key;
       }
       if (!resolvedApiKey) {
@@ -505,18 +557,18 @@ serve(async (req: Request) => {
           : provider === 'moonshot' ? ['moonshot', 'kimi'] : [provider];
         const { data: adminKey } = await serviceClient
           .from('ai_api_configs').select('api_key')
-          .in('provider', pf).eq('scope', 'platform').eq('is_active', true).limit(1).single();
+          .in('provider', pf).eq('scope', 'platform').eq('is_active', true).limit(1).maybeSingle();
         if (adminKey?.api_key) resolvedApiKey = adminKey.api_key;
       }
 
       // Priority 4: ANY active key for this provider (single-class/pilot fallback,
       // so a teacher's class-scoped key works even for students not yet enrolled).
       if (!resolvedApiKey) {
-        const pf = provider === 'dmxapi' ? ['dmxapi', 'openai', 'anthropic', 'google']
+        const pf = provider === 'dmxapi' ? ['dmxapi', 'openai', 'anthropic']
           : provider === 'moonshot' ? ['moonshot', 'kimi'] : [provider];
         const { data: anyKey } = await serviceClient
           .from('ai_api_configs').select('api_key')
-          .in('provider', pf).eq('is_active', true).not('api_key', 'is', null).limit(1).single();
+          .in('provider', pf).eq('is_active', true).not('api_key', 'is', null).limit(1).maybeSingle();
         if (anyKey?.api_key) resolvedApiKey = anyKey.api_key;
       }
     } catch (_) { /* fall through to env key */ }
@@ -527,16 +579,17 @@ serve(async (req: Request) => {
     }
 
     const apiUrl = resolveEndpoint(provider);
-    const baseParams = buildBaseParams(model, provider, { thinking, reasoning_effort, response_format });
+    const baseParams = buildBaseParams(effModel, provider, { thinking, reasoning_effort, response_format });
 
     // ── 5a. AGENT MODE (tool-calling) ── always streams its result ──
-    if (use_agent) {
+    //   (skipped when an image is present — the vision model glm-4v-flash has no tool-calling)
+    if (use_agent && !imagePresent) {
       // Tavily web-search key — teacher-configurable via ai_api_configs(provider='tavily'). Best-effort.
       let tavilyKey = Deno.env.get('TAVILY_API_KEY') || '';
       try {
         const { data: tv } = await serviceClient
           .from('ai_api_configs').select('api_key')
-          .eq('provider', 'tavily').eq('is_active', true).not('api_key', 'is', null).limit(1).single();
+          .eq('provider', 'tavily').eq('is_active', true).not('api_key', 'is', null).limit(1).maybeSingle();
         if (tv?.api_key) tavilyKey = tv.api_key;
       } catch (_) { /* no tavily key configured */ }
 
@@ -560,8 +613,7 @@ serve(async (req: Request) => {
     let ragSources: any[] = [];
     if (use_rag) {
       try {
-        const lastUserMsg = [...messages].reverse().find((m: any) => m.role === 'user');
-        const queryText = lastUserMsg?.content || '';
+        const queryText = lastUserText(messages);
         if (queryText.length > 5) {
           const vec = await embedQuery(queryText, resolvedApiKey);
           if (vec) {
