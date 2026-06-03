@@ -95,9 +95,21 @@ def run(req: RunReq, authorization: str = Header(default="")):
     if len(req.code) > MAX_CODE:
         raise HTTPException(400, "code too long")
 
-    from e2b_code_interpreter import Sandbox  # imported lazily so /healthz works without network
+    from e2b_code_interpreter import Sandbox  # lazy import so /healthz works without network
 
-    sbx = Sandbox(api_key=E2B_API_KEY, timeout=SANDBOX_TIMEOUT)
+    def _txt(v):  # SDK v2: logs.stdout/stderr are lists of strings
+        if isinstance(v, list):
+            return "".join(str(x) for x in v)
+        return str(v or "")
+
+    try:
+        # SDK v2 API: create a sandbox via the classmethod; api key is read from the
+        # E2B_API_KEY env var (set on Cloud Run). The old `Sandbox(api_key=, timeout=)`
+        # constructor form is not valid in v2 and raised → 500.
+        sbx = Sandbox.create(timeout=SANDBOX_TIMEOUT)
+    except Exception as e:
+        raise HTTPException(502, f"sandbox create failed: {type(e).__name__}: {e}")
+
     try:
         # write input files via a prelude (SDK-agnostic — only uses run_code)
         prelude = "import os,base64\nos.makedirs('/data',exist_ok=True)\n"
@@ -113,18 +125,22 @@ def run(req: RunReq, authorization: str = Header(default="")):
         for name in req.return_files[:5]:
             r = sbx.run_code(
                 f"import base64;print(base64.b64encode(open('/data/{name}','rb').read()).decode())")
-            b64 = (r.logs.stdout or "").strip()
+            b64 = _txt(r.logs.stdout).strip()
             if b64 and not r.error:
                 out_files.append({"name": name, "b64": b64})
 
         return {
             "uid": uid,
-            "stdout": (ex.logs.stdout or "")[:20000],
-            "stderr": (ex.logs.stderr or "")[:4000],
+            "stdout": _txt(ex.logs.stdout)[:20000],
+            "stderr": _txt(ex.logs.stderr)[:4000],
             "error": str(ex.error) if ex.error else None,
             "charts": charts,        # base64 PNG strings (matplotlib auto-captured)
             "files": out_files,      # [{"name","b64"}]
         }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(502, f"run failed: {type(e).__name__}: {e}")
     finally:
         try:
             sbx.kill()
