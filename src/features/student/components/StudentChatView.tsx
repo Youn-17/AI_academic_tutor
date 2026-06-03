@@ -15,6 +15,7 @@ import * as SemanticScholar from '@/services/SemanticScholarService';
 import type { PaperBasic } from '@/services/SemanticScholarService';
 import { createPortal } from 'react-dom';
 import { saveSnippetToKnowledgeBase } from '@/services/SnippetService';
+import { AGENT_ROLES } from '@/services/AgentRoles';
 
 interface StudentChatViewProps {
     activeChat: Conversation;
@@ -37,6 +38,9 @@ interface StudentChatViewProps {
     agentSteps?: { tool?: string; status?: string; found?: number }[];
     reasoning?: string;
     onStop?: () => void;
+    selectedRole?: string;
+    onRoleSelect?: (id: string) => void;
+    roleLocked?: boolean;       // true for A/B participants — role fixed by condition
 }
 
 type RightPanelTab = 'graph' | 'sources' | 'compare' | null;
@@ -48,7 +52,8 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     onSendMessage, onEditMessage, selectedModel, onModelSelect,
     useRag = false, onToggleRag,
     theme, onToggleTheme, locale, onLocaleChange, onClearChat, onExportChat,
-    agentSteps, reasoning, onStop
+    agentSteps, reasoning, onStop,
+    selectedRole = 'socratic', onRoleSelect, roleLocked,
 }) => {
     const [inputValue, setInputValue] = useState('');
     const [attachedFile, setAttachedFile] = useState<File | null>(null);
@@ -622,6 +627,20 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                         <div ref={messagesEndRef} className="h-4" />
                     </div>
                 </div>
+
+                {/* AI role picker — only for non-experiment users (participants stay on their A/B condition) */}
+                {onRoleSelect && !roleLocked && (
+                    <div className={`${maxWidthClass} mx-auto px-4 pb-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar`}>
+                        <span className="text-[10px] shrink-0 mr-1" style={{ color: colors.textSecondary }}>AI 角色</span>
+                        {AGENT_ROLES.map(r => (
+                            <button key={r.id} onClick={() => onRoleSelect(r.id)} title={r.desc}
+                                className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${selectedRole === r.id ? 'bg-blue-500 text-white border-blue-500 shadow-sm' : 'border-slate-200 dark:border-slate-700 hover:border-blue-300 hover:text-blue-500'}`}
+                                style={selectedRole === r.id ? {} : { color: colors.textSecondary }}>
+                                {r.emoji} {r.name}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 {/* Input */}
                 <div className="px-4 pb-4">

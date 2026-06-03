@@ -10,6 +10,7 @@ import StudentChatView from '@/features/student/components/StudentChatView';
 import { useAuth } from '@/features/auth/AuthProvider';
 import * as ConversationService from '@/services/ConversationService';
 import { streamChat, AI_CONFIGS, AI_MODELS, SYSTEM_PROMPTS, ChatMessage } from '@/services/RealAIService';
+import { getRolePrompt } from '@/services/AgentRoles';
 import { readFileContent } from '@/services/DocumentService';
 import { getMyCondition, type StudyCondition } from '@/services/StudyService';
 
@@ -59,6 +60,8 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
   const [isThinking, setIsThinking] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-6');
+  const [selectedRole, setSelectedRole] = useState<string>(() => localStorage.getItem('hak_role') || 'socratic');
+  const handleRoleSelect = (id: string) => { setSelectedRole(id); try { localStorage.setItem('hak_role', id); } catch { /* ignore */ } };
   const [useRag, setUseRag] = useState(false);
   const [condition, setCondition] = useState<StudyCondition | null>(null);  // A/B 实验条件(非参与者=null)
   const [agentSteps, setAgentSteps] = useState<{ tool?: string; status?: string; found?: number }[]>([]);
@@ -236,7 +239,9 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
         ? { provider: modelInfo.provider, model: modelInfo.model }
         : AI_CONFIGS.deepseekChat;
       // A/B:A_direct=普通提示+无RAG+无工具(对照);B_socratic=苏格拉底+RAG+智能体;null(非参与者)=默认苏格拉底+智能体
-      const sysPrompt = condition === 'A_direct' ? SYSTEM_PROMPTS.direct : SYSTEM_PROMPTS.academic;
+      const sysPrompt = condition === 'A_direct' ? SYSTEM_PROMPTS.direct
+        : condition === 'B_socratic' ? SYSTEM_PROMPTS.academic
+        : getRolePrompt(selectedRole);   // non-participants pick a role; participants stay on the A/B prompt
       const ragOptions = condition === 'A_direct'
         ? undefined
         : ((condition === 'B_socratic' || useRag) ? { use_rag: true } : undefined);
@@ -322,7 +327,9 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       const config = modelInfo
         ? { provider: modelInfo.provider, model: modelInfo.model }
         : AI_CONFIGS.deepseekChat;
-      const sysPrompt = condition === 'A_direct' ? SYSTEM_PROMPTS.direct : SYSTEM_PROMPTS.academic;
+      const sysPrompt = condition === 'A_direct' ? SYSTEM_PROMPTS.direct
+        : condition === 'B_socratic' ? SYSTEM_PROMPTS.academic
+        : getRolePrompt(selectedRole);   // non-participants pick a role; participants stay on the A/B prompt
       const ragOptions = condition === 'A_direct'
         ? undefined
         : ((condition === 'B_socratic' || useRag) ? { use_rag: true } : undefined);
@@ -467,6 +474,9 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
             agentSteps={agentSteps}
             reasoning={reasoning}
             onStop={() => abortRef.current?.abort()}
+            selectedRole={selectedRole}
+            onRoleSelect={handleRoleSelect}
+            roleLocked={condition !== null}
           />
         )}
       </div>
