@@ -290,6 +290,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
 
     const toolLabel = (t?: string): string => (({
         search_knowledge_base: isEN ? 'Searching knowledge base' : '检索知识库',
+        web_search: isEN ? 'Searching the web' : '联网搜索中',
         search_academic_papers: isEN ? 'Searching papers' : '检索学术文献',
         get_paper_details: isEN ? 'Fetching paper details' : '获取论文详情',
         recall_memory: isEN ? 'Recalling memory' : '回忆过往记录',

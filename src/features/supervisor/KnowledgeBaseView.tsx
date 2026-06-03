@@ -18,7 +18,7 @@ const LAYERS = [
     label: '全局基础知识库',
     shortLabel: '层1·全局',
     icon: Globe,
-    color: 'emerald',
+    color: 'blue',
     desc: '平台共享科研方法、写作指导、伦理规范等基础资料（管理员添加）',
     visibility: 'global' as const,
     canUpload: false,
@@ -56,7 +56,7 @@ const LAYERS = [
 ] as const;
 
 const STATUS_CONFIG = {
-  completed: { label: '已索引', icon: CheckCircle, cls: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
+  completed: { label: '已索引', icon: CheckCircle, cls: 'text-blue-600 bg-blue-50 border-blue-100' },
   processing: { label: '处理中', icon: Clock,        cls: 'text-amber-600  bg-amber-50  border-amber-100',  spin: true },
   pending:    { label: '等待中', icon: Clock,        cls: 'text-slate-500  bg-slate-50  border-slate-200' },
   failed:     { label: '失败',   icon: AlertCircle,  cls: 'text-rose-600   bg-rose-50   border-rose-100' },
@@ -193,14 +193,14 @@ export default function KnowledgeBaseView() {
   };
 
   const colorMap: Record<string, string> = {
-    emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    emerald: 'bg-blue-50 text-blue-700 border-blue-200',
     blue:    'bg-blue-50 text-blue-700 border-blue-200',
     violet:  'bg-violet-50 text-violet-700 border-violet-200',
     amber:   'bg-amber-50 text-amber-700 border-amber-200',
   };
 
   const iconBgMap: Record<string, string> = {
-    emerald: 'bg-emerald-500/10 text-emerald-600',
+    emerald: 'bg-blue-500/10 text-blue-600',
     blue:    'bg-blue-500/10 text-blue-600',
     violet:  'bg-violet-500/10 text-violet-600',
     amber:   'bg-amber-500/10 text-amber-600',
@@ -212,15 +212,15 @@ export default function KnowledgeBaseView() {
       <div className="bg-white border-b border-slate-200 px-6 py-5">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-              <Database size={18} className="text-emerald-600" />
+            <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center">
+              <Database size={18} className="text-blue-600" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-slate-900">知识库管理</h1>
               <p className="text-xs text-slate-400 mt-0.5">RAG 分层知识系统 · 权限驱动检索</p>
             </div>
           </div>
-          <button onClick={loadDocs} className="p-2 text-slate-400 hover:text-emerald-600 transition-colors rounded-lg hover:bg-emerald-50">
+          <button onClick={loadDocs} className="p-2 text-slate-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50">
             <RefreshCw size={16} />
           </button>
         </div>
@@ -297,15 +297,15 @@ export default function KnowledgeBaseView() {
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-                  dragOver ? 'border-blue-400 bg-blue-50' : uploadFile ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50/50'
+                  dragOver ? 'border-blue-400 bg-blue-50' : uploadFile ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50/50'
                 }`}>
                 <input ref={fileInputRef} type="file" className="hidden"
                   accept=".pdf,.txt,.md,.doc,.docx,.csv,.json"
                   onChange={e => e.target.files?.[0] && setFileFromPicker(e.target.files[0])} />
                 {uploadFile ? (
                   <div className="flex items-center justify-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
-                      <FileText size={20} className="text-emerald-600" />
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                      <FileText size={20} className="text-blue-600" />
                     </div>
                     <div className="text-left">
                       <p className="text-sm font-bold text-slate-800">{uploadFile.name}</p>
@@ -351,7 +351,7 @@ export default function KnowledgeBaseView() {
               </div>
 
               {uploadMsg && (
-                <p className={`text-sm font-medium ${uploadMsg.type === 'ok' ? 'text-emerald-600' : 'text-rose-500'}`}>
+                <p className={`text-sm font-medium ${uploadMsg.type === 'ok' ? 'text-blue-600' : 'text-rose-500'}`}>
                   {uploadMsg.text}
                 </p>
               )}
@@ -374,14 +374,14 @@ export default function KnowledgeBaseView() {
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
               <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
                 placeholder="搜索文档…"
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400" />
+                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400" />
             </div>
             <span className="text-xs text-slate-400 ml-auto">{filtered.length} 份文档</span>
           </div>
 
           {loading ? (
             <div className="py-16 flex flex-col items-center gap-3 text-slate-400">
-              <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
               <p className="text-sm">加载中…</p>
             </div>
           ) : filtered.length === 0 ? (
@@ -418,7 +418,7 @@ export default function KnowledgeBaseView() {
                       <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
                         <span>{doc.resource_type}</span>
                         {doc.file_size && <><span>·</span><span>{formatFileSize(doc.file_size)}</span></>}
-                        {doc.chunk_count > 0 && <><span>·</span><span className="text-emerald-600 font-semibold">{doc.chunk_count} 块</span></>}
+                        {doc.chunk_count > 0 && <><span>·</span><span className="text-blue-600 font-semibold">{doc.chunk_count} 块</span></>}
                         <span>·</span>
                         <span>{new Date(doc.created_at).toLocaleDateString('zh-CN')}</span>
                       </div>
@@ -444,7 +444,7 @@ export default function KnowledgeBaseView() {
 
         {/* Info footer */}
         <div className="flex items-start gap-2.5 p-4 bg-slate-100 rounded-xl text-xs text-slate-500">
-          <Sparkles size={13} className="text-emerald-500 shrink-0 mt-0.5" />
+          <Sparkles size={13} className="text-blue-500 shrink-0 mt-0.5" />
           <p>
             文档上传后自动进行文本切块与向量嵌入（embedding），处理完成后学生发起 AI 对话时可启用 RAG 模式检索相关内容。
             文本/MD 文件实时处理；PDF/DOCX 需要服务端解析，请稍等。

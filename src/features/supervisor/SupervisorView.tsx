@@ -301,8 +301,8 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
 
   // ── Shared styles ─────────────────────────────────────────
   const cardBase = 'bg-white rounded-xl border border-slate-200';
-  const inputCls = 'w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all';
-  const btnPrimary = 'flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-all shadow-sm shadow-emerald-500/20';
+  const inputCls = 'w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all';
+  const btnPrimary = 'flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-all shadow-sm shadow-blue-500/20';
 
   // ── NAV items ─────────────────────────────────────────────
   const navItems: { id: ViewMode; icon: React.ComponentType<{ size?: number }>; label: string }[] = [
@@ -320,7 +320,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
       {/* ── Icon Rail ──────────────────────────────────── */}
       <aside className="w-[72px] bg-[#0B1829] flex flex-col items-center py-5 gap-1.5 z-30 flex-shrink-0 hidden md:flex border-r border-white/5">
         {/* Logo */}
-        <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-400 rounded-xl flex items-center justify-center text-white mb-5 shadow-lg shadow-emerald-500/30">
+        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-sky-400 rounded-xl flex items-center justify-center text-white mb-5 shadow-lg shadow-blue-500/30">
           <Sparkles size={18} />
         </div>
 
@@ -336,7 +336,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
             }}
             className={`relative group p-3 rounded-xl transition-all w-12 flex justify-center
               ${viewMode === item.id
-                ? 'bg-emerald-500/15 text-emerald-400'
+                ? 'bg-blue-500/15 text-blue-400'
                 : 'text-slate-500 hover:bg-white/5 hover:text-slate-200'
               }`}
             title={item.label}
@@ -375,7 +375,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
               <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                 <Users size={13} /> 学生列表
               </h2>
-              <button onClick={() => setRefreshTrigger(p => p + 1)} className="text-slate-400 hover:text-emerald-500 transition-colors" title="刷新">
+              <button onClick={() => setRefreshTrigger(p => p + 1)} className="text-slate-400 hover:text-blue-500 transition-colors" title="刷新">
                 <RefreshCw size={14} />
               </button>
             </div>
@@ -384,7 +384,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
               <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
                 placeholder="搜索学生..."
-                className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder-slate-400 transition-all"
+                className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 placeholder-slate-400 transition-all"
               />
             </div>
 
@@ -392,7 +392,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
               {([['all', '全部'], ['flagged', '预警'], ['active', '活跃']] as [FilterStatus, string][]).map(([val, lbl]) => (
                 <button key={val} onClick={() => setFilterStatus(val)}
                   className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${filterStatus === val
-                    ? val === 'flagged' ? 'bg-white text-rose-600 shadow-sm' : 'bg-white text-emerald-700 shadow-sm'
+                    ? val === 'flagged' ? 'bg-white text-rose-600 shadow-sm' : 'bg-white text-blue-700 shadow-sm'
                     : 'text-slate-400 hover:text-slate-700'
                   }`}
                 >
@@ -417,15 +417,15 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                 <div key={chat.id} onClick={() => handleChatSelect(chat.id)}
                   className={`relative p-3 rounded-xl cursor-pointer border transition-all group
                     ${selectedChatId === chat.id
-                      ? 'bg-emerald-50 border-emerald-200/70 shadow-sm'
+                      ? 'bg-blue-50 border-blue-200/70 shadow-sm'
                       : 'border-transparent hover:bg-slate-50 hover:border-slate-200'
                     }`}
                 >
-                  {selectedChatId === chat.id && <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-emerald-500 rounded-r" />}
+                  {selectedChatId === chat.id && <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-blue-500 rounded-r" />}
 
                   <div className="flex justify-between items-start mb-1 pl-1">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
                         {(chat.studentName?.[0] || '?').toUpperCase()}
                       </div>
                       <span className="text-sm font-semibold text-slate-800 truncate">{chat.studentName || '未知学生'}</span>
@@ -442,8 +442,8 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                       >
                         <Flag size={13} fill={chat.status === 'flagged' ? 'currentColor' : 'none'} />
                       </button>
-                      {chat.status === 'completed' && <CheckCircle size={12} className="text-emerald-500" />}
-                      {chat.status === 'active' && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+                      {chat.status === 'completed' && <CheckCircle size={12} className="text-blue-500" />}
+                      {chat.status === 'active' && <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />}
                     </div>
                   </div>
 
@@ -470,7 +470,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                 const nav = navItems.find(n => n.id === viewMode)!;
                 return (
                   <>
-                    <nav.icon size={16} className="text-emerald-600" />
+                    <nav.icon size={16} className="text-blue-600" />
                     <span className="font-bold font-heading text-slate-800 text-sm">{nav.label}</span>
                   </>
                 );
@@ -489,7 +489,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
             <div className="flex items-center bg-slate-100 rounded-lg p-1 h-8 gap-0.5">
               {(['zh-CN', 'zh-TW', 'en'] as Locale[]).map(l => (
                 <button key={l} onClick={() => setLocale(l)}
-                  className={`px-2 text-[10px] font-bold h-full rounded-md transition-all ${locale === l ? 'bg-white shadow-sm text-emerald-700' : 'text-slate-400 hover:text-slate-600'}`}>
+                  className={`px-2 text-[10px] font-bold h-full rounded-md transition-all ${locale === l ? 'bg-white shadow-sm text-blue-700' : 'text-slate-400 hover:text-slate-600'}`}>
                   {l === 'zh-CN' ? '简' : l === 'zh-TW' ? '繁' : 'EN'}
                 </button>
               ))}
@@ -497,7 +497,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
 
             {/* Teacher avatar */}
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center text-white text-xs font-bold shadow-sm">
                 {teacherName[0].toUpperCase()}
               </div>
               <span className="text-sm font-medium text-slate-700 hidden sm:block">{teacherName}</span>
@@ -523,7 +523,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
               {/* AI Header */}
               <div className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-5">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center">
                     <Bot size={16} className="text-white" />
                   </div>
                   <div>
@@ -536,7 +536,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                 <div className="relative" ref={aiModelMenuRef}>
                   <button onClick={() => setAiModelMenuOpen(!aiModelMenuOpen)}
                     className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-medium text-slate-700 transition-colors">
-                    <Sparkles size={12} className="text-emerald-500" />
+                    <Sparkles size={12} className="text-blue-500" />
                     {currentAiModelName}
                     <ChevronDown size={12} className={`transition-transform ${aiModelMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
@@ -548,7 +548,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                           <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{group.group}</div>
                           {group.models.map(m => (
                             <button key={m.id} onClick={() => { setAiModel(m.id); setAiProvider(m.provider); setAiModelMenuOpen(false); }}
-                              className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-all ${aiModel === m.id ? 'bg-emerald-50 text-emerald-700' : 'hover:bg-slate-50 text-slate-700'}`}>
+                              className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-all ${aiModel === m.id ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50 text-slate-700'}`}>
                               <span>{m.name}</span>
                               {m.tier === 'pro' && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-600 font-bold">PRO</span>}
                             </button>
@@ -564,7 +564,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
               <div className="flex-1 overflow-y-auto p-5 space-y-4">
                 {aiMessages.length === 0 && (
                   <div className="flex flex-col items-center justify-center h-full text-center">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center mb-4 shadow-xl shadow-emerald-500/20">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center mb-4 shadow-xl shadow-blue-500/20">
                       <Sparkles size={28} className="text-white" />
                     </div>
                     <p className="font-bold text-slate-700 mb-1">教师专属 AI 助手</p>
@@ -572,7 +572,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                     <div className="grid grid-cols-2 gap-2 w-full max-w-sm">
                       {['帮我分析学生最近的学习状态', '为研究方法论课生成讨论题目', '如何提升学生的批判性思维', '建议本周指导计划'].map((s, i) => (
                         <button key={i} onClick={() => setAiInput(s)}
-                          className="p-3 text-left text-xs bg-white border border-slate-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50/50 transition-all text-slate-600">
+                          className="p-3 text-left text-xs bg-white border border-slate-200 rounded-xl hover:border-blue-300 hover:bg-blue-50/50 transition-all text-slate-600">
                           {s}
                         </button>
                       ))}
@@ -582,12 +582,12 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                 {aiMessages.map((m, i) => (
                   <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     {m.role === 'assistant' && (
-                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center mr-2 mt-1 shrink-0">
+                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center mr-2 mt-1 shrink-0">
                         <Bot size={13} className="text-white" />
                       </div>
                     )}
                     <div className={`max-w-2xl px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed ${m.role === 'user'
-                      ? 'bg-emerald-600 text-white rounded-tr-sm'
+                      ? 'bg-blue-600 text-white rounded-tr-sm'
                       : 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm shadow-sm'
                     }`}>
                       {m.content}
@@ -596,12 +596,12 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                 ))}
                 {aiStreaming && aiMessages[aiMessages.length - 1]?.role !== 'assistant' && (
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center">
+                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center">
                       <Bot size={13} className="text-white" />
                     </div>
                     <div className="flex gap-1 px-4 py-3 bg-white border border-slate-200 rounded-2xl shadow-sm">
                       {[0, 1, 2].map(i => (
-                        <div key={i} className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                        <div key={i} className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                       ))}
                     </div>
                   </div>
@@ -615,10 +615,10 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleAiSend()}
                     placeholder="输入问题，和 AI 助手对话…"
                     disabled={aiStreaming}
-                    className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm disabled:opacity-50 transition-all"
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm disabled:opacity-50 transition-all"
                   />
                   <button onClick={handleAiSend} disabled={aiStreaming || !aiInput.trim()}
-                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl disabled:opacity-50 flex items-center gap-2 text-sm font-medium transition-all shadow-sm shadow-emerald-500/20">
+                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl disabled:opacity-50 flex items-center gap-2 text-sm font-medium transition-all shadow-sm shadow-blue-500/20">
                     {aiStreaming ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
                     发送
                   </button>
@@ -635,8 +635,8 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                 {/* Profile */}
                 <div className={`${cardBase} overflow-hidden`}>
                   <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                      <User size={14} className="text-emerald-600" />
+                    <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                      <User size={14} className="text-blue-600" />
                     </div>
                     <h2 className="font-bold text-slate-800 text-sm">个人资料</h2>
                   </div>
@@ -658,7 +658,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                       <input value={profile?.email || ''} disabled className={`${inputCls} bg-slate-50 opacity-60 cursor-not-allowed`} />
                     </div>
                     {profileMsg && (
-                      <p className={`text-sm font-medium ${profileMsg.startsWith('✓') ? 'text-emerald-600' : 'text-rose-500'}`}>{profileMsg}</p>
+                      <p className={`text-sm font-medium ${profileMsg.startsWith('✓') ? 'text-blue-600' : 'text-rose-500'}`}>{profileMsg}</p>
                     )}
                     <button onClick={handleSaveProfile} disabled={profileSaving} className={btnPrimary}>
                       <Save size={15} /> {profileSaving ? '保存中…' : '保存资料'}
@@ -670,8 +670,8 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                 <div className={`${cardBase} overflow-hidden`}>
                   <div className="px-5 py-4 border-b border-slate-100">
                     <div className="flex items-start gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center mt-0.5">
-                        <Key size={14} className="text-emerald-600" />
+                      <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center mt-0.5">
+                        <Key size={14} className="text-blue-600" />
                       </div>
                       <div>
                         <h2 className="font-bold text-slate-800 text-sm">AI API 配置</h2>
@@ -682,9 +682,9 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
 
                   <div className="p-5">
                     {/* Info banner */}
-                    <div className="flex items-start gap-2.5 p-3 bg-emerald-50 border border-emerald-200/60 rounded-xl mb-5">
-                      <Info size={14} className="text-emerald-600 shrink-0 mt-0.5" />
-                      <div className="text-xs text-emerald-700 leading-relaxed">
+                    <div className="flex items-start gap-2.5 p-3 bg-blue-50 border border-blue-200/60 rounded-xl mb-5">
+                      <Info size={14} className="text-blue-600 shrink-0 mt-0.5" />
+                      <div className="text-xs text-blue-700 leading-relaxed">
                         各服务商需分别配置 Key。<strong>DMXAPI</strong> 接入 Claude + ChatGPT；<strong>Gemini</strong> 使用 Google 官方 API；DeepSeek、智谱、Kimi 均为直连。
                         配置后，您班级的学生自动使用对应 Key 进行 AI 对话。
                       </div>
@@ -697,11 +697,11 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                         {apiConfigs.map(cfg => (
                           <div key={cfg.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm group">
                             <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                              <div className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
                               <div className="min-w-0">
                                 <p className="font-medium text-slate-800 truncate">{cfg.label || `${cfg.provider} / ${cfg.model}`}</p>
                                 <p className="text-xs text-slate-400 font-mono mt-0.5">{cfg.masked_key}
-                                  {cfg.class_id && <span className="ml-2 text-emerald-600">{myClasses.find(c => c.id === cfg.class_id)?.name || '班级'}</span>}
+                                  {cfg.class_id && <span className="ml-2 text-blue-600">{myClasses.find(c => c.id === cfg.class_id)?.name || '班级'}</span>}
                                 </p>
                               </div>
                             </div>
@@ -720,10 +720,10 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">选择服务商</label>
                         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                           {[
-                            { value: 'dmxapi',   label: 'DMXAPI',      sub: 'Claude · ChatGPT', badge: '推荐', color: 'emerald', docUrl: 'https://doc.dmxapi.cn/jichu.html',               defaultModel: 'claude-sonnet-4-6' },
+                            { value: 'dmxapi',   label: 'DMXAPI',      sub: 'Claude · ChatGPT', badge: '推荐', color: 'blue', docUrl: 'https://doc.dmxapi.cn/jichu.html',               defaultModel: 'claude-sonnet-4-6' },
                             { value: 'google',   label: 'Gemini',      sub: 'Google 官方 API',  badge: null,   color: 'blue',    docUrl: 'https://ai.google.dev/gemini-api/docs',             defaultModel: 'gemini-2.5-flash' },
                             { value: 'deepseek', label: 'DeepSeek',    sub: 'V3 / R1 直连',     badge: '免费', color: 'sky',     docUrl: 'https://platform.deepseek.com/api-docs',            defaultModel: 'deepseek-chat' },
-                            { value: 'zhipu',    label: '智谱 GLM',    sub: 'GLM-4.7 / Z1',     badge: null,   color: 'teal',    docUrl: 'https://open.bigmodel.cn/dev/api',                  defaultModel: 'glm-4-flash' },
+                            { value: 'zhipu',    label: '智谱 GLM',    sub: 'GLM-4.7 / Z1',     badge: null,   color: 'sky',    docUrl: 'https://open.bigmodel.cn/dev/api',                  defaultModel: 'glm-4-flash' },
                             { value: 'moonshot', label: 'Kimi',        sub: 'Moonshot 直连',    badge: null,   color: 'violet',  docUrl: 'https://platform.moonshot.cn/docs/api/chat',         defaultModel: 'moonshot-v1-32k' },
                             { value: 'tavily',   label: 'Tavily 搜索', sub: '联网搜索·给智能体', badge: '新',   color: 'blue',    docUrl: 'https://docs.tavily.com',                           defaultModel: 'tavily-search' },
                           ].map(p => (
@@ -734,7 +734,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                               className={`p-3 rounded-xl border text-left transition-all ${apiForm.provider === p.value ? `border-${p.color}-400 bg-${p.color}-50` : 'border-slate-200 hover:border-slate-300 bg-white'}`}>
                               <div className="flex items-center justify-between mb-1">
                                 <p className={`text-xs font-bold ${apiForm.provider === p.value ? `text-${p.color}-700` : 'text-slate-700'}`}>{p.label}</p>
-                                {p.badge && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${p.color === 'emerald' ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700'}`}>{p.badge}</span>}
+                                {p.badge && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${p.color === 'blue' ? 'bg-blue-100 text-blue-700' : 'bg-sky-100 text-sky-700'}`}>{p.badge}</span>}
                               </div>
                               <p className="text-[10px] text-slate-400">{p.sub}</p>
                               <a href={p.docUrl} target="_blank" rel="noopener noreferrer"
@@ -765,7 +765,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                                     {group.models.map(m => (
                                       <button key={m.id} type="button"
                                         onClick={() => { setApiForm(f => ({ ...f, model: m.id })); setShowModelDropdown(false); }}
-                                        className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-all ${apiForm.model === m.id ? 'bg-emerald-50 text-emerald-700' : 'hover:bg-slate-50 text-slate-700'}`}>
+                                        className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-all ${apiForm.model === m.id ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50 text-slate-700'}`}>
                                         <span>{m.name}</span>
                                         {m.tier === 'pro' && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-600 font-bold">PRO</span>}
                                       </button>
@@ -870,7 +870,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                       </div>
 
                       {apiMsg && (
-                        <p className={`text-sm font-medium ${apiMsg.startsWith('✓') ? 'text-emerald-600' : 'text-rose-500'}`}>{apiMsg}</p>
+                        <p className={`text-sm font-medium ${apiMsg.startsWith('✓') ? 'text-blue-600' : 'text-rose-500'}`}>{apiMsg}</p>
                       )}
 
                       <button onClick={handleSaveApiKey} disabled={apiSaving} className={btnPrimary}>
@@ -887,10 +887,10 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                     <h2 className="font-bold text-slate-600 text-sm">安全说明</h2>
                   </div>
                   <ul className="space-y-1.5 text-xs text-slate-500">
-                    <li className="flex items-start gap-2"><span className="text-emerald-500 shrink-0 mt-0.5">✓</span>API Key 仅在服务端（Supabase Edge Function）使用，从不暴露给浏览器</li>
-                    <li className="flex items-start gap-2"><span className="text-emerald-500 shrink-0 mt-0.5">✓</span>学生无法看到您的 Key，仅能使用其对应的模型</li>
-                    <li className="flex items-start gap-2"><span className="text-emerald-500 shrink-0 mt-0.5">✓</span>每分钟每用户最多 20 次 AI 请求，防止滥用</li>
-                    <li className="flex items-start gap-2"><span className="text-emerald-500 shrink-0 mt-0.5">✓</span>{'优先级：教师班级 Key > 平台管理员 Key > 系统 Key'}</li>
+                    <li className="flex items-start gap-2"><span className="text-blue-500 shrink-0 mt-0.5">✓</span>API Key 仅在服务端（Supabase Edge Function）使用，从不暴露给浏览器</li>
+                    <li className="flex items-start gap-2"><span className="text-blue-500 shrink-0 mt-0.5">✓</span>学生无法看到您的 Key，仅能使用其对应的模型</li>
+                    <li className="flex items-start gap-2"><span className="text-blue-500 shrink-0 mt-0.5">✓</span>每分钟每用户最多 20 次 AI 请求，防止滥用</li>
+                    <li className="flex items-start gap-2"><span className="text-blue-500 shrink-0 mt-0.5">✓</span>{'优先级：教师班级 Key > 平台管理员 Key > 系统 Key'}</li>
                   </ul>
                 </div>
               </div>
@@ -904,7 +904,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                 <div>
                   <h1 className="text-2xl font-bold font-heading text-slate-900">欢迎回来，{teacherName}</h1>
                   <p className="text-slate-400 mt-1 text-sm flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
                     {activeCount} 位学生正在学习 · {flaggedCount > 0 && <span className="text-rose-500 font-medium">{flaggedCount} 位需要关注</span>}
                   </p>
                 </div>
@@ -949,7 +949,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
               {/* Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
                 {[
-                  { label: 'AI 交互总数', value: conversations.reduce((s, c) => s + (c.messages?.length || 0), 0), icon: MessageSquare, color: 'text-emerald-500', bg: 'bg-emerald-500/10', trend: '+12%' },
+                  { label: 'AI 交互总数', value: conversations.reduce((s, c) => s + (c.messages?.length || 0), 0), icon: MessageSquare, color: 'text-blue-500', bg: 'bg-blue-500/10', trend: '+12%' },
                   { label: '待处理预警', value: flaggedCount, icon: CheckSquare, color: 'text-rose-500', bg: 'bg-rose-500/10', trend: null },
                   { label: '在线学生', value: `${activeCount} / ${conversations.length}`, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10', trend: null },
                 ].map(s => (
@@ -959,7 +959,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                       <div className={`p-2 rounded-lg ${s.bg}`}><s.icon size={16} className={s.color} /></div>
                     </div>
                     <p className="text-3xl font-bold font-heading text-slate-900">{s.value}</p>
-                    {s.trend && <p className="text-xs text-emerald-600 mt-2 font-medium">▲ {s.trend} vs 上周</p>}
+                    {s.trend && <p className="text-xs text-blue-600 mt-2 font-medium">▲ {s.trend} vs 上周</p>}
                   </div>
                 ))}
               </div>
@@ -968,7 +968,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
                 <div className={`${cardBase} p-5`}>
                   <h3 className="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2 font-heading">
-                    <BookOpen size={15} className="text-emerald-500" /> 学生活跃度
+                    <BookOpen size={15} className="text-blue-500" /> 学生活跃度
                   </h3>
                   <div className="h-56">
                     <ResponsiveContainer width="100%" height="100%">
@@ -977,7 +977,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} dy={8} />
                         <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
                         <Tooltip contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '12px' }} />
-                        <Bar dataKey="value" fill="#10b981" radius={[5, 5, 0, 0]} barSize={28} />
+                        <Bar dataKey="value" fill="#2563EB" radius={[5, 5, 0, 0]} barSize={28} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -985,7 +985,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
 
                 <div className={`${cardBase} p-5`}>
                   <h3 className="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2 font-heading">
-                    <Activity size={15} className="text-emerald-500" /> 知识掌握流向
+                    <Activity size={15} className="text-blue-500" /> 知识掌握流向
                   </h3>
                   <div className="h-56"><LearningSankeyChart /></div>
                 </div>
@@ -993,7 +993,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
 
               <div className={`${cardBase} p-5`}>
                 <h3 className="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2 font-heading">
-                  <Clock size={15} className="text-emerald-500" /> 学习活跃度热力图
+                  <Clock size={15} className="text-blue-500" /> 学习活跃度热力图
                 </h3>
                 <ActivityHeatmap />
               </div>

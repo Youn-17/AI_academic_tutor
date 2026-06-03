@@ -204,7 +204,7 @@ const ClassroomView: React.FC = () => {
                         <div className="flex justify-between items-center mt-2">
                         <span className="text-[10px] text-slate-400 font-mono bg-slate-100 px-1.5 py-0.5 rounded flex items-center gap-1.5" title="点击复制班级ID" onClick={(e) => { e.stopPropagation(); handleCopyId(cls.id); }}>
                             ID: {cls.id.slice(0, 8)}...
-                            {copiedId === cls.id ? <Check size={10} className="text-emerald-500" /> : <Copy size={10} className="hover:text-indigo-500 cursor-pointer" />}
+                            {copiedId === cls.id ? <Check size={10} className="text-blue-500" /> : <Copy size={10} className="hover:text-indigo-500 cursor-pointer" />}
                         </span>
                         <span className="text-[10px] text-slate-400 flex items-center gap-1">
                             <Calendar size={10} />
@@ -233,7 +233,7 @@ const ClassroomView: React.FC = () => {
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <Users size={18} className="text-emerald-500" />
+                  <Users size={18} className="text-blue-500" />
                   <span className="font-bold">{members.length}</span> 名学生
                 </div>
                 {members.length > 0 && (

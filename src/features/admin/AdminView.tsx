@@ -20,14 +20,14 @@ type AdminTab = 'applications' | 'classes' | 'consent' | 'users' | 'api';
 
 const ROLE_CONFIG: Record<string, { label: string; cls: string }> = {
     student:            { label: '学生',     cls: 'bg-blue-100 text-blue-700' },
-    supervisor:         { label: '教师',     cls: 'bg-emerald-100 text-emerald-700' },
+    supervisor:         { label: '教师',     cls: 'bg-blue-100 text-blue-700' },
     pending_supervisor: { label: '待审核',   cls: 'bg-amber-100 text-amber-700' },
     admin:              { label: '管理员',   cls: 'bg-violet-100 text-violet-700' },
 };
 
 const CONSENT_STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
     pending:          { label: '等待回应', cls: 'bg-amber-100 text-amber-700' },
-    both_approved:    { label: '已获授权', cls: 'bg-emerald-100 text-emerald-700' },
+    both_approved:    { label: '已获授权', cls: 'bg-blue-100 text-blue-700' },
     teacher_rejected: { label: '教师已拒绝', cls: 'bg-rose-100 text-rose-700' },
     student_rejected: { label: '学生已拒绝', cls: 'bg-rose-100 text-rose-700' },
     expired:          { label: '已过期',   cls: 'bg-slate-100 text-slate-500' },
@@ -313,7 +313,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                         {[
                             { label: '总用户', value: stats.total, icon: <Users size={18} />, color: 'text-indigo-600 bg-indigo-50' },
                             { label: '学生', value: stats.students, icon: <GraduationCap size={18} />, color: 'text-blue-600 bg-blue-50' },
-                            { label: '教师', value: stats.supervisors, icon: <BookOpen size={18} />, color: 'text-emerald-600 bg-emerald-50' },
+                            { label: '教师', value: stats.supervisors, icon: <BookOpen size={18} />, color: 'text-blue-600 bg-blue-50' },
                             { label: '待审核', value: stats.pending, icon: <Clock size={18} />, color: 'text-amber-600 bg-amber-50' },
                         ].map(s => (
                             <div key={s.label} className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
@@ -335,9 +335,9 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                         </div>
                     )}
                     {successMsg && (
-                        <div className="mb-4 p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-3">
-                            <CheckCircle size={18} className="text-emerald-500 shrink-0" />
-                            <p className="text-sm text-emerald-700">{successMsg}</p>
+                        <div className="mb-4 p-4 rounded-xl bg-blue-50 border border-blue-200 flex items-center gap-3">
+                            <CheckCircle size={18} className="text-blue-500 shrink-0" />
+                            <p className="text-sm text-blue-700">{successMsg}</p>
                         </div>
                     )}
 
@@ -354,7 +354,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                                 <div className="text-center py-16 text-slate-400">加载中…</div>
                             ) : pendingTeachers.length === 0 ? (
                                 <div className="text-center py-16 bg-white rounded-xl border border-slate-200">
-                                    <CheckCircle size={40} className="text-emerald-400 mx-auto mb-3" />
+                                    <CheckCircle size={40} className="text-blue-400 mx-auto mb-3" />
                                     <p className="text-slate-500">暂无待审核的教师申请</p>
                                 </div>
                             ) : (
@@ -362,8 +362,8 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                                     {pendingTeachers.map(t => (
                                         <div key={t.id} className="bg-white rounded-xl border border-slate-200 p-5">
                                             <div className="flex items-start gap-3 mb-4">
-                                                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                                                    <BookOpen size={18} className="text-emerald-600" />
+                                                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+                                                    <BookOpen size={18} className="text-blue-600" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-semibold text-slate-900 truncate">{t.full_name || '未填写姓名'}</p>
@@ -392,7 +392,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                                                 <button
                                                     onClick={() => handleApprove(t)}
                                                     disabled={actionLoading === t.id}
-                                                    className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-50"
+                                                    className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-50"
                                                 >
                                                     <CheckCircle size={14} /> 批准
                                                 </button>
@@ -585,12 +585,12 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                                                             </p>
                                                             <p className="text-xs text-slate-500 mt-1 line-clamp-1">原因：{req.reason}</p>
                                                             <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
-                                                                <span className={`flex items-center gap-1 ${req.teacher_consent === true ? 'text-emerald-600' : req.teacher_consent === false ? 'text-rose-500' : ''}`}>
+                                                                <span className={`flex items-center gap-1 ${req.teacher_consent === true ? 'text-blue-600' : req.teacher_consent === false ? 'text-rose-500' : ''}`}>
                                                                     {req.teacher_consent === true ? <CheckCircle size={12} /> : req.teacher_consent === false ? <XCircle size={12} /> : <Clock size={12} />}
                                                                     教师{req.teacher_consent === true ? '已同意' : req.teacher_consent === false ? '已拒绝' : '待确认'}
                                                                 </span>
                                                                 <ChevronRight size={12} />
-                                                                <span className={`flex items-center gap-1 ${req.student_consent === true ? 'text-emerald-600' : req.student_consent === false ? 'text-rose-500' : ''}`}>
+                                                                <span className={`flex items-center gap-1 ${req.student_consent === true ? 'text-blue-600' : req.student_consent === false ? 'text-rose-500' : ''}`}>
                                                                     {req.student_consent === true ? <CheckCircle size={12} /> : req.student_consent === false ? <XCircle size={12} /> : <Clock size={12} />}
                                                                     学生{req.student_consent === true ? '已同意' : req.student_consent === false ? '已拒绝' : '待确认'}
                                                                 </span>
@@ -600,7 +600,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                                                             <button
                                                                 onClick={() => handleDownload(req)}
                                                                 disabled={actionLoading === `dl-${req.id}`}
-                                                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium disabled:opacity-50"
+                                                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-medium disabled:opacity-50"
                                                             >
                                                                 <Download size={13} />
                                                                 {actionLoading === `dl-${req.id}` ? '下载中…' : '下载数据'}
@@ -685,7 +685,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                                             placeholder="如：DeepSeek 平台默认"
                                             className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
                                     </div>
-                                    {apiMsg && <p className={`text-sm ${apiMsg.includes('已保存') ? 'text-emerald-600' : 'text-rose-500'}`}>{apiMsg}</p>}
+                                    {apiMsg && <p className={`text-sm ${apiMsg.includes('已保存') ? 'text-blue-600' : 'text-rose-500'}`}>{apiMsg}</p>}
                                     <button onClick={handleSaveApiKey} disabled={apiSaving}
                                         className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium disabled:opacity-50">
                                         <Key size={15} /> {apiSaving ? '保存中…' : '保存 API Key'}
