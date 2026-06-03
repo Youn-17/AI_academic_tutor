@@ -230,6 +230,14 @@ const CODE_INTERPRETER_TOOL = { type: 'function', function: {
   }, required: ['code'] },
 }};
 
+const DEEP_SEARCH_TOOL = { type: 'function', function: {
+  name: 'deep_search',
+  description: '深度检索平台知识库：把一个较复杂/综合的研究问题自动拆成多个角度的子问题，分别检索后去重合并，比单次 search_knowledge_base 召回更全。当问题涉及多个概念、需要综述/对比、或单次检索不够全面时优先用它。',
+  parameters: { type: 'object', properties: {
+    query: { type: 'string', description: '完整的研究问题（自然语言即可，工具会自动拆解）' },
+  }, required: ['query'] },
+}};
+
 interface ToolCtx {
   serviceClient: any;
   user: { id: string };
@@ -237,6 +245,8 @@ interface ToolCtx {
   resolvedApiKey: string;
   tavilyKey?: string;
   userToken?: string;   // original "Bearer ..." header, forwarded to the code-interpreter backend
+  apiUrl?: string;      // resolved provider endpoint (for deep_search sub-query decomposition)
+  model?: string;       // resolved model
 }
 type ToolResult = { content: string; sources: any[]; artifacts?: { charts: string[]; files: { name: string; b64: string }[] } };
 
@@ -342,6 +352,49 @@ async function executeTool(name: string, args: any, ctx: ToolCtx): Promise<ToolR
       const content = ans + (rows.length
         ? rows.map((x, i) => `[${i + 1}] ${x.title}\n${x.url}\n${String(x.content || '').slice(0, 320)}`).join('\n\n')
         : '未检索到结果。');
+      return { content, sources };
+    }
+
+    if (name === 'deep_search') {
+      const question = String(args.query || '');
+      if (!question) return { content: '（缺少检索问题）', sources: [] };
+      let subqs: string[] = [question];
+      try {
+        if (ctx.apiUrl && ctx.model) {
+          const dec = await callProviderJSON(ctx.apiUrl, ctx.resolvedApiKey, {
+            model: ctx.model, max_tokens: 300, temperature: 0.3,
+            response_format: { type: 'json_object' },
+            messages: [
+              { role: 'system', content: '把研究问题拆成 2-4 个互补的检索子问题(覆盖不同概念/角度)。只输出 JSON：{"queries":["...","..."]}' },
+              { role: 'user', content: question },
+            ],
+          });
+          let raw = String(dec?.choices?.[0]?.message?.content || '');
+          const a = raw.indexOf('{'); const b = raw.lastIndexOf('}');
+          if (a >= 0 && b > a) raw = raw.slice(a, b + 1);
+          const j = JSON.parse(raw);
+          if (Array.isArray(j.queries) && j.queries.length) {
+            subqs = [question, ...j.queries.map((x: any) => String(x))].slice(0, 4);
+          }
+        }
+      } catch (_) { /* single-query fallback */ }
+      const seen = new Set<string>();
+      const hits: any[] = [];
+      for (const q of subqs) {
+        const vec = await embedQuery(q, ctx.resolvedApiKey);
+        if (!vec) continue;
+        const { data } = await ctx.serviceClient.rpc('match_chunks', {
+          query_embedding: `[${vec.join(',')}]`, p_user_id: ctx.user.id,
+          p_course_id: ctx.course_id || null, p_layer_filter: null,
+          match_count: 5, similarity_threshold: 0.3,
+        });
+        for (const c of (data || [])) { if (!seen.has(String(c.id))) { seen.add(String(c.id)); hits.push(c); } }
+      }
+      const top = hits.slice(0, 10);
+      const sources = top.map((c) => ({ id: c.id, source_title: c.source_title, layer: c.layer }));
+      const content = top.length
+        ? `（深度检索：${subqs.length} 个角度，合并 ${top.length} 段）\n\n` + top.map((c, i) => `[${i + 1}] ${c.source_title || '知识库'}：${String(c.content).slice(0, 500)}`).join('\n\n')
+        : '知识库中未找到相关内容。';
       return { content, sources };
     }
 
@@ -662,10 +715,10 @@ serve(async (req: Request) => {
         if (tv?.api_key) tavilyKey = tv.api_key;
       } catch (_) { /* no tavily key configured */ }
 
-      const ctx: ToolCtx = { serviceClient, user, course_id: course_id || null, resolvedApiKey, tavilyKey, userToken: authHeader || undefined };
-      const tools = [...TOOL_DEFS, ...(tavilyKey ? [WEB_SEARCH_TOOL] : []), CODE_INTERPRETER_TOOL];
+      const ctx: ToolCtx = { serviceClient, user, course_id: course_id || null, resolvedApiKey, tavilyKey, userToken: authHeader || undefined, apiUrl, model: effModel };
+      const tools = [...TOOL_DEFS, DEEP_SEARCH_TOOL, ...(tavilyKey ? [WEB_SEARCH_TOOL] : []), CODE_INTERPRETER_TOOL];
       const webNote = tavilyKey ? '、web_search(联网搜索最新/实时信息，知识库没有时用)' : '';
-      const note = `\n\n你具备工具能力：search_knowledge_base(检索平台知识库——已含多本统计/学习科学教材与论文，稳定可靠，概念或事实依据优先用它)${webNote}、run_python(需要对数据/表格做计算统计、画图表、或生成 Excel/Word 文件时，在隔离沙箱里跑 Python)、recall_memory(回忆该学生过往)、save_memory(保存关键决策/进展/待办)。需要依据或计算时优先调用工具，绝不编造文献或数据。调用工具后，请在回答中自然地说明你查阅了哪些来源（书名/论文/网址）或做了什么计算，便于学生核对。`;
+      const note = `\n\n你具备工具能力：search_knowledge_base(单次检索平台知识库——已含多本统计/学习科学教材与论文)、deep_search(综合/多概念/综述类问题用它，自动把问题拆成多角度检索后合并，召回更全)${webNote}、run_python(需要对数据/表格做计算统计、画图表、或生成 Excel/Word 文件时，在隔离沙箱里跑 Python)、recall_memory(回忆该学生过往)、save_memory(保存关键决策/进展/待办)。需要依据或计算时优先调用工具，绝不编造文献或数据。调用工具后，请在回答中自然地说明你查阅了哪些来源（书名/论文/网址）或做了什么计算，便于学生核对。`;
       const sysIdx = messages.findIndex((m: any) => m.role === 'system');
       const agentMsgs = sysIdx >= 0
         ? messages.map((m: any, i: number) => i === sysIdx ? { ...m, content: m.content + note } : m)
