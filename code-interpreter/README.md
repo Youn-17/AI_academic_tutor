@@ -27,9 +27,10 @@ gcloud run deploy ci-backend \
   --allow-unauthenticated \          # app-level auth is the Supabase JWT, not Cloud Run IAM
   --memory 512Mi --cpu 1 --timeout 300 \
   --min-instances 0 \                # set 1 to kill cold-start lag (small cost)
-  --set-env-vars "ALLOWED_ORIGINS=https://techedu.icu,http://localhost:5173" \
-  --set-env-vars "SUPABASE_URL=https://oztozjwngekmqtuylypt.supabase.co,SUPABASE_ANON_KEY=YOUR_ANON_KEY" \
-  --set-env-vars "E2B_API_KEY=YOUR_E2B_KEY"
+  --set-env-vars "ALLOWED_ORIGINS=https://techedu.icu,SUPABASE_URL=https://oztozjwngekmqtuylypt.supabase.co,SUPABASE_ANON_KEY=YOUR_ANON_KEY,E2B_API_KEY=YOUR_E2B_KEY"
+# NOTE: one --set-env-vars only (repeating the flag overwrites). Values must NOT contain
+# commas (that's the pair delimiter). For multiple CORS origins use the ^@^ delimiter:
+#   --set-env-vars "^@^ALLOWED_ORIGINS=https://a.com,https://b.com@SUPABASE_URL=...@E2B_API_KEY=..."
 ```
 → prints a URL like `https://ci-backend-xxxx.asia-east1.run.app`.
 
