@@ -114,7 +114,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
 
   // API config state
   const [apiConfigs, setApiConfigs] = useState<{ id: string; provider: string; model: string; label: string; masked_key?: string; scope: string; class_id?: string }[]>([]);
-  const [apiForm, setApiForm] = useState({ provider: 'dmxapi', model: 'claude-sonnet-4-6', api_key: '', label: '', class_id: '' });
+  const [apiForm, setApiForm] = useState({ provider: 'dmxapi', model: 'auto', api_key: '', label: '', class_id: '' });
   const [showKey, setShowKey] = useState(false);
   const [apiSaving, setApiSaving] = useState(false);
   const [apiMsg, setApiMsg] = useState<string | null>(null);
@@ -748,7 +748,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">选择服务商</label>
                         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                           {[
-                            { value: 'dmxapi',   label: 'DMXAPI',      sub: 'Claude · ChatGPT', badge: '推荐', color: 'blue', docUrl: 'https://doc.dmxapi.cn/jichu.html',               defaultModel: 'claude-sonnet-4-6' },
+                            { value: 'dmxapi',   label: 'DMXAPI',      sub: '一个Key·全模型自动', badge: '推荐', color: 'blue', docUrl: 'https://doc.dmxapi.cn/jichu.html',               defaultModel: 'auto' },
                             { value: 'google',   label: 'Gemini',      sub: 'Google 官方 API',  badge: null,   color: 'blue',    docUrl: 'https://ai.google.dev/gemini-api/docs',             defaultModel: 'gemini-2.5-flash' },
                             { value: 'deepseek', label: 'DeepSeek',    sub: 'V3 / R1 直连',     badge: '免费', color: 'sky',     docUrl: 'https://platform.deepseek.com/api-docs',            defaultModel: 'deepseek-chat' },
                             { value: 'zhipu',    label: '智谱 GLM',    sub: 'GLM-4.7 / Z1',     badge: null,   color: 'sky',    docUrl: 'https://open.bigmodel.cn/dev/api',                  defaultModel: 'glm-4-flash' },
@@ -779,29 +779,9 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">默认模型</label>
                         {apiForm.provider === 'dmxapi' ? (
-                          <div className="relative">
-                            <button type="button" onClick={() => setShowModelDropdown(!showModelDropdown)}
-                              className={`${inputCls} flex items-center justify-between`}>
-                              <span>{DMXAPI_MODELS.flatMap(g => g.models).find(m => m.id === apiForm.model)?.name || apiForm.model}</span>
-                              <ChevronDown size={14} className={`text-slate-400 transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
-                            </button>
-                            {showModelDropdown && (
-                              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1.5 max-h-64 overflow-y-auto">
-                                {DMXAPI_MODELS.map(group => (
-                                  <div key={group.group}>
-                                    <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{group.group}</div>
-                                    {group.models.map(m => (
-                                      <button key={m.id} type="button"
-                                        onClick={() => { setApiForm(f => ({ ...f, model: m.id })); setShowModelDropdown(false); }}
-                                        className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-all ${apiForm.model === m.id ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50 text-slate-700'}`}>
-                                        <span>{m.name}</span>
-                                        {m.tier === 'pro' && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-600 font-bold">PRO</span>}
-                                      </button>
-                                    ))}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                          <div className={`${inputCls} flex items-start gap-2 text-slate-500`}>
+                            <span className="text-base leading-none">🪄</span>
+                            <span className="text-xs leading-relaxed">一个 Key 用所有模型 —— 系统会按任务<b className="text-blue-600">自动选择</b>最合适的模型（Claude / GPT / Gemini），无需手动选。你只要填好下面的 API Key 即可。</span>
                           </div>
                         ) : apiForm.provider === 'google' ? (
                           <select value={apiForm.model} onChange={e => setApiForm(f => ({ ...f, model: e.target.value }))} className={inputCls}>

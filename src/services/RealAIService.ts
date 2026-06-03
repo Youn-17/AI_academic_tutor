@@ -316,6 +316,16 @@ export async function chat(
  * - Moonshot/Kimi: direct https://api.moonshot.cn
  */
 export const AI_MODELS: Record<string, { id: string; name: string; provider: AIProvider; model: string; description: string; category: 'free' | 'premium'; color: string }> = {
+    // === Auto router (DMXAPI: one key, best model per task) ===
+    'auto': {
+        id: 'auto',
+        name: '🪄 自动选择',
+        provider: 'dmxapi',
+        model: 'auto',
+        description: '按任务自动选最合适的模型（Claude / GPT / Gemini）',
+        category: 'free',
+        color: 'bg-blue-600',
+    },
     // === ChatGPT via DMXAPI ===
     'gpt-5.4': {
         id: 'gpt-5.4',
@@ -615,7 +625,7 @@ export const AI_CONFIGS = {
 export const MODEL_CATEGORIES = {
     recommended: {
         name: '推荐 · 已就绪',
-        models: ['claude-sonnet-4-6', 'deepseek-chat', 'deepseek-reasoner', 'glm-5', 'gpt-5.4'],
+        models: ['auto', 'claude-sonnet-4-6', 'deepseek-chat', 'deepseek-reasoner', 'glm-5', 'gpt-5.4'],
         color: 'bg-blue-500',
     },
 };

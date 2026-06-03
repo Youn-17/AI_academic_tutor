@@ -59,7 +59,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
   // Chat State
   const [isThinking, setIsThinking] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
-  const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-6');
+  const [selectedModel, setSelectedModel] = useState('auto');
   const [selectedRole, setSelectedRole] = useState<string>(() => localStorage.getItem('hak_role') || 'socratic');
   const handleRoleSelect = (id: string) => { setSelectedRole(id); try { localStorage.setItem('hak_role', id); } catch { /* ignore */ } };
   const [useRag, setUseRag] = useState(false);
