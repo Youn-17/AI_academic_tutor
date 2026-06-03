@@ -100,7 +100,7 @@ serve(async (req: Request) => {
         .eq('owner_id', user.id)
         .eq('is_active', true)
         .limit(1)
-        .single();
+        .maybeSingle();
       // …then ANY active key for the provider (so a student with no own key can
       // still embed via the teacher's class key / a platform key).
       if (!keyRow?.api_key) {
@@ -111,7 +111,7 @@ serve(async (req: Request) => {
           .eq('is_active', true)
           .not('api_key', 'is', null)
           .limit(1)
-          .single();
+          .maybeSingle();
         keyRow = fallback.data;
       }
       if (keyRow?.api_key) apiKey = keyRow.api_key;
