@@ -1,7 +1,11 @@
 # code-interpreter backend — container for Google Cloud Run / Fly / any Docker host.
 # The heavy Python (pandas/matplotlib/…) runs REMOTELY in the E2B sandbox, so this
 # image stays small — it only orchestrates + auths.
-FROM python:3.12-slim
+# BASE_IMAGE: default = Docker Hub (Cloud Build uses this). In mainland China where Docker Hub
+# is GFW-blocked, either set a Docker Desktop proxy (recommended) OR pass a mirror, e.g.:
+#   --build-arg BASE_IMAGE=docker.m.daocloud.io/library/python:3.12-slim
+ARG BASE_IMAGE=python:3.12-slim
+FROM ${BASE_IMAGE}
 
 WORKDIR /app
 
