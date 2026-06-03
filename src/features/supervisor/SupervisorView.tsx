@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Conversation, Role, Locale } from '@/types';
 import { useAuth } from '@/features/auth/AuthProvider';
 import ChatBubble from '@/shared/components/ChatBubble';
+import ClassroomAnalyst from '@/features/supervisor/ClassroomAnalyst';
 import * as ConversationService from '@/services/ConversationService';
 import * as ClassService from '@/services/ClassService';
 import { AI_MODELS, MODEL_CATEGORIES, streamChat } from '@/services/RealAIService';
@@ -1041,6 +1042,12 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                 ))}
                 <div ref={messagesEndRef} />
               </div>
+
+              <ClassroomAnalyst
+                messages={selectedChat.messages}
+                studentName={selectedChat.studentName}
+                onUseNudge={setInterventionText}
+              />
 
               {/* Intervention bar */}
               <div className="bg-white p-4 border-t border-slate-200 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.04)] z-20">
