@@ -139,6 +139,28 @@ function lastUserText(messages: any[]): string {
   return '';
 }
 
+// ── Task-based model router (DMXAPI: one key → many models) ─────────────────
+// When the client sends model='auto', pick the best DMXAPI-served model per task.
+// All routed models go through the DMXAPI endpoint + the dmxapi key (one key for all).
+const ROUTER = {
+  balanced: 'claude-sonnet-4-6',  // default general tutoring
+  hard:     'claude-opus-4-6',    // deep reasoning / proofs / math
+  code:     'gpt-5.2',            // coding / debugging
+  long:     'gemini-2.5-flash',   // long input / summarize (cheap long-context)
+  fast:     'gpt-5-mini',         // very short quick factual
+  vision:   'claude-sonnet-4-6',  // multimodal (Claude is multimodal via DMXAPI)
+};
+function pickModel(messages: any[], opts: { hasImage?: boolean; reasoning_effort?: string }): string {
+  if (opts.hasImage) return ROUTER.vision;
+  const t = lastUserText(messages).toLowerCase();
+  const len = t.length;
+  if (opts.reasoning_effort || /证明|推导|严格|逐步|为什么|反例|定理|复杂度|prove|derive|theorem|rigorous|step.by.step/.test(t)) return ROUTER.hard;
+  if (/代码|函数|报错|调试|编译|正则|算法实现|stack ?trace|\bbug\b|\bdebug\b|python|javascript|typescript|\bsql\b|```/.test(t)) return ROUTER.code;
+  if (len > 4000 || /总结|概括|归纳|全文|这篇|summari[sz]e/.test(t)) return ROUTER.long;
+  if (len > 0 && len < 30) return ROUTER.fast;
+  return ROUTER.balanced;
+}
+
 // ── embedding (used by RAG + agent tools) ──────────────────
 async function embedQuery(text: string, fallbackKey: string): Promise<number[] | null> {
   try {
@@ -525,7 +547,11 @@ serve(async (req: Request) => {
     //   (deepseek/text models 400 on image parts; glm-4v-flash is free vision; Claude is multimodal).
     const imagePresent = hasImage(messages);
     let effModel: string = model;
-    if (imagePresent) {
+    if (model === 'auto') {
+      // one DMXAPI key → router picks the best DMXAPI-served model for this task
+      provider = 'dmxapi';
+      effModel = pickModel(messages, { hasImage: imagePresent, reasoning_effort });
+    } else if (imagePresent) {
       if (typeof model === 'string' && model.startsWith('claude')) { provider = 'dmxapi'; }
       else { provider = 'zhipu'; effModel = VISION_MODEL; }
     }
