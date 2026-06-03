@@ -5,9 +5,13 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# deps first (layer cache)
+# deps first (layer cache).
+# PIP_INDEX_URL defaults to PyPI (Cloud Build / US hosts use this). For LOCAL builds in
+# mainland China (where files.pythonhosted.org is GFW-throttled), pass a mirror:
+#   docker build --build-arg PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple -t ci-backend .
+ARG PIP_INDEX_URL=https://pypi.org/simple
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -i ${PIP_INDEX_URL} -r requirements.txt
 
 COPY . .
 
