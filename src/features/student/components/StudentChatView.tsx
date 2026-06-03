@@ -347,7 +347,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                 )}
                             </div>
                             <div className="flex items-center gap-2 text-[10px]" style={{ color: colors.textSecondary }}>
-                                <span>{AI_MODELS[selectedModel as keyof typeof AI_MODELS]?.name}</span>
+                                <span>{(AI_MODELS[selectedModel as keyof typeof AI_MODELS]?.name ?? selectedModel)}</span>
                                 <span>·</span>
                                 <span className="text-blue-500">{isEN ? 'Socratic' : '苏格拉底式'}</span>
                             </div>
@@ -389,7 +389,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                         {/* Model Selector */}
                         <div className="relative" ref={modelMenuRef}>
                             <button onClick={() => setIsModelMenuOpen(!isModelMenuOpen)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all" style={{ backgroundColor: isModelMenuOpen ? (isDark ? '#292524' : '#f5f5f4') : 'transparent', color: colors.textSecondary }}>
-                                <span className="hidden sm:inline">{AI_MODELS[selectedModel as keyof typeof AI_MODELS]?.name}</span>
+                                <span className="hidden sm:inline">{(AI_MODELS[selectedModel as keyof typeof AI_MODELS]?.name ?? selectedModel)}</span>
                                 <ChevronDown size={12} className={`transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} />
                             </button>
 
@@ -627,8 +627,12 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                 <div className="px-4 pb-4">
                     <div className={`${maxWidthClass} mx-auto rounded-2xl p-2 border shadow-lg transition-all`} style={{ backgroundColor: colors.card, borderColor: colors.border }}>
                         {attachedFile && (
-                            <div className="mx-2 mt-1 mb-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 text-xs font-medium">
-                                <FileText size={12} /><span className="max-w-[150px] truncate">{attachedFile.name}</span><button onClick={() => setAttachedFile(null)}><XCircle size={14} /></button>
+                            <div className="mx-2 mt-1 mb-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 text-xs font-medium">
+                                {attachedFile.type.startsWith('image/')
+                                    ? <img src={URL.createObjectURL(attachedFile)} alt="preview" className="w-9 h-9 rounded-lg object-cover" />
+                                    : <FileText size={12} />}
+                                <span className="max-w-[150px] truncate">{attachedFile.name}</span>
+                                <button onClick={() => setAttachedFile(null)}><XCircle size={14} /></button>
                             </div>
                         )}
 
@@ -636,7 +640,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
 
                         <div className="flex items-end gap-2">
                             <div className="flex items-center gap-1 shrink-0 pb-1 pl-1">
-                                <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelect} />
+                                <input ref={fileInputRef} type="file" accept="image/*,.pdf,.txt,.md,.markdown,.docx,.csv" className="hidden" onChange={handleFileSelect} />
                                 <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full transition-all hover:scale-110" style={{ color: colors.textSecondary }}><Plus size={20} /></button>
                                 {onToggleRag && (
                                     <button
@@ -802,7 +806,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                                         {result.error && <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-600">Error</span>}
                                                     </div>
                                                     <div className="text-xs leading-relaxed max-h-32 overflow-y-auto" style={{ color: colors.text }}>
-                                                        {result.error || result.response || isEN ? 'No response' : '无响应'}
+                                                        {result.error || result.response || (isEN ? 'No response' : '无响应')}
                                                     </div>
                                                 </div>
                                             );

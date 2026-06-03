@@ -15,9 +15,13 @@ export interface AIConfig {
     baseUrl?: string; // For DMXAPI custom endpoint
 }
 
+export type ContentPart =
+    | { type: 'text'; text: string }
+    | { type: 'image_url'; image_url: { url: string } };
+
 export interface ChatMessage {
     role: 'system' | 'user' | 'assistant';
-    content: string;
+    content: string | ContentPart[];   // array = multimodal (text + image_url parts)
 }
 
 const EDGE_FUNCTION_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL || 'https://oztozjwngekmqtuylypt.supabase.co/functions/v1';
@@ -44,7 +48,7 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 
 function validateMessages(messages: ChatMessage[]): void {
     for (const msg of messages) {
-        if (msg.content.length > MAX_CONTENT_LENGTH) {
+        if (typeof msg.content === 'string' && msg.content.length > MAX_CONTENT_LENGTH) {
             throw new Error(`消息过长（${msg.content.length} 字符），最多允许 ${MAX_CONTENT_LENGTH} 个字符`);
         }
     }

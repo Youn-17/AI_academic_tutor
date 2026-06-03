@@ -21,6 +21,30 @@ interface StudentViewProps {
   setTheme: (t: Theme) => void;
 }
 
+// Read an image File as a (downscaled) base64 dataURL for multimodal vision input.
+async function readImageAsDataURL(file: File, maxDim = 1280, quality = 0.8): Promise<string> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const im = new Image(); im.onload = () => resolve(im); im.onerror = reject; im.src = dataUrl;
+    });
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    if (scale >= 1) return dataUrl;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return dataUrl;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', quality);
+  } catch { return dataUrl; }
+}
+
 const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, theme, setTheme }) => {
   const { profile } = useAuth();
 
@@ -43,6 +67,18 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
   const abortRef = useRef<AbortController | null>(null);  // current stream's aborter (Stop / chat-switch)
   // A_direct = clean control (no tools); B_socratic & non-participants get the tool-using agent
   const useAgent = condition !== 'A_direct';
+
+  // Mirror activeChatId into a ref so async stream callbacks can detect a mid-flight
+  // chat switch and avoid committing a stale reply into the newly-opened chat.
+  const activeChatIdRef = useRef(activeChatId);
+  useEffect(() => { activeChatIdRef.current = activeChatId; }, [activeChatId]);
+
+  // LLM history mapping: student → user; supervisor intervention → a clearly-marked
+  // user note (NOT 'assistant', which would make the AI think it said the teacher's words).
+  const toChatHistory = (msgs: Message[]): ChatMessage[] => msgs.map((msg): ChatMessage =>
+    msg.sender === Role.STUDENT ? { role: 'user', content: msg.content }
+    : msg.sender === Role.SUPERVISOR ? { role: 'user', content: `[导师介入指导，请参考]：${msg.content}` }
+    : { role: 'assistant', content: msg.content });
 
   // Find active chat
   const activeChat = conversations.find(c => c.id === activeChatId);
@@ -144,9 +180,14 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     if (sendingRef.current) return;          // H2: ignore re-entrant send while one is streaming
     sendingRef.current = true;
 
-    let fullContent = content;
+    const isImage = !!file && file.type.startsWith('image/');
+    let fullContent = content;          // text persisted to DB / transcript / RAG
+    let imageDataUrl = '';
     try {
-      if (file) {
+      if (file && isImage) {
+        imageDataUrl = await readImageAsDataURL(file);     // multimodal: image sent transiently to a vision model
+        fullContent = content ? `${content}\n\n[图片]` : '[图片]';
+      } else if (file) {
         const fileContent = await readFileContent(file);
         fullContent = `[Attachment: ${file.name}]\n\nContent:\n${fileContent}\n\nUser Question: ${content}`;
       }
@@ -178,13 +219,17 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
 
     try {
       const userMessage = await ConversationService.sendMessage(convId, fullContent, Role.STUDENT);
-      setMessages(prev => prev.map(m => m.id === tempUserMsgId ? userMessage : m));
+      if (convId === activeChatIdRef.current) setMessages(prev => prev.map(m => m.id === tempUserMsgId ? userMessage : m));
 
-      const chatHistory: ChatMessage[] = messages.map(msg => ({
-        role: msg.sender === Role.STUDENT ? 'user' : 'assistant',
-        content: msg.content,
-      }));
-      chatHistory.push({ role: 'user', content: fullContent });
+      const chatHistory = toChatHistory(messages);
+      if (isImage && imageDataUrl) {
+        chatHistory.push({ role: 'user', content: [
+          { type: 'text', text: content || '请看这张图，并引导我思考（不要直接给出答案）。' },
+          { type: 'image_url', image_url: { url: imageDataUrl } },
+        ]});
+      } else {
+        chatHistory.push({ role: 'user', content: fullContent });
+      }
 
       const modelInfo = AI_MODELS[selectedModel];
       const config = modelInfo
@@ -208,7 +253,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
             onReasoning: (t) => setReasoning(prev => prev + t),
           })) {
           fullResponse += chunk;
-          setStreamingContent(fullResponse);
+          if (convId === activeChatIdRef.current) setStreamingContent(fullResponse);
         }
       } catch (aiError) {
         if (abort.signal.aborted) { if (!fullResponse) fullResponse = '（已停止生成）'; }
@@ -216,11 +261,11 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       }
 
       // 检索到的知识块 → 引用卡片(只有真实来源才会被存储与展示)
-      const citations = ragSources.map(s => ({ id: s.id, title: s.source_title, author: '', year: '', url: '' }));
+      const citations = ragSources.map(s => ({ id: s.id, title: s.source_title, source: s.source_title, author: '', year: 0, url: '' }));
       const aiMessage = await ConversationService.sendMessage(convId, fullResponse, Role.AI, selectedModel, citations);
-      setMessages(prev => [...prev, aiMessage]);
+      if (convId === activeChatIdRef.current) setMessages(prev => [...prev, aiMessage]);
 
-      if (messages.length === 0) {
+      if (chatHistory.length === 1) {
         const newTitle = content.slice(0, 20) || 'New Chat';
         ConversationService.updateConversationTitle(convId, newTitle).then(loadConversations);
       }
@@ -264,12 +309,13 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     const convId = activeChatId;
 
     try {
-      await ConversationService.sendMessage(convId, newContent, Role.STUDENT);
+      // #4 fix: delete the edited turn + everything after it from the DB FIRST,
+      // else the old messages reappear on reload (the edit looked like a no-op).
+      await ConversationService.deleteMessagesFrom(convId, messageId);
+      const newUserMsg = await ConversationService.sendMessage(convId, newContent, Role.STUDENT);
+      if (convId === activeChatIdRef.current) setMessages([...keptMessages, newUserMsg]);
 
-      const chatHistory: ChatMessage[] = keptMessages.map(msg => ({
-        role: msg.sender === Role.STUDENT ? 'user' : 'assistant',
-        content: msg.content,
-      }));
+      const chatHistory = toChatHistory(keptMessages);
       chatHistory.push({ role: 'user', content: newContent });
 
       const modelInfo = AI_MODELS[selectedModel];
@@ -293,16 +339,16 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
             onReasoning: (t) => setReasoning(prev => prev + t),
           })) {
           fullResponse += chunk;
-          setStreamingContent(fullResponse);
+          if (convId === activeChatIdRef.current) setStreamingContent(fullResponse);
         }
       } catch (aiError) {
         if (abort.signal.aborted) { if (!fullResponse) fullResponse = '（已停止生成）'; }
         else if (!fullResponse) fullResponse = `AI 出错：${(aiError as Error).message}`;
       }
 
-      const citations = ragSources.map(s => ({ id: s.id, title: s.source_title, author: '', year: '', url: '' }));
+      const citations = ragSources.map(s => ({ id: s.id, title: s.source_title, source: s.source_title, author: '', year: 0, url: '' }));
       const aiMessage = await ConversationService.sendMessage(convId, fullResponse, Role.AI, selectedModel, citations);
-      setMessages(prev => [...prev, aiMessage]);
+      if (convId === activeChatIdRef.current) setMessages(prev => [...prev, aiMessage]);
 
     } catch (err) {
       console.error('Edit failed:', err);

@@ -272,11 +272,28 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
 
   const handleIntervention = async () => {
     if (!selectedChatId || !interventionText.trim()) return;
+    const text = interventionText.trim();
+    const chatId = selectedChatId;
+    setInterventionText('');
+    // Optimistically append the intervention so the thread never collapses, then
+    // refetch the FULL thread for THIS conversation only. We intentionally do NOT
+    // bump refreshTrigger (that also fires the last-message-only poll, which raced
+    // the student↔AI history down to a single message).
+    const optimistic = {
+      id: `temp-${Date.now()}`, sender: Role.SUPERVISOR, content: text,
+      timestamp: new Date().toLocaleString('zh-CN'), citations: [], contentType: 'text' as const,
+    };
+    setConversations(prev => prev.map(c => c.id === chatId
+      ? { ...c, messages: [...(c.messages || []), optimistic] } : c));
     try {
-      await ConversationService.sendMessage(selectedChatId, interventionText, Role.SUPERVISOR);
-      setInterventionText('');
-      setRefreshTrigger(p => p + 1);
-    } catch { alert('发送失败'); }
+      await ConversationService.sendMessage(chatId, text, Role.SUPERVISOR);
+      const msgs = await ConversationService.getMessages(chatId);
+      setConversations(prev => prev.map(c => c.id === chatId ? { ...c, messages: msgs } : c));
+    } catch {
+      alert('发送失败');
+      setConversations(prev => prev.map(c => c.id === chatId
+        ? { ...c, messages: (c.messages || []).filter(m => m.id !== optimistic.id) } : c));
+    }
   };
 
   const handleChatSelect = (chatId: string) => {

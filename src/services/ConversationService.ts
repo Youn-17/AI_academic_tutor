@@ -152,6 +152,20 @@ export async function deleteConversation(conversationId: string): Promise<void> 
     if (error) throw error;
 }
 
+// Delete the given message and every message after it (by created_at). Used by
+// edit-and-regenerate so the DB thread is actually truncated instead of
+// accumulating the old turns (which otherwise reappear on reload).
+export async function deleteMessagesFrom(conversationId: string, fromMessageId: string): Promise<void> {
+    const { data: anchor } = await supabase
+        .from('messages').select('created_at').eq('id', fromMessageId).maybeSingle();
+    if (!anchor) return;
+    const { error } = await supabase
+        .from('messages').delete()
+        .eq('conversation_id', conversationId)
+        .gte('created_at', anchor.created_at);
+    if (error) throw error;
+}
+
 // Update conversation status (e.g. 'archived', 'active')
 export async function updateConversationStatus(conversationId: string, status: string): Promise<void> {
     const { error } = await supabase
