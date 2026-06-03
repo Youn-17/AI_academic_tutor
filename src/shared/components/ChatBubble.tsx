@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Message, Role } from '@/types';
 import { User, Bot, ShieldAlert, Copy, ThumbsUp, ThumbsDown, Book, ExternalLink, Activity, Edit2, X, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { RiRobot2Line } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import GeneratedChart from '@/features/student/components/GeneratedChart';
 
@@ -49,7 +50,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit }) => {
         )}>
           {isStudent && <User size={18} />}
           {isSupervisor && <ShieldAlert size={18} />}
-          {isAI && <Bot size={18} />}
+          {isAI && <RiRobot2Line size={18} />}
         </div>
 
         {/* Bubble Content */}
