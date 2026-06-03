@@ -9,6 +9,7 @@ import {
   RiHome5Line, RiCompassLine, RiBook2Line, RiStackLine,
 } from '@remixicon/react';
 import { Locale, Theme } from '@/types';
+import Aurora from './Aurora';
 
 interface LandingPageProps {
   onEnter: () => void;
@@ -337,12 +338,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter, locale: loc, setLoca
         @media (prefers-reduced-motion: reduce){ .hak-up,.hak-page,.hak-aurora,.hak-grad{animation:none!important} .hak-up,.hak-page{opacity:1;transform:none} }
       `}</style>
 
-      {/* ── Blue aurora (navy → sky) ── */}
-      <div className="fixed inset-0 overflow-hidden" style={{ zIndex: 0 }}>
-        <div className="hak-aurora" style={{ width: 640, height: 640, top: '-180px', left: '-130px', background: navy, opacity: isDark ? 0.5 : 0.18, animation: 'hak-drift 20s ease-in-out infinite' }} />
-        <div className="hak-aurora" style={{ width: 540, height: 540, top: '15%', right: '-150px', background: primary, opacity: isDark ? 0.28 : 0.14, animation: 'hak-drift 25s ease-in-out infinite reverse' }} />
-        <div className="hak-aurora" style={{ width: 460, height: 460, bottom: '-130px', left: '32%', background: sky, opacity: isDark ? 0.2 : 0.12, animation: 'hak-drift 22s ease-in-out infinite' }} />
+      {/* ── WebGL Aurora background (React Bits port · navy → royal → sky) ── */}
+      <div className="fixed inset-0 overflow-hidden" style={{ zIndex: 0, opacity: isDark ? 0.85 : 0.55 }}>
+        <Aurora colorStops={[navy, primary, sky]} amplitude={1.0} blend={0.55} speed={0.6} />
       </div>
+      {/* fade the aurora into the solid base toward the lower page so content stays readable */}
+      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0, background: `linear-gradient(to bottom, transparent 0%, transparent 30%, ${bg} 80%)` }} />
 
       {/* ══ NAVBAR with page tabs ══ */}
       <nav className="fixed top-4 left-4 right-4 z-50 transition-all duration-300 rounded-2xl"
