@@ -253,8 +253,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
         : AI_CONFIGS.deepseekChat;
       // A/B:A_direct=普通提示+无RAG+无工具(对照);B_socratic=苏格拉底+RAG+智能体;null(非参与者)=默认苏格拉底+智能体
       const sysPrompt = condition === 'A_direct' ? SYSTEM_PROMPTS.direct
-        : condition === 'B_socratic' ? SYSTEM_PROMPTS.academic
-        : getRolePrompt(selectedRole);   // non-participants pick a role; participants stay on the A/B prompt
+        : getRolePrompt(selectedRole);   // everyone except the A_direct control drives the prompt by selected role
       const ragOptions = condition === 'A_direct'
         ? undefined
         : ((condition === 'B_socratic' || useRag) ? { use_rag: true } : undefined);
@@ -345,8 +344,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
         ? { provider: modelInfo.provider, model: modelInfo.model }
         : AI_CONFIGS.deepseekChat;
       const sysPrompt = condition === 'A_direct' ? SYSTEM_PROMPTS.direct
-        : condition === 'B_socratic' ? SYSTEM_PROMPTS.academic
-        : getRolePrompt(selectedRole);   // non-participants pick a role; participants stay on the A/B prompt
+        : getRolePrompt(selectedRole);   // everyone except the A_direct control drives the prompt by selected role
       const ragOptions = condition === 'A_direct'
         ? undefined
         : ((condition === 'B_socratic' || useRag) ? { use_rag: true } : undefined);
@@ -496,7 +494,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
             onStop={() => abortRef.current?.abort()}
             selectedRole={selectedRole}
             onRoleSelect={handleRoleSelect}
-            roleLocked={condition !== null}
+            roleLocked={condition === 'A_direct'}
           />
         )}
       </div>
