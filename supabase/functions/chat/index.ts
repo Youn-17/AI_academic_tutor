@@ -693,7 +693,7 @@ async function runOrchestrator(controller: ReadableStreamDefaultController, opts
       findings.map((f) => `【${f.label}】子任务：${f.subtask}\n${f.finding}`).join('\n\n---\n\n') +
       (criticNotes ? `\n\n---\n\n【质检员意见】${criticNotes}` : '');
     let answer = await streamProviderContent(opts.apiUrl, opts.key, {
-      model: opts.model, max_tokens: 2200, temperature: 0.6,
+      model: opts.model, max_tokens: 6000, temperature: 0.6,
       messages: [
         { role: 'system', content: `你是学习辅导团队的"组长"，把各专科 agent 的发现整合成给学生的最终回答：\n1. 综合所有发现，结构清晰（小标题/列表），直接回应任务。\n2. 标注依据来源（书/论文/网址/计算结果），区分"有依据的结论"与"推理推测"。\n3. 【关键】保护学生认知主体性：不要代替学生思考或给可照抄的成品；用引导性问题、给方法与思路、指出如何自己验证下一步，培养而非削弱独立思考。\n4. 证据不足或冲突时如实说明不确定性。\n5. 若收到【质检员意见】，据此补齐缺口、对不确定处加注，并保持温暖、能维持学习动机的语气。\n用中文回答。` },
         { role: 'user', content: synthInput },

@@ -42,7 +42,7 @@ def make_stream(api_url: str, key: str, model: str,
                 emit: Callable[[dict], None]) -> Callable[[str, str], Awaitable[str]]:
     async def stream(system: str, user: str) -> str:
         body = {
-            "model": model, "temperature": 0.6, "max_tokens": 2400, "stream": True,
+            "model": model, "temperature": 0.6, "max_tokens": 6000, "stream": True,
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
         }
         full = ""
