@@ -1,213 +1,307 @@
 <div align="center">
 
-# 🎓 AI Academic Tutor
+# AI Academic Tutor
 
-**A research-grounded, multi-agent AI tutor that protects student epistemic agency.**
-**一个有研究依据、守护学生「认识论主体性」的多智能体 AI 学术导师。**
+**面向研究生科研训练与课程学习的多智能体辅导系统,以保护学习者的认识论主体性(epistemic agency)为核心设计原则。**
+
+**A multi-agent tutoring system for graduate research and course learning, designed around a single principle: preserving the learner's epistemic agency.**
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20pgvector-3FCF8E?logo=supabase&logoColor=white)
-![Cloud Run](https://img.shields.io/badge/Cloud%20Run-E2B%20sandbox-4285F4?logo=googlecloud&logoColor=white)
+![Cloud%20Run](https://img.shields.io/badge/Cloud%20Run-E2B%20sandbox-4285F4?logo=googlecloud&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-[English](#-english) · [中文](#-中文)
+[中文文档](#中文文档) · [English](#english)
 
 </div>
 
 ---
 
-> **Philosophy / 理念** — The AI is a **supporter of thinking, not a ghostwriter**. It never completes graded or community knowledge on the student's behalf; it exposes ideas, counter-arguments, structure, and questions, and always leaves the student as the author.
-> AI 是**思考的支持者,不是代笔者**。它绝不替学生完成被评分/计入共同体的成品,只暴露思路、反例、结构与问题,学生始终是知识的作者。
+> **设计立场** —— 系统将 AI 定位为「思考的支持者」,而非「成果的代笔者」。它不替学习者完成将被评分或计入学习共同体的成品,而是通过提问、反例、结构化支架与可核查的依据,促使学习者始终保持对自身知识的作者身份。
+>
+> **Design stance** —— The system treats AI as a *supporter of thinking*, not a ghostwriter of deliverables. It does not complete graded or community-bound artifacts on a learner's behalf; it surfaces questions, counter-examples, scaffolding, and verifiable evidence, so that the learner remains the author of their own knowledge.
 
 ---
 
-## 🏗️ Architecture / 系统架构
+## 架构总览 / Architecture
+
+> 节点标签为中英双语,两个语言版本共用以下图示。
+> Diagram labels are bilingual and shared by both language sections.
+
+**系统架构 / System architecture**
 
 ```mermaid
 flowchart TD
-    subgraph Client["🌐 Frontend / 前端 (React + Vite, on Vercel)"]
-        UI["Student & Teacher UI<br/>学生端 / 教师端"]
+    subgraph Client["前端 Frontend — React + Vite (Vercel)"]
+        UI["学生端 / 教师端<br/>Student & Teacher UI"]
     end
-    subgraph Edge["⚡ Supabase Edge Function 'chat' (Deno)"]
-        AGENT["Tool-calling Agent Loop<br/>工具调用智能体环<br/>• model router 模型路由<br/>• RAG · memory · web · code"]
+    subgraph Edge["边缘函数 Edge Function 'chat' (Supabase / Deno)"]
+        AGENT["工具调用智能体环 Tool-calling agent loop<br/>模型路由 · RAG · 记忆 · 联网 · 代码<br/>model router · RAG · memory · web · code"]
     end
-    subgraph Data["🗄️ Supabase"]
-        PG["Postgres + pgvector<br/>RAG / memory / auth"]
+    subgraph Data["Supabase"]
+        PG["Postgres + pgvector<br/>检索 / 记忆 / 鉴权"]
         ST["Storage<br/>生成文件下载"]
     end
-    subgraph Backend["🐍 Cloud Run — Code-Interpreter (FastAPI)"]
-        SBX["E2B Sandbox<br/>隔离 Python:<br/>pandas · matplotlib · openpyxl"]
+    subgraph Backend["代码解释器后端 Code-Interpreter (FastAPI / Cloud Run)"]
+        SBX["E2B 隔离沙箱 Sandbox<br/>pandas · matplotlib · openpyxl"]
     end
-    subgraph AI["🧠 AI Providers"]
-        LLM["Claude · GPT · Gemini · DeepSeek · GLM (vision)"]
+    subgraph AI["模型提供方 AI Providers"]
+        LLM["Claude · GPT · Gemini · DeepSeek · GLM(视觉 vision)"]
     end
 
     UI -->|HTTPS + JWT| AGENT
-    AGENT -->|RAG / memory| PG
-    AGENT -->|chat / vision| LLM
+    AGENT -->|检索 / 记忆 retrieval| PG
+    AGENT -->|对话 / 视觉 chat| LLM
     AGENT -->|run_python| SBX
-    SBX -->|charts / files| ST
-    AGENT -.charts & download links.-> UI
+    SBX -->|图表 / 文件 charts·files| ST
+    AGENT -.图表与下载链接 charts & links.-> UI
 ```
 
-The student's browser only ever talks to the **Edge Function**, which orchestrates everything server-side — so the code-interpreter backend and AI providers are never called directly from the client.
-学生浏览器只与**边缘函数**通信,所有重活在服务端编排——后端与模型从不被前端直连。
+学习者浏览器仅与**边缘函数**通信,其余调用均在服务端编排;代码解释器后端与模型提供方不被前端直连。
+The learner's browser communicates only with the **edge function**; all downstream calls are orchestrated server-side. The backend and model providers are never invoked directly from the client.
 
----
-
-## 🤖 The Agent Ecosystem / 智能体生态
-
-Built around the three agent archetypes from learning-sciences research, all wrapped by a **governance guardrail**.
-围绕学习科学的三类智能体原型构建,外加统一的**治理护栏**。
+**智能体生态 / Agent ecosystem**
 
 ```mermaid
 flowchart LR
-    G["🛡️ Governance Guardrail<br/>治理护栏<br/>(epistemic agency 认识论主体性)"]
-    subgraph LC["🧭 Learning Companions / 学习伙伴"]
-        S["Socratic Tutor 苏格拉底导师"]
-        D["Devil's Advocate 论辩伙伴"]
-        M["Metacognitive Coach 元认知教练"]
+    G["治理护栏 Governance Guardrail<br/>(认识论主体性 epistemic agency)"]
+    subgraph LC["学习伙伴 Learning Companions"]
+        S["苏格拉底导师 Socratic Tutor"]
+        D["论辩伙伴 Devil's Advocate"]
+        M["元认知教练 Metacognitive Coach"]
     end
-    subgraph IA["📚 Instructional Assistants / 教学助手"]
-        P["Paper Feedback 论文反馈"]
-        C["Concept Explainer 概念讲解"]
-        Q["Practice Quizzer 练习自测"]
+    subgraph IA["教学助手 Instructional Assistants"]
+        P["论文反馈 Paper Feedback"]
+        C["概念讲解 Concept Explainer"]
+        Q["练习自测 Practice Quizzer"]
     end
-    subgraph CA["🩺 Classroom Analyst / 课堂分析师"]
-        A["Teacher-facing<br/>面向教师的可解释介入建议"]
+    subgraph CA["课堂分析师 Classroom Analyst"]
+        A["面向教师 · 可解释、可覆盖的介入建议<br/>teacher-facing, interpretable & overridable"]
     end
     G --- LC
     G --- IA
     G --- CA
 ```
 
-| Capability / 能力 | What it does / 作用 |
-|---|---|
-| 🤖 **Selectable roles** 可选角色 | 7 learning-companion / assistant roles, each a learning-science-grounded prompt |
-| 🖼️ **Multimodal** 多模态 | Upload a figure / screenshot / handwriting → a vision model reads it |
-| 🐍 **Code interpreter** 代码解释器 | Analyze tables, draw charts, generate Excel / Word in a sandbox |
-| 🔍 **RAG + deep search** 检索 | pgvector retrieval + multi-angle query decomposition |
-| 🕸️ **Knowledge graph** 知识图谱 | Auto-extracted concept map (React Flow) |
-| 🧠 **Cross-session memory** 跨会话记忆 | Remembers research progress, decisions, pain points |
-| 🪄 **Auto model routing** 自动选模型 | Picks the best model per task (reasoning / code / long / vision) |
-| 👩‍🏫 **Teacher dashboard** 教师端 | Monitor, intervene, and get interpretable analyst suggestions |
-
----
-
-## 🔬 How a code-interpreter request flows / 代码解释器请求流程
+**代码解释器请求时序 / Code-interpreter request sequence**
 
 ```mermaid
 sequenceDiagram
-    participant U as Student 学生
-    participant F as Frontend 前端
-    participant E as Edge Fn 边缘函数
-    participant B as Cloud Run 后端
-    participant X as E2B Sandbox 沙箱
-    U->>F: "Analyze this data & plot it" / 上传数据让它分析
-    F->>E: chat request (+ file, JWT)
-    E->>E: agent decides to call run_python
+    participant U as 学习者 Learner
+    participant F as 前端 Frontend
+    participant E as 边缘函数 Edge Fn
+    participant B as 后端 Backend
+    participant X as E2B 沙箱 Sandbox
+    U->>F: 上传数据并请求分析 / "analyze & plot this"
+    F->>E: 对话请求(含文件、JWT)
+    E->>E: 智能体决定调用 run_python
     E->>B: POST /run (code, file, JWT)
-    B->>B: verify token / 校验身份
-    B->>X: create sandbox + run Python
-    X-->>B: stdout + chart(png) + file(xlsx)
-    B-->>E: results (+ Storage download URL)
-    E-->>F: stream answer + _artifacts
-    F-->>U: 📊 chart + ⬇️ download + explanation
+    B->>B: 校验身份 verify token
+    B->>X: 创建沙箱并执行 Python
+    X-->>B: stdout + 图表(png) + 文件(xlsx)
+    B-->>E: 结果(含 Storage 下载链接)
+    E-->>F: 流式回答 + _artifacts
+    F-->>U: 图表 + 下载 + 解释
+```
+
+**部署流水线 / Deployment pipeline**
+
+```mermaid
+flowchart LR
+    DEV["git push"] --> V["前端 Frontend<br/>→ Vercel(自动 auto)"]
+    DEV --> A["后端 Backend<br/>→ GitHub Actions → Cloud Run(自动 auto)"]
+    CLI["Supabase CLI"] --> EF["边缘函数 Edge Function"]
 ```
 
 ---
 
-## 🧩 Tech Stack / 技术栈
+## 中文文档
 
-| Layer 层 | Tech |
+### 项目简介
+
+AI Academic Tutor 是一个研究型的学术辅导平台,服务于研究生的科研训练与课程学习。其设计目标不是提高「获得答案的效率」,而是在 AI 介入的过程中,**保护并强化学习者对自身知识的主体性**。
+
+系统由单一的苏格拉底式导师,逐步发展为一个**可治理的多智能体生态**,涵盖学习科学研究中识别出的三类智能体原型——学习伙伴、教学助手与课堂分析师——并由一层统一的治理护栏约束,确保学习者始终是知识的作者。该平台同时作为「生成式 AI 教育智能体」相关研究的部署载体。
+
+### 核心能力
+
+| 能力 | 说明 |
 |---|---|
-| Frontend 前端 | React 19 · Vite 6 · TypeScript 5 · Tailwind · React Flow · Recharts |
-| Backend 后端 | Supabase Edge Functions (Deno) · FastAPI (Cloud Run) · E2B sandbox |
-| Data 数据 | Postgres + pgvector · Supabase Auth · Storage |
-| AI | Multi-provider (Claude / GPT / Gemini / DeepSeek / GLM) via an OpenAI-compatible gateway |
-| Hosting 托管 | Vercel (frontend) · Supabase (edge + db) · Google Cloud Run (code-interpreter) |
+| 可选智能体角色 | 七种学习伙伴/教学助手角色,每一种均为有学习科学依据的提示词预设 |
+| 多模态 | 上传图表、截图或手写内容,由视觉模型识读 |
+| 代码解释器 | 在隔离沙箱中分析表格、绘制图表、生成 Excel / Word |
+| 检索增强与深度检索 | 基于 pgvector 的检索,并支持问题分解的多角度检索 |
+| 知识图谱 | 从对话中自动抽取概念关系图(React Flow) |
+| 跨会话记忆 | 记录研究进展、关键决策与反复出现的难点 |
+| 自动模型路由 | 依任务类型(推理 / 代码 / 长文 / 视觉)自动择优选用模型 |
+| 教师端 | 监看、介入,并获得可解释、可覆盖的分析师建议 |
 
----
+### 技术栈
 
-## 📁 Project Structure / 目录结构
+| 层 | 技术 |
+|---|---|
+| 前端 | React 19 · Vite 6 · TypeScript 5 · Tailwind · React Flow · Recharts |
+| 后端 | Supabase Edge Functions(Deno)· FastAPI(Cloud Run)· E2B 沙箱 |
+| 数据 | Postgres + pgvector · Supabase Auth · Storage |
+| 模型 | 通过 OpenAI 兼容网关接入多家模型(Claude / GPT / Gemini / DeepSeek / GLM) |
+| 托管 | Vercel(前端)· Supabase(边缘函数与数据库)· Google Cloud Run(代码解释器) |
+
+### 目录结构
 
 ```
 .
-├── src/                       # React frontend / 前端
+├── src/                       # React 前端
+│   ├── features/              # 学生端 / 教师端 / 登录 / 落地页
+│   ├── services/              # AI、对话、检索、智能体角色等服务
+│   └── shared/                # 共享 UI 组件
+├── supabase/
+│   ├── functions/chat/        # 核心工具调用智能体(边缘函数)
+│   └── migrations/            # 数据库结构(Postgres + pgvector + RLS)
+├── code-interpreter/          # FastAPI 后端 → E2B 沙箱(Cloud Run)
+└── .github/workflows/         # CI:推送即自动部署后端
+```
+
+### 本地开发
+
+```bash
+# 前端
+npm install
+npm run dev
+
+# 代码解释器后端(Docker)
+cd code-interpreter
+docker build -t ci-backend:local .
+docker run -d -p 8080:8080 --env-file .env ci-backend:local   # 参见 code-interpreter/.env.example
+curl localhost:8080/healthz
+```
+
+所有密钥均从 `.env` 文件(已 gitignore)与平台密钥库读取,**仓库内不含任何密钥**。模板见 `code-interpreter/.env.example`。
+
+### 部署
+
+| 目标 | 方式 |
+|---|---|
+| 前端 | `git push` → Vercel 自动部署 |
+| 后端 | `git push` → GitHub Actions → Google Cloud Run(见 `.github/workflows/`) |
+| 边缘函数 | `supabase functions deploy chat`(Supabase CLI) |
+
+后端部署细节见 [`code-interpreter/README.md`](code-interpreter/README.md)。
+
+### 设计原则
+
+1. **认识论主体性优先** —— 支持思考,不替代思考。
+2. **可治理、可解释** —— 每次智能体介入均记录其依据;教师可采纳、修改或忽略。
+3. **有据可查** —— 回答须引用知识库或网络来源,不编造文献或数据。
+4. **教师在环** —— 教师监看并介入,AI 尊重教师的判断。
+5. **隐私优先** —— 密钥仅存于环境变量与密钥库;学生数据由行级安全(RLS)保护。
+
+### 安全与隐私
+
+- **仓库不含任何密钥。** API 密钥、服务账号密钥与令牌均置于环境变量及 GitHub / 云平台的密钥库中,绝不入库。
+- Postgres 通过行级安全(RLS)隔离各用户数据。
+- 代码沙箱(E2B 微虚拟机)完全隔离,且从不接触数据库凭据。
+
+### 许可与免责
+
+以 **MIT 许可**发布。本项目为研究原型,不构成专业的学术、医疗、法律或金融建议;AI 仅辅助学习,绝不替学习者完成将被评分的作业。
+
+---
+
+## English
+
+### Overview
+
+AI Academic Tutor is a research-oriented tutoring platform for graduate research training and course learning. Its design goal is not to maximize the efficiency of *getting answers*, but to **preserve and strengthen the learner's agency over their own knowledge** while AI is in the loop.
+
+The system has grown from a single Socratic tutor into a **governable multi-agent ecosystem** spanning the three agent archetypes identified in learning-sciences research—learning companions, instructional assistants, and a classroom analyst—bound by a unified governance layer that keeps the learner the author of their knowledge. The platform also serves as a deployment vehicle for research on generative-AI agents in education.
+
+### Key Capabilities
+
+| Capability | Description |
+|---|---|
+| Selectable agent roles | Seven companion / assistant roles, each a learning-science-grounded prompt preset |
+| Multimodal | Upload a figure, screenshot, or handwriting for a vision model to read |
+| Code interpreter | Analyze tables, draw charts, and generate Excel / Word in an isolated sandbox |
+| RAG & deep search | pgvector retrieval plus multi-angle query decomposition |
+| Knowledge graph | A concept map auto-extracted from the conversation (React Flow) |
+| Cross-session memory | Retains research progress, key decisions, and recurring difficulties |
+| Automatic model routing | Selects the best model per task (reasoning / code / long-context / vision) |
+| Teacher dashboard | Monitor, intervene, and receive interpretable, overridable analyst suggestions |
+
+### Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 19 · Vite 6 · TypeScript 5 · Tailwind · React Flow · Recharts |
+| Backend | Supabase Edge Functions (Deno) · FastAPI (Cloud Run) · E2B sandbox |
+| Data | Postgres + pgvector · Supabase Auth · Storage |
+| Models | Multiple providers via an OpenAI-compatible gateway (Claude / GPT / Gemini / DeepSeek / GLM) |
+| Hosting | Vercel (frontend) · Supabase (edge + database) · Google Cloud Run (code interpreter) |
+
+### Project Structure
+
+```
+.
+├── src/                       # React frontend
 │   ├── features/              # student / supervisor / auth / landing
-│   ├── services/              # AI, conversation, RAG, agent-roles …
+│   ├── services/              # AI, conversation, retrieval, agent roles …
 │   └── shared/                # shared UI components
 ├── supabase/
 │   ├── functions/chat/        # the core tool-calling agent (edge function)
-│   └── migrations/            # DB schema (Postgres + pgvector + RLS)
+│   └── migrations/            # database schema (Postgres + pgvector + RLS)
 ├── code-interpreter/          # FastAPI backend → E2B sandbox (Cloud Run)
 └── .github/workflows/         # CI: auto-deploy the backend on push
 ```
 
----
-
-## 🚀 Getting Started (Local) / 本地启动
+### Local Development
 
 ```bash
-# 1. Frontend
+# Frontend
 npm install
-cp .env.local.example .env.local   # fill in your own keys (see below)
 npm run dev
 
-# 2. Code-interpreter backend (Docker)
+# Code-interpreter backend (Docker)
 cd code-interpreter
 docker build -t ci-backend:local .
 docker run -d -p 8080:8080 --env-file .env ci-backend:local   # see code-interpreter/.env.example
 curl localhost:8080/healthz
 ```
 
-**Environment variables** are read from `.env` files (git-ignored) and platform secret stores — **no keys are committed to this repo.** See `code-interpreter/.env.example` for the template.
-**所有密钥**都从 `.env`(已 gitignore)和平台密钥库读取——**仓库里不含任何密钥**。模板见 `code-interpreter/.env.example`。
+All secrets are read from `.env` files (git-ignored) and platform secret stores; **no keys are committed to this repository.** See `code-interpreter/.env.example` for the template.
 
----
+### Deployment
 
-## ☁️ Deployment / 部署
-
-| Target 目标 | How / 方式 |
+| Target | Method |
 |---|---|
-| **Frontend** 前端 | `git push` → **Vercel** auto-deploy |
-| **Backend** 后端 | `git push` → **GitHub Actions** → Google Cloud Run (`.github/workflows/`) |
-| **Edge Function** 边缘函数 | `supabase functions deploy chat` (Supabase CLI) |
+| Frontend | `git push` → Vercel auto-deploy |
+| Backend | `git push` → GitHub Actions → Google Cloud Run (`.github/workflows/`) |
+| Edge function | `supabase functions deploy chat` (Supabase CLI) |
 
-Deploy guide for the code-interpreter backend: see [`code-interpreter/README.md`](code-interpreter/README.md).
-后端部署详见 [`code-interpreter/README.md`](code-interpreter/README.md)。
+See [`code-interpreter/README.md`](code-interpreter/README.md) for backend deployment details.
 
----
+### Design Principles
 
-## 🛡️ Design Principles / 设计原则
+1. **Epistemic agency first** — support thinking, never substitute it.
+2. **Governable and interpretable** — every agent intervention is logged with its rationale; the teacher may accept, edit, or dismiss it.
+3. **Grounded, not fabricated** — answers cite the knowledge base or the web; sources and data are never invented.
+4. **Teacher in the loop** — teachers monitor and intervene; the AI defers to the teacher.
+5. **Privacy by design** — secrets live only in environment variables and secret stores; student data is protected by row-level security (RLS).
 
-1. **Epistemic agency first / 认识论主体性优先** — support thinking, never substitute it.
-2. **Governable & interpretable / 可治理、可解释** — every agent intervention is logged with its rationale; the teacher can accept / edit / dismiss.
-3. **Grounded, not hallucinated / 有据可查** — answers cite the knowledge base or the web; never fabricate sources or data.
-4. **Teacher in the loop / 教师在环** — teachers monitor and intervene; the AI defers to the teacher.
-5. **Privacy by design / 隐私优先** — secrets live only in env vars / secret stores; student data is RLS-protected.
+### Security & Privacy
 
----
+- **No secrets in the repository.** API keys, service-account keys, and tokens reside in environment variables and GitHub / cloud secret stores—never committed.
+- Row-level security (RLS) isolates per-user data in Postgres.
+- The code sandbox (E2B micro-VM) is fully isolated and never receives database credentials.
 
-## 🔒 Security & Privacy / 安全与隐私
+### License & Disclaimer
 
-- **No secrets in the repository.** API keys, service-account keys, and tokens are kept in environment variables / GitHub & Cloud secret stores — never committed.
-- **仓库不含任何密钥。** API key、服务账号密钥、令牌均存于环境变量 / 平台密钥库,绝不入库。
-- Row-Level Security (RLS) protects per-user data in Postgres.
-- The code sandbox is fully isolated (E2B micro-VM) and never receives database credentials.
-
----
-
-## 📄 License & Disclaimer / 许可与免责
-
-Released under the **MIT License**. This is a research prototype; it is **not** a substitute for professional academic, medical, legal, or financial advice. The AI assists learning and never completes graded work on a student's behalf.
-以 **MIT 许可**发布。本项目为研究原型,**不**替代专业的学术/医疗/法律/金融建议;AI 仅辅助学习,绝不代替学生完成被评分的作业。
+Released under the **MIT License**. This is a research prototype and is not a substitute for professional academic, medical, legal, or financial advice. The AI assists learning and never completes graded work on a learner's behalf.
 
 ---
 
 <div align="center">
-Made with care for learners who want to think, not just get answers.<br/>
-为「想思考、而不只是要答案」的学习者而做。
+为「想思考,而不只是要答案」的学习者而建。<br/>
+Built for learners who want to think, not just to get answers.
 </div>
