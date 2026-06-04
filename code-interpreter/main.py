@@ -24,7 +24,13 @@ from pydantic import BaseModel
 import json
 import urllib.request
 import uuid
+import asyncio
 import jwt
+from typing import Optional
+from fastapi.responses import StreamingResponse
+from orchestrator import OrchestratorIO, run_orchestrator
+from adapters import (make_llm, make_stream, make_retrieve, make_run_code, make_web,
+                      resolve_key, DMXAPI_CHAT, DMXAPI_EMBED)
 
 E2B_API_KEY = os.environ.get("E2B_API_KEY", "")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
@@ -34,6 +40,7 @@ ALLOWED_ORIGINS = [o.strip() for o in os.environ.get(
     "ALLOWED_ORIGINS", "https://techedu.icu,http://localhost:5173").split(",") if o.strip()]
 SANDBOX_TIMEOUT = int(os.environ.get("SANDBOX_TIMEOUT", "60"))
 MAX_CODE = int(os.environ.get("MAX_CODE", "20000"))
+SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")  # /orchestrate key resolution (ADR-0003)
 
 app = FastAPI(title="techedu code-interpreter backend", version="0.1")
 app.add_middleware(
@@ -177,3 +184,91 @@ def run(req: RunReq, authorization: str = Header(default="")):
             sbx.kill()
         except Exception:
             pass
+
+
+# ── L3 orchestration backend (ADR-0002): long multi-agent runs, no edge ~150s cap ──
+
+def _run_code_text(code: str) -> str:
+    """Run Python in an E2B sandbox, return stdout text. The orchestrator's analyst seam
+    (blocking — the adapter wraps it in a thread)."""
+    if not E2B_API_KEY:
+        return "（代码沙箱未配置）"
+    from e2b_code_interpreter import Sandbox
+
+    def _txt(v):
+        return "".join(str(x) for x in v) if isinstance(v, list) else str(v or "")
+
+    try:
+        sbx = Sandbox.create(timeout=SANDBOX_TIMEOUT)
+    except Exception as e:
+        return f"（沙箱创建失败：{type(e).__name__}）"
+    try:
+        ex = sbx.run_code("import os;os.makedirs('/data',exist_ok=True)\n" + code)
+        out = _txt(ex.logs.stdout)[:6000]
+        if ex.error:
+            out += f"\n运行错误：{str(ex.error)[:600]}"
+        return out or "（代码已执行，无文本输出）"
+    except Exception as e:
+        return f"（运行失败：{type(e).__name__}）"
+    finally:
+        try:
+            sbx.kill()
+        except Exception:
+            pass
+
+
+class OrchestrateReq(BaseModel):
+    task: str
+    model: str = "claude-sonnet-4-6"
+    course_id: Optional[str] = None
+
+
+@app.post("/orchestrate")
+async def orchestrate(req: OrchestrateReq, authorization: str = Header(default="")):
+    """Run the multi-agent research team server-side and stream SSE — no wall-clock cap (ADR-0002).
+    Auth: the caller's Supabase JWT. Key: the platform AI key, resolved via service role (ADR-0003)."""
+    uid = verify_user(authorization)
+    if not SUPABASE_SERVICE_ROLE_KEY:
+        raise HTTPException(503, "SUPABASE_SERVICE_ROLE_KEY not configured")
+    if not (req.task or "").strip():
+        raise HTTPException(400, "empty task")
+
+    key = await resolve_key(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
+                            ["dmxapi", "openai", "anthropic"], platform_only=True)
+    if not key:
+        raise HTTPException(503, "no platform AI key configured")
+    tavily = await resolve_key(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ["tavily"], platform_only=False)
+
+    queue: asyncio.Queue = asyncio.Queue()
+
+    def emit(e):
+        queue.put_nowait(e)
+
+    io = OrchestratorIO(
+        llm=make_llm(DMXAPI_CHAT, key, req.model),
+        retrieve=make_retrieve(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, DMXAPI_EMBED, key, uid, req.course_id),
+        run_code=make_run_code(_run_code_text),
+        web=make_web(tavily),
+        stream=make_stream(DMXAPI_CHAT, key, req.model, emit),
+        emit=emit,
+    )
+
+    async def runner():
+        try:
+            await run_orchestrator(req.task, io)
+        except Exception:
+            emit({"choices": [{"index": 0, "delta": {"content": "（研究团队执行出错，请重试）"}}]})
+        finally:
+            queue.put_nowait(None)
+
+    asyncio.create_task(runner())
+
+    async def gen():
+        while True:
+            e = await queue.get()
+            if e is None:
+                break
+            yield f"data: {json.dumps(e, ensure_ascii=False)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
