@@ -6,6 +6,7 @@ import ClassroomAnalyst from '@/features/supervisor/ClassroomAnalyst';
 import * as ConversationService from '@/services/ConversationService';
 import * as ClassService from '@/services/ClassService';
 import { AI_MODELS, MODEL_CATEGORIES, streamChat } from '@/services/RealAIService';
+import { exportResearchData } from '@/services/ResearchExport';
 
 import LearningSankeyChart from '@/shared/components/charts/LearningSankeyChart';
 import ActivityHeatmap from '@/shared/components/charts/ActivityHeatmap';
@@ -19,7 +20,7 @@ import {
   Database, User, Settings, BrainCircuit, Key, Eye, EyeOff,
   Save, Trash2, PlusCircle, Sparkles, ChevronDown, Zap,
   GraduationCap, Bell, RefreshCw, Shield, Info, ExternalLink,
-  Bot, Loader2
+  Bot, Loader2, Download
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
@@ -120,6 +121,8 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
   const [apiMsg, setApiMsg] = useState<string | null>(null);
   const [myClasses, setMyClasses] = useState<{ id: string; name: string }[]>([]);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportMsg, setExportMsg] = useState<string | null>(null);
 
   // Teacher AI chat
   const [aiMessages, setAiMessages] = useState<{ role: string; content: string }[]>([]);
@@ -205,6 +208,16 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
   }, []);
 
   // ── Handlers ─────────────────────────────────────────────
+  const handleExportResearch = async () => {
+    setExporting(true); setExportMsg(null);
+    try {
+      const s = await exportResearchData();
+      setExportMsg(`✓ 已导出：${s.n_participants} 名被试 · ${s.n_sessions} 会话 · ${s.n_messages} 消息 · ${s.n_events} 事件`);
+    } catch (e) {
+      setExportMsg(`导出失败：${(e as Error).message}`);
+    } finally { setExporting(false); }
+  };
+
   const handleSaveProfile = async () => {
     setProfileSaving(true); setProfileMsg(null);
     try {
@@ -691,6 +704,28 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                     <button onClick={handleSaveProfile} disabled={profileSaving} className={btnPrimary}>
                       <Save size={15} /> {profileSaving ? '保存中…' : '保存资料'}
                     </button>
+                  </div>
+                </div>
+
+                {/* Research data export */}
+                <div className={`${cardBase} overflow-hidden`}>
+                  <div className="px-5 py-4 border-b border-slate-100">
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center mt-0.5">
+                        <Download size={14} className="text-blue-600" />
+                      </div>
+                      <div>
+                        <h2 className="font-bold text-slate-800 text-sm">研究数据导出</h2>
+                        <p className="text-xs text-slate-400 mt-0.5">一键导出匿名化交互数据（events / messages / participants + codebook），可直接用于 ENA / 序列分析 / GLMM</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-5 space-y-3">
+                    {exportMsg && <p className={`text-sm font-medium ${exportMsg.startsWith('✓') ? 'text-blue-600' : 'text-rose-500'}`}>{exportMsg}</p>}
+                    <button onClick={handleExportResearch} disabled={exporting} className={btnPrimary}>
+                      {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} {exporting ? '导出中…' : '导出研究数据 (ZIP)'}
+                    </button>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">已匿名化(P0001…)、已排除退出研究者、保留对话原文；含 codebook 说明每列对应的分析。暂未做 LLM 自动编码(留给离线)。</p>
                   </div>
                 </div>
 

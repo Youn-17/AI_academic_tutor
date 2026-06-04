@@ -11,6 +11,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import * as ConversationService from '@/services/ConversationService';
 import { streamChat, AI_CONFIGS, AI_MODELS, SYSTEM_PROMPTS, ChatMessage } from '@/services/RealAIService';
 import { getRolePrompt } from '@/services/AgentRoles';
+import { logResearchEvent } from '@/services/ResearchLog';
 import { readFileContent } from '@/services/DocumentService';
 import { getMyCondition, type StudyCondition } from '@/services/StudyService';
 
@@ -72,7 +73,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
   const [streamingContent, setStreamingContent] = useState('');
   const [selectedModel, setSelectedModel] = useState('auto');
   const [selectedRole, setSelectedRole] = useState<string>(() => localStorage.getItem('hak_role') || 'socratic');
-  const handleRoleSelect = (id: string) => { setSelectedRole(id); try { localStorage.setItem('hak_role', id); } catch { /* ignore */ } };
+  const handleRoleSelect = (id: string) => { setSelectedRole(id); logResearchEvent({ event_type: 'role_switched', event_subtype: id, session_id: activeChatIdRef.current, condition }); try { localStorage.setItem('hak_role', id); } catch { /* ignore */ } };
   const [useRag, setUseRag] = useState(false);
   const [condition, setCondition] = useState<StudyCondition | null>(null);  // A/B 实验条件(非参与者=null)
   const [agentSteps, setAgentSteps] = useState<{ tool?: string; status?: string; found?: number; label?: string }[]>([]);
@@ -252,6 +253,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     try {
       const userMessage = await ConversationService.sendMessage(convId, fullContent, Role.STUDENT);
       if (convId === activeChatIdRef.current) setMessages(prev => prev.map(m => m.id === tempUserMsgId ? userMessage : m));
+      logResearchEvent({ event_type: 'student_query', event_subtype: messages.length === 0 ? 'first_question' : 'follow_up', session_id: convId, condition, active_role: selectedRole, model: selectedModel, message_id: userMessage.id, payload: { chars: fullContent.length, has_file: !!file } });
 
       const chatHistory = toChatHistory(messages);
       if (isImage && imageDataUrl) {
@@ -283,8 +285,8 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
           {
             signal: abort.signal,
             use_agent: useAgent,
-            onAgentStep: (step) => setAgentSteps(prev => [...prev, step]),
-            onTeamStep: (s) => setAgentSteps(prev => [...prev, teamStepEntry(s)]),
+            onAgentStep: (step) => { setAgentSteps(prev => [...prev, step]); if (step.status === 'running' && step.tool) logResearchEvent({ event_type: 'tool_invoked', event_subtype: step.tool, session_id: activeChatIdRef.current, condition, active_role: selectedRole, model: selectedModel }); },
+            onTeamStep: (s) => { setAgentSteps(prev => [...prev, teamStepEntry(s)]); if (s.phase === 'plan' && s.status === 'done') logResearchEvent({ event_type: 'tool_invoked', event_subtype: 'research_team', session_id: activeChatIdRef.current, condition, active_role: selectedRole, model: selectedModel, payload: { plan: (s.plan || []).map((p: any) => p.role) } }); },
             onReasoning: (t) => setReasoning(prev => prev + t),
             onArtifacts: (a) => { collectedArtifacts = a; },
             attachedFile: dataFile,
@@ -300,6 +302,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       // 检索到的知识块 → 引用卡片(只有真实来源才会被存储与展示)
       const citations = ragSources.map(s => ({ id: s.id, title: s.source_title, source: s.source_title, author: '', year: 0, url: '' }));
       const aiMessage = await ConversationService.sendMessage(convId, fullResponse, Role.AI, selectedModel, citations);
+      logResearchEvent({ event_type: 'ai_response', event_subtype: selectedModel === 'team' ? 'team' : (condition === 'A_direct' ? 'direct' : selectedRole), session_id: convId, condition, active_role: selectedRole, model: selectedModel, message_id: aiMessage.id, payload: { chars: fullResponse.length, n_citations: citations.length, n_artifacts: (collectedArtifacts?.charts?.length || 0) + (collectedArtifacts?.files?.length || 0) } });
       if (convId === activeChatIdRef.current) setMessages(prev => [...prev, collectedArtifacts ? { ...aiMessage, artifacts: collectedArtifacts } : aiMessage]);
 
       if (chatHistory.length === 1) {
@@ -352,6 +355,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       await ConversationService.deleteMessagesFrom(convId, messageId);
       const newUserMsg = await ConversationService.sendMessage(convId, newContent, Role.STUDENT);
       if (convId === activeChatIdRef.current) setMessages([...keptMessages, newUserMsg]);
+      logResearchEvent({ event_type: 'student_action', event_subtype: 'edit_resend', session_id: convId, condition, active_role: selectedRole, model: selectedModel, message_id: newUserMsg.id, payload: { chars: newContent.length } });
 
       const chatHistory = toChatHistory(keptMessages);
       chatHistory.push({ role: 'user', content: newContent });
@@ -375,8 +379,8 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
           {
             signal: abort.signal,
             use_agent: useAgent,
-            onAgentStep: (step) => setAgentSteps(prev => [...prev, step]),
-            onTeamStep: (s) => setAgentSteps(prev => [...prev, teamStepEntry(s)]),
+            onAgentStep: (step) => { setAgentSteps(prev => [...prev, step]); if (step.status === 'running' && step.tool) logResearchEvent({ event_type: 'tool_invoked', event_subtype: step.tool, session_id: activeChatIdRef.current, condition, active_role: selectedRole, model: selectedModel }); },
+            onTeamStep: (s) => { setAgentSteps(prev => [...prev, teamStepEntry(s)]); if (s.phase === 'plan' && s.status === 'done') logResearchEvent({ event_type: 'tool_invoked', event_subtype: 'research_team', session_id: activeChatIdRef.current, condition, active_role: selectedRole, model: selectedModel, payload: { plan: (s.plan || []).map((p: any) => p.role) } }); },
             onReasoning: (t) => setReasoning(prev => prev + t),
             onArtifacts: (a) => { collectedArtifacts = a; },
             attachedFile: dataFile,
@@ -391,6 +395,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
 
       const citations = ragSources.map(s => ({ id: s.id, title: s.source_title, source: s.source_title, author: '', year: 0, url: '' }));
       const aiMessage = await ConversationService.sendMessage(convId, fullResponse, Role.AI, selectedModel, citations);
+      logResearchEvent({ event_type: 'ai_response', event_subtype: selectedModel === 'team' ? 'team' : (condition === 'A_direct' ? 'direct' : selectedRole), session_id: convId, condition, active_role: selectedRole, model: selectedModel, message_id: aiMessage.id, payload: { chars: fullResponse.length, n_citations: citations.length, n_artifacts: (collectedArtifacts?.charts?.length || 0) + (collectedArtifacts?.files?.length || 0) } });
       if (convId === activeChatIdRef.current) setMessages(prev => [...prev, collectedArtifacts ? { ...aiMessage, artifacts: collectedArtifacts } : aiMessage]);
 
     } catch (err) {
@@ -497,7 +502,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
             onSendMessage={handleSendMessage}
             onEditMessage={handleEditMessage}
             selectedModel={selectedModel}
-            onModelSelect={setSelectedModel}
+            onModelSelect={(m) => { setSelectedModel(m); logResearchEvent({ event_type: 'model_switched', event_subtype: m, session_id: activeChatIdRef.current, condition }); }}
             useRag={useRag}
             onToggleRag={() => setUseRag(prev => !prev)}
             theme={theme}
