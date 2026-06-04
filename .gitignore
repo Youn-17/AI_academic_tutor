@@ -44,3 +44,9 @@ scripts/corpus_chunks.jsonl
 /OVERNIGHT_PROGRESS.md
 /README_DEPLOY.md
 /AI_Academic_Tutor_平台技术规格文档_v2.md
+
+# local-only (never commit)
+__pycache__/
+.codex/
+/dmxapi_docs_all.md
+/deepseek_api_docs_zh_cn_all.md
