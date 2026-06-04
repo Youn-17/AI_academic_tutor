@@ -40,6 +40,7 @@ ALLOWED_ORIGINS = [o.strip() for o in os.environ.get(
     "ALLOWED_ORIGINS", "https://techedu.icu,http://localhost:5173").split(",") if o.strip()]
 SANDBOX_TIMEOUT = int(os.environ.get("SANDBOX_TIMEOUT", "60"))
 MAX_CODE = int(os.environ.get("MAX_CODE", "20000"))
+MAX_FILE_B64 = int(os.environ.get("MAX_FILE_B64", "34000000"))  # ~25MB decoded — per-file upload cap (audit S5)
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")  # /orchestrate key resolution (ADR-0003)
 
 app = FastAPI(title="techedu code-interpreter backend", version="0.1")
@@ -119,6 +120,9 @@ def run(req: RunReq, authorization: str = Header(default="")):
         raise HTTPException(503, "E2B_API_KEY not configured")
     if len(req.code) > MAX_CODE:
         raise HTTPException(400, "code too long")
+    for f in req.files[:5]:
+        if len(f.get("b64", "")) > MAX_FILE_B64:
+            raise HTTPException(413, "uploaded file too large (max ~25MB)")
 
     from e2b_code_interpreter import Sandbox  # lazy import so /healthz works without network
 
