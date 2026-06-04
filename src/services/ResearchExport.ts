@@ -30,6 +30,7 @@ const CODEBOOK = `# 研究数据导出 · Codebook (techedu.icu)
 | sessions.csv | 一行=一会话 | 描述、抽样 |
 | messages.csv | 一行=一条消息 | 话语编码(+κ)、LLM 自动编码 |
 | events.csv | 一行=一交互事件(有序) | ENA、滞后序列分析、过程挖掘 |
+| metrics.json | 汇总(按 A/B 条件) | 教育 agent 行为指标速览(描述统计) |
 | raw.json | 原始嵌套 | 留余地 |
 
 ## participants.csv
@@ -73,6 +74,16 @@ const CODEBOOK = `# 研究数据导出 · Codebook (techedu.icu)
 - created_at — 时间戳
 > 用法：按 participant_id + session_id 分组、created_at 排序 → 可编码事件序列 → 直接喂 ENA / lag-sequential / 序列挖掘。
 
+## metrics.json（教育 agent 行为指标 · 描述统计，按 A/B 条件分组）
+由 \`research_agent_metrics\` RPC 从 events.csv 同源计算；随学生使用累积。每个 condition 一组：
+- follow_up_rate — 追问率 = 追问 / 总提问（主动求知/认知卷入的代理指标，越高=越深的探究）
+- scaffold_ratio — 引导比例 = 非"direct"回应 / 全部 AI 回应（B_socratic 应显著高于 A_direct → 操纵检验）
+- tools_per_response — 每条回应的工具调用次数（检索/联网/代码 = 证据接地程度）
+- n_edits / n_role_switches — 学生改写重发 / 切换角色（主体性·探索行为计数）
+- events_per_session — 每会话事件数（持续探究的深度）
+> 注：这是**描述统计速览**，非推断结果；正式 A/B 检验请用 events.csv + participants.csv 自行建模（GLMM）。
+> 仅当样本积累后才有意义（导出时若各项接近 0，是数据量还小，不是 bug）。
+
 ## 备注
 - 暂未做 LLM 自动编码（按你的选择，留给离线）。编码列需自行追加。
 - 非研究参与者(condition 为空)也包含在内，按 condition/consent_status 自行过滤。
@@ -95,11 +106,22 @@ export async function exportResearchData(): Promise<ExportSummary> {
     events?: Record<string, unknown>[];
   };
 
+  // Educational-agent behaviour metrics (research ③). A bonus summary — never block the
+  // export if it fails (the raw CSVs are the real artifact).
+  let metrics: unknown = null;
+  try {
+    const { data: m } = await supabase.rpc('research_agent_metrics');
+    metrics = m ?? null;
+  } catch {
+    metrics = null;
+  }
+
   const zip = new JSZip();
   zip.file('participants.csv', toCSV(bundle.participants || []));
   zip.file('sessions.csv', toCSV(bundle.sessions || []));
   zip.file('messages.csv', toCSV(bundle.messages || []));
   zip.file('events.csv', toCSV(bundle.events || []));
+  if (metrics) zip.file('metrics.json', JSON.stringify(metrics, null, 2));
   zip.file('raw.json', JSON.stringify(bundle, null, 2));
   zip.file('codebook.md', CODEBOOK);
 

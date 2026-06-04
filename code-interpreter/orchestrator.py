@@ -84,7 +84,9 @@ class OrchestratorIO:
 
 
 async def plan_subtasks(task: str, io: OrchestratorIO) -> list[dict]:
-    """Lead agent: decompose the task into 2-3 specialist subtasks. Falls back safely."""
+    """Lead agent: decompose the task into 2-3 specialist subtasks, optionally with dependencies
+    (Plan-and-Solve: a subtask may build on an earlier one's output). Falls back safely. Deps are
+    clamped to earlier *kept* subtasks — no forward refs, no cycles, no dangling indices."""
     web_line = "\n- web（联网调研员）：联网搜索最新/实时信息" if io.has_web else ""
     system = (
         '你是多智能体学习辅导团队的"组长"。把学生任务拆成 2-3 个聚焦子任务，分派给最合适的专科：\n'
@@ -92,48 +94,80 @@ async def plan_subtasks(task: str, io: OrchestratorIO) -> list[dict]:
         "- analyst（数据分析师）：写并运行 Python 做计算/画图\n"
         "- reasoner（推理顾问）：纯推理/批判分析/方案设计\n"
         "- affective（学习伙伴）：情感支持/动机调节" + web_line +
-        '\n原则：只派真正需要的；子任务聚焦可独立完成。只输出 JSON：{"plan":[{"role":"retriever","subtask":"…"}]}'
+        "\n若某子任务必须基于另一子任务的产出（如先检索证据、再据此推理），用 deps 标出它依赖的子任务序号"
+        "（从 0 开始，只能依赖更靠前的；多数情况无依赖，省略或留空数组）。"
+        '\n原则：只派真正需要的；能并行就别造依赖。只输出 JSON：'
+        '{"plan":[{"role":"retriever","subtask":"…"},{"role":"reasoner","subtask":"…","deps":[0]}]}'
     )
     parsed = extract_json(await io.llm(system, task, True))
+    raw = parsed.get("plan") if (parsed and isinstance(parsed.get("plan"), list)) else []
+    # pass 1: keep valid (role, subtask) items, remembering each item's ORIGINAL index for dep remap
+    kept: list[tuple] = []
+    for i, x in enumerate(raw):
+        role = str(x.get("role", "")).lower()
+        sub = str(x.get("subtask", ""))
+        if role in ROSTER and sub:
+            kept.append((i, role, sub, x.get("deps", []) or []))
+    kept = kept[:3]
+    orig_to_new = {orig: new for new, (orig, *_rest) in enumerate(kept)}
+    # pass 2: remap deps through the filter; drop forward / out-of-range / dropped-target refs
     plan: list[dict] = []
-    if parsed and isinstance(parsed.get("plan"), list):
-        for x in parsed["plan"]:
-            role = str(x.get("role", "")).lower()
-            sub = str(x.get("subtask", ""))
-            if role in ROSTER and sub:
-                plan.append({"role": role, "subtask": sub})
-    return plan[:3] or [
-        {"role": "retriever", "subtask": task},
-        {"role": "reasoner", "subtask": task},
+    for new_idx, (_orig, role, sub, deps_raw) in enumerate(kept):
+        deps: list[int] = []
+        for d in deps_raw:
+            try:
+                nd = orig_to_new.get(int(d))
+            except (TypeError, ValueError):
+                continue
+            if nd is not None and nd < new_idx and nd not in deps:  # earlier-only → acyclic
+                deps.append(nd)
+        plan.append({"role": role, "subtask": sub, "deps": deps})
+    return plan or [
+        {"role": "retriever", "subtask": task, "deps": []},
+        {"role": "reasoner", "subtask": task, "deps": []},
     ]
 
 
-async def run_specialist(step: dict, io: OrchestratorIO) -> dict:
+def _dep_context(step: dict, done: dict) -> str:
+    """Concatenate the findings of this step's satisfied dependencies (Plan-and-Solve context)."""
+    deps = [d for d in step.get("deps", []) if d in done]
+    if not deps:
+        return ""
+    return "\n\n".join(
+        f"【{done[d]['label']}的发现】{str(done[d]['finding'])[:800]}" for d in deps)
+
+
+async def run_specialist(step: dict, io: OrchestratorIO, context: str = "") -> dict:
     """Run one specialist by its taxonomy role. NEVER raises — a failure becomes a finding,
-    so one slow/dead specialist can't break the gather (mirrors the edge-fn guarantee)."""
+    so one slow/dead specialist can't break the gather (mirrors the edge-fn guarantee).
+    `context` carries upstream dependency findings (Plan-and-Solve); it is injected into the
+    reasoning roles' prompt, NOT into retrieval/web queries (those must stay clean search terms)."""
     role = step["role"]
     label = ROSTER[role]["label"]
     io.emit({"_team_step": {"phase": "work", "role": role, "agent": label,
-                            "subtask": step["subtask"], "status": "running"}})
+                            "subtask": step["subtask"], "builds_on": bool(context),
+                            "status": "running"}})
+    sub = step["subtask"]
+    sub_ctx = f"{sub}\n\n【前序专科的发现，可参考但需自行判断】\n{context}" if context else sub
     finding = ""
     try:
         if role == "analyst":
             code = extract_code(await io.llm(
                 "你是数据分析师。针对子任务写完整可运行的 Python（已装 pandas/numpy/matplotlib），"
-                "用 print() 输出关键结论，画图 plt.show()。只输出代码。", step["subtask"], False))
+                "用 print() 输出关键结论，画图 plt.show()。只输出代码。", sub_ctx, False))
             finding = await io.run_code(code) if code else "（未能生成可运行代码）"
         elif role == "retriever":
-            finding = await io.retrieve(step["subtask"])
+            finding = await io.retrieve(sub)
         elif role == "web" and io.web is not None:
-            finding = await io.web(step["subtask"])
+            finding = await io.web(sub)
         elif role == "affective":
             finding = await io.llm(
                 "你是学习伙伴（情感支持）。给真诚共情、把困境正常化，并给一个现在就能做的最小一步与一个"
-                "情绪/动机调节建议。不代替学生完成学业任务。", step["subtask"], False)
+                "情绪/动机调节建议。不代替学生完成学业任务。", sub_ctx, False)
         else:  # reasoner (and any tool-less fallback)
             finding = await io.llm(
                 "你是推理顾问。对子任务做严谨的分析/推理/方案设计，给有条理的要点。不编造文献或数据。",
-                step["subtask"], False)
+                sub_ctx, False)
     except Exception:
         finding = f"（{label}未能完成该子任务）"
     io.emit({"_team_step": {"phase": "work", "role": role, "agent": label, "status": "done"}})
@@ -237,8 +271,26 @@ async def run_orchestrator(task: str, io: OrchestratorIO) -> str:
     plan = await plan_subtasks(task, io)
     io.emit({"_team_step": {"phase": "plan", "status": "done",
                             "plan": [{"role": p["role"], "label": ROSTER[p["role"]]["label"],
-                                      "subtask": p["subtask"]} for p in plan]}})
+                                      "subtask": p["subtask"], "deps": p.get("deps", [])}
+                                     for p in plan]}})
 
-    findings = list(await asyncio.gather(*(run_specialist(s, io) for s in plan)))
-    critic_notes = await review(task, findings, io)
-    return await synthesize(task, findings, critic_notes, io)
+    # Dependency-aware execution (Plan-and-Solve): run in waves by the deps DAG. Specialists whose
+    # deps are done run in parallel and SEE those findings injected as context; a no-deps plan is a
+    # single parallel wave — i.e. the prior behavior, zero regression.
+    findings: list = [None] * len(plan)
+    done: dict = {}
+    remaining = set(range(len(plan)))
+    while remaining:
+        ready = [i for i in sorted(remaining) if all(d in done for d in plan[i].get("deps", []))]
+        if not ready:  # deps are clamped to earlier items, so this is unreachable; run rest blind
+            ready = sorted(remaining)
+        wave = await asyncio.gather(
+            *(run_specialist(plan[i], io, _dep_context(plan[i], done)) for i in ready))
+        for i, r in zip(ready, wave):
+            findings[i] = r
+            done[i] = r
+            remaining.discard(i)
+
+    ordered = [f for f in findings if f is not None]
+    critic_notes = await review(task, ordered, io)
+    return await synthesize(task, ordered, critic_notes, io)

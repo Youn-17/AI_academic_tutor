@@ -187,5 +187,48 @@ class TestReflexion(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(answer, "clean-draft")
 
 
+class TestDependencyPlanning(unittest.IsolatedAsyncioTestCase):
+    async def test_plan_remaps_and_drops_bad_deps(self):
+        # item0 declares a FORWARD dep [1] → drop; item1 deps [0,5] → keep 0 (earlier), drop 5 (oob).
+        async def llm(s, u, j):
+            return ('{"plan":[{"role":"retriever","subtask":"a","deps":[1]},'
+                    '{"role":"reasoner","subtask":"b","deps":[0,5]}]}')
+        plan = await plan_subtasks("t", make_io(Recorder(), llm=llm))
+        self.assertEqual(plan[0]["deps"], [])       # forward dep dropped (acyclic)
+        self.assertEqual(plan[1]["deps"], [0])      # earlier kept, out-of-range dropped
+
+    async def test_dep_remap_survives_filtered_invalid_role(self):
+        # a bad-role item at index 0 gets filtered; the reasoner's dep [1] must remap to the
+        # retriever's NEW index 0 — not dangle or point at the wrong item.
+        async def llm(s, u, j):
+            return ('{"plan":[{"role":"nope","subtask":"x"},'
+                    '{"role":"retriever","subtask":"a"},'
+                    '{"role":"reasoner","subtask":"b","deps":[1]}]}')
+        plan = await plan_subtasks("t", make_io(Recorder(), llm=llm))
+        self.assertEqual([p["role"] for p in plan], ["retriever", "reasoner"])
+        self.assertEqual(plan[1]["deps"], [0])      # dep remapped through the filter
+
+    async def test_dependent_specialist_sees_upstream_finding(self):
+        seen = {}
+
+        async def fake_llm(system, user, json_mode):
+            if json_mode and "plan" in system:
+                return ('{"plan":[{"role":"retriever","subtask":"找证据"},'
+                        '{"role":"reasoner","subtask":"据此分析","deps":[0]}]}')
+            if json_mode and "质检员" in system:
+                return '{"notes":""}'
+            if "推理顾问" in system:
+                seen["reasoner_user"] = user
+            return "ok"
+
+        async def fake_retrieve(q):
+            return "RETRIEVED-FACT-42"
+
+        rec = Recorder()
+        await run_orchestrator("任务", make_io(rec, llm=fake_llm, retrieve=fake_retrieve))
+        # the reasoner ran AFTER the retriever and saw its finding injected as context
+        self.assertIn("RETRIEVED-FACT-42", seen.get("reasoner_user", ""))
+
+
 if __name__ == "__main__":
     unittest.main()
