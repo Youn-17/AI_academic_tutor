@@ -12,6 +12,9 @@
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20pgvector-3FCF8E?logo=supabase&logoColor=white)
 ![Cloud%20Run](https://img.shields.io/badge/Cloud%20Run-E2B%20sandbox-4285F4?logo=googlecloud&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
+[![Live](https://img.shields.io/badge/Live-www.techedu.icu-2563EB?logo=googlechrome&logoColor=white)](https://www.techedu.icu/)
+
+### 🌐 在线访问 / Live demo — **[www.techedu.icu](https://www.techedu.icu/)**
 
 [中文文档](#中文文档) · [English](#english)
 
