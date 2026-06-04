@@ -25,6 +25,7 @@ export interface ChatMessage {
 }
 
 const EDGE_FUNCTION_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL || 'https://oztozjwngekmqtuylypt.supabase.co/functions/v1';
+const ORCHESTRATE_URL = import.meta.env.VITE_ORCHESTRATE_URL || 'https://ci-backend-546443218324.asia-east1.run.app';  // L3 backend (ADR-0002)
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 const MAX_CONTENT_LENGTH = 10_000;
@@ -129,21 +130,22 @@ export async function* streamChat(
 
     validateMessages(fullMessages);
     const headers = await getAuthHeaders();
+    const isTeam = !!opts.team || config.model === 'team';
 
-    // Abort = external signal OR internal idle timeout (no chunk for 60s → give up)
+    // Abort = external signal OR internal idle timeout (team specialists can run long → 180s)
     const ctrl = new AbortController();
     if (opts.signal) {
         if (opts.signal.aborted) ctrl.abort();
         else opts.signal.addEventListener('abort', () => ctrl.abort(), { once: true });
     }
     let idleTimer: ReturnType<typeof setTimeout> | undefined;
-    const resetIdle = () => { if (idleTimer) clearTimeout(idleTimer); idleTimer = setTimeout(() => ctrl.abort(), 60_000); };
+    const resetIdle = () => { if (idleTimer) clearTimeout(idleTimer); idleTimer = setTimeout(() => ctrl.abort(), isTeam ? 180_000 : 60_000); };
 
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
     const stripper = makeThinkingStripper();
     try {
         resetIdle();
-        const response = await fetch(`${EDGE_FUNCTION_URL}/chat`, {
+        const edgeFetch = () => fetch(`${EDGE_FUNCTION_URL}/chat`, {
             method: 'POST',
             headers,
             signal: ctrl.signal,
@@ -161,6 +163,27 @@ export async function* streamChat(
                 ...(opts.attachedFile ? { attached_file: opts.attachedFile } : {}),
             }),
         });
+
+        // Research team → the L3 backend orchestrator (ADR-0002: no edge ~150s cap). Falls back
+        // to the edge-fn team if the backend is unreachable, so this path never regresses.
+        const lastMsg = messages[messages.length - 1];
+        const task = typeof lastMsg?.content === 'string' ? lastMsg.content : '';
+        let response: Response;
+        if (isTeam && task) {
+            try {
+                response = await fetch(`${ORCHESTRATE_URL}/orchestrate`, {
+                    method: 'POST',
+                    signal: ctrl.signal,
+                    headers: { 'Authorization': headers['Authorization'], 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task, model: 'claude-sonnet-4-6', course_id: ragOptions?.course_id }),
+                });
+                if (!response.ok) throw new Error(`backend ${response.status}`);
+            } catch (_) {
+                response = await edgeFetch();   // backend down → fall back to the interactive edge team
+            }
+        } else {
+            response = await edgeFetch();
+        }
 
         if (!response.ok) {
             const errorText = await response.text().catch(() => '');
