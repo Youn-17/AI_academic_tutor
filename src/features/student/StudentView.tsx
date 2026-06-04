@@ -206,6 +206,57 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     }
   };
 
+  // One conversational turn: stream the reply, persist it, log research events.
+  // Deep module — both handleSendMessage and handleEditMessage drive it through one small
+  // interface (convId, chatHistory, abort, dataFile). Every log keys off the LOCAL convId,
+  // so switching chats mid-stream never misattributes a tool/response event (fixes B3).
+  const streamAndPersistTurn = async (
+    convId: string,
+    chatHistory: ChatMessage[],
+    abort: AbortController,
+    dataFile?: { name: string; b64: string },
+  ): Promise<void> => {
+    const modelInfo = AI_MODELS[selectedModel];
+    const config = modelInfo
+      ? { provider: modelInfo.provider, model: modelInfo.model }
+      : AI_CONFIGS.deepseekChat;
+    // A/B: A_direct = direct prompt + no RAG + no tools (control); everyone else drives the prompt by selected role
+    const sysPrompt = condition === 'A_direct' ? SYSTEM_PROMPTS.direct : getRolePrompt(selectedRole);
+    const ragOptions = condition === 'A_direct'
+      ? undefined
+      : ((condition === 'B_socratic' || useRag) ? { use_rag: true } : undefined);
+    const logTool = (subtype: string, payload?: Record<string, unknown>) =>
+      logResearchEvent({ event_type: 'tool_invoked', event_subtype: subtype, session_id: convId, condition, active_role: selectedRole, model: selectedModel, payload });
+    let fullResponse = '';
+    let ragSources: { id: string; source_title: string; layer: number }[] = [];
+    let collectedArtifacts: { charts: string[]; files: { name: string; b64?: string; url?: string }[] } | undefined;
+
+    try {
+      for await (const chunk of streamChat(chatHistory, config, sysPrompt, ragOptions,
+        (s) => { ragSources = s; },
+        {
+          signal: abort.signal,
+          use_agent: useAgent,
+          onAgentStep: (step) => { setAgentSteps(prev => [...prev, step]); if (step.status === 'running' && step.tool) logTool(step.tool); },
+          onTeamStep: (s) => { setAgentSteps(prev => [...prev, teamStepEntry(s)]); if (s.phase === 'plan' && s.status === 'done') logTool('research_team', { plan: (s.plan || []).map((p: any) => p.role) }); },
+          onReasoning: (t) => setReasoning(prev => prev + t),
+          onArtifacts: (a) => { collectedArtifacts = a; },
+          attachedFile: dataFile,
+        })) {
+        fullResponse += chunk;
+        if (convId === activeChatIdRef.current) setStreamingContent(fullResponse);
+      }
+    } catch (aiError) {
+      if (abort.signal.aborted) { if (!fullResponse) fullResponse = '（已停止生成）'; }
+      else if (!fullResponse) fullResponse = `AI 出错：${(aiError as Error).message}`;
+    }
+
+    const citations = ragSources.map(s => ({ id: s.id, title: s.source_title, source: s.source_title, author: '', year: 0, url: '' }));
+    const aiMessage = await ConversationService.sendMessage(convId, fullResponse, Role.AI, selectedModel, citations);
+    logResearchEvent({ event_type: 'ai_response', event_subtype: selectedModel === 'team' ? 'team' : (condition === 'A_direct' ? 'direct' : selectedRole), session_id: convId, condition, active_role: selectedRole, model: selectedModel, message_id: aiMessage.id, payload: { chars: fullResponse.length, n_citations: citations.length, n_artifacts: (collectedArtifacts?.charts?.length || 0) + (collectedArtifacts?.files?.length || 0) } });
+    if (convId === activeChatIdRef.current) setMessages(prev => [...prev, collectedArtifacts ? { ...aiMessage, artifacts: collectedArtifacts } : aiMessage]);
+  };
+
   const handleSendMessage = async (content: string, file?: File) => {
     if (!activeChatId) return;
     if (sendingRef.current) return;          // H2: ignore re-entrant send while one is streaming
@@ -265,45 +316,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
         chatHistory.push({ role: 'user', content: fullContent });
       }
 
-      const modelInfo = AI_MODELS[selectedModel];
-      const config = modelInfo
-        ? { provider: modelInfo.provider, model: modelInfo.model }
-        : AI_CONFIGS.deepseekChat;
-      // A/B:A_direct=普通提示+无RAG+无工具(对照);B_socratic=苏格拉底+RAG+智能体;null(非参与者)=默认苏格拉底+智能体
-      const sysPrompt = condition === 'A_direct' ? SYSTEM_PROMPTS.direct
-        : getRolePrompt(selectedRole);   // everyone except the A_direct control drives the prompt by selected role
-      const ragOptions = condition === 'A_direct'
-        ? undefined
-        : ((condition === 'B_socratic' || useRag) ? { use_rag: true } : undefined);
-      let fullResponse = '';
-      let ragSources: { id: string; source_title: string; layer: number }[] = [];
-      let collectedArtifacts: { charts: string[]; files: { name: string; b64?: string; url?: string }[] } | undefined;
-
-      try {
-        for await (const chunk of streamChat(chatHistory, config, sysPrompt, ragOptions,
-          (s) => { ragSources = s; },
-          {
-            signal: abort.signal,
-            use_agent: useAgent,
-            onAgentStep: (step) => { setAgentSteps(prev => [...prev, step]); if (step.status === 'running' && step.tool) logResearchEvent({ event_type: 'tool_invoked', event_subtype: step.tool, session_id: activeChatIdRef.current, condition, active_role: selectedRole, model: selectedModel }); },
-            onTeamStep: (s) => { setAgentSteps(prev => [...prev, teamStepEntry(s)]); if (s.phase === 'plan' && s.status === 'done') logResearchEvent({ event_type: 'tool_invoked', event_subtype: 'research_team', session_id: activeChatIdRef.current, condition, active_role: selectedRole, model: selectedModel, payload: { plan: (s.plan || []).map((p: any) => p.role) } }); },
-            onReasoning: (t) => setReasoning(prev => prev + t),
-            onArtifacts: (a) => { collectedArtifacts = a; },
-            attachedFile: dataFile,
-          })) {
-          fullResponse += chunk;
-          if (convId === activeChatIdRef.current) setStreamingContent(fullResponse);
-        }
-      } catch (aiError) {
-        if (abort.signal.aborted) { if (!fullResponse) fullResponse = '（已停止生成）'; }
-        else if (!fullResponse) fullResponse = `AI 出错：${(aiError as Error).message}`;
-      }
-
-      // 检索到的知识块 → 引用卡片(只有真实来源才会被存储与展示)
-      const citations = ragSources.map(s => ({ id: s.id, title: s.source_title, source: s.source_title, author: '', year: 0, url: '' }));
-      const aiMessage = await ConversationService.sendMessage(convId, fullResponse, Role.AI, selectedModel, citations);
-      logResearchEvent({ event_type: 'ai_response', event_subtype: selectedModel === 'team' ? 'team' : (condition === 'A_direct' ? 'direct' : selectedRole), session_id: convId, condition, active_role: selectedRole, model: selectedModel, message_id: aiMessage.id, payload: { chars: fullResponse.length, n_citations: citations.length, n_artifacts: (collectedArtifacts?.charts?.length || 0) + (collectedArtifacts?.files?.length || 0) } });
-      if (convId === activeChatIdRef.current) setMessages(prev => [...prev, collectedArtifacts ? { ...aiMessage, artifacts: collectedArtifacts } : aiMessage]);
+      await streamAndPersistTurn(convId, chatHistory, abort, dataFile);
 
       if (chatHistory.length === 1) {
         const newTitle = content.slice(0, 20) || 'New Chat';
@@ -360,43 +373,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       const chatHistory = toChatHistory(keptMessages);
       chatHistory.push({ role: 'user', content: newContent });
 
-      const modelInfo = AI_MODELS[selectedModel];
-      const config = modelInfo
-        ? { provider: modelInfo.provider, model: modelInfo.model }
-        : AI_CONFIGS.deepseekChat;
-      const sysPrompt = condition === 'A_direct' ? SYSTEM_PROMPTS.direct
-        : getRolePrompt(selectedRole);   // everyone except the A_direct control drives the prompt by selected role
-      const ragOptions = condition === 'A_direct'
-        ? undefined
-        : ((condition === 'B_socratic' || useRag) ? { use_rag: true } : undefined);
-      let fullResponse = '';
-      let ragSources: { id: string; source_title: string; layer: number }[] = [];
-      let collectedArtifacts: { charts: string[]; files: { name: string; b64?: string; url?: string }[] } | undefined;
-
-      try {
-        for await (const chunk of streamChat(chatHistory, config, sysPrompt, ragOptions,
-          (s) => { ragSources = s; },
-          {
-            signal: abort.signal,
-            use_agent: useAgent,
-            onAgentStep: (step) => { setAgentSteps(prev => [...prev, step]); if (step.status === 'running' && step.tool) logResearchEvent({ event_type: 'tool_invoked', event_subtype: step.tool, session_id: activeChatIdRef.current, condition, active_role: selectedRole, model: selectedModel }); },
-            onTeamStep: (s) => { setAgentSteps(prev => [...prev, teamStepEntry(s)]); if (s.phase === 'plan' && s.status === 'done') logResearchEvent({ event_type: 'tool_invoked', event_subtype: 'research_team', session_id: activeChatIdRef.current, condition, active_role: selectedRole, model: selectedModel, payload: { plan: (s.plan || []).map((p: any) => p.role) } }); },
-            onReasoning: (t) => setReasoning(prev => prev + t),
-            onArtifacts: (a) => { collectedArtifacts = a; },
-            attachedFile: dataFile,
-          })) {
-          fullResponse += chunk;
-          if (convId === activeChatIdRef.current) setStreamingContent(fullResponse);
-        }
-      } catch (aiError) {
-        if (abort.signal.aborted) { if (!fullResponse) fullResponse = '（已停止生成）'; }
-        else if (!fullResponse) fullResponse = `AI 出错：${(aiError as Error).message}`;
-      }
-
-      const citations = ragSources.map(s => ({ id: s.id, title: s.source_title, source: s.source_title, author: '', year: 0, url: '' }));
-      const aiMessage = await ConversationService.sendMessage(convId, fullResponse, Role.AI, selectedModel, citations);
-      logResearchEvent({ event_type: 'ai_response', event_subtype: selectedModel === 'team' ? 'team' : (condition === 'A_direct' ? 'direct' : selectedRole), session_id: convId, condition, active_role: selectedRole, model: selectedModel, message_id: aiMessage.id, payload: { chars: fullResponse.length, n_citations: citations.length, n_artifacts: (collectedArtifacts?.charts?.length || 0) + (collectedArtifacts?.files?.length || 0) } });
-      if (convId === activeChatIdRef.current) setMessages(prev => [...prev, collectedArtifacts ? { ...aiMessage, artifacts: collectedArtifacts } : aiMessage]);
+      await streamAndPersistTurn(convId, chatHistory, abort, dataFile);
 
     } catch (err) {
       console.error('Edit failed:', err);

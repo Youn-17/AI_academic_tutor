@@ -47,7 +47,7 @@ def verify_user(authorization: str) -> str:
 
     Primary: ask Supabase who the token belongs to (works for both legacy HS256 and
     the new asymmetric signing keys — only needs the public anon key, no shared secret).
-    Falls back to a local JWT secret, then (dev only) an unverified decode.
+    Falls back to a local JWT secret; if neither is configured, fails closed (401).
     """
     if not authorization.startswith("Bearer "):
         raise HTTPException(401, "missing bearer token")
@@ -61,13 +61,14 @@ def verify_user(authorization: str) -> str:
                 return json.loads(r.read()).get("id") or "anon"
         except Exception as e:
             raise HTTPException(401, f"invalid token: {e}")
-    try:
-        if SUPABASE_JWT_SECRET:
+    if SUPABASE_JWT_SECRET:
+        try:
             return jwt.decode(token, SUPABASE_JWT_SECRET, algorithms=["HS256"],
                               audience="authenticated").get("sub") or "anon"
-        return jwt.decode(token, options={"verify_signature": False}).get("sub") or "anon"
-    except Exception as e:
-        raise HTTPException(401, f"invalid token: {e}")
+        except Exception as e:
+            raise HTTPException(401, f"invalid token: {e}")
+    # fail closed: no verification method available (neither SUPABASE_URL nor SUPABASE_JWT_SECRET configured)
+    raise HTTPException(401, "token verification unavailable")
 
 
 def upload_to_storage(token: str, uid: str, name: str, data: bytes):

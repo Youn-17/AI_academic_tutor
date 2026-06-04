@@ -251,6 +251,17 @@ interface ToolCtx {
 }
 type ToolResult = { content: string; sources: any[]; artifacts?: { charts: string[]; files: { name: string; b64: string }[] } };
 
+// Robustly pull a JSON object out of an LLM reply: strip ```json fences, take the outermost
+// {...}, parse. Returns null if none/malformed (callers fall back). Replaces 3 inline copies.
+function extractJSON(raw: string): any | null {
+  let s = String(raw || '').trim();
+  const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) s = fence[1].trim();
+  const a = s.indexOf('{'); const b = s.lastIndexOf('}');
+  if (a < 0 || b <= a) return null;
+  try { return JSON.parse(s.slice(a, b + 1)); } catch (_) { return null; }
+}
+
 async function executeTool(name: string, args: any, ctx: ToolCtx): Promise<ToolResult> {
   try {
     if (name === 'search_knowledge_base') {
@@ -370,11 +381,8 @@ async function executeTool(name: string, args: any, ctx: ToolCtx): Promise<ToolR
               { role: 'user', content: question },
             ],
           });
-          let raw = String(dec?.choices?.[0]?.message?.content || '');
-          const a = raw.indexOf('{'); const b = raw.lastIndexOf('}');
-          if (a >= 0 && b > a) raw = raw.slice(a, b + 1);
-          const j = JSON.parse(raw);
-          if (Array.isArray(j.queries) && j.queries.length) {
+          const j = extractJSON(dec?.choices?.[0]?.message?.content || '');
+          if (j && Array.isArray(j.queries) && j.queries.length) {
             subqs = [question, ...j.queries.map((x: any) => String(x))].slice(0, 4);
           }
         }
@@ -610,11 +618,8 @@ async function runOrchestrator(controller: ReadableStreamDefaultController, opts
           { role: 'user', content: task },
         ],
       });
-      let raw = String(pr?.choices?.[0]?.message?.content || '');
-      const a = raw.indexOf('{'); const b = raw.lastIndexOf('}');
-      if (a >= 0 && b > a) raw = raw.slice(a, b + 1);
-      const j = JSON.parse(raw);
-      if (Array.isArray(j.plan)) {
+      const j = extractJSON(pr?.choices?.[0]?.message?.content || '');
+      if (j && Array.isArray(j.plan)) {
         plan = j.plan
           .map((x: any) => ({ role: String(x.role || '').toLowerCase(), subtask: String(x.subtask || '') }))
           .filter((x: any) => ROSTER[x.role] && x.subtask)
@@ -674,10 +679,8 @@ async function runOrchestrator(controller: ReadableStreamDefaultController, opts
           { role: 'user', content: `学生任务：${task}\n\n各专科发现：\n${findingsText}` },
         ],
       });
-      let craw = String(cr?.choices?.[0]?.message?.content || '');
-      const ca = craw.indexOf('{'); const cb = craw.lastIndexOf('}');
-      if (ca >= 0 && cb > ca) craw = craw.slice(ca, cb + 1);
-      criticNotes = String(JSON.parse(craw).notes || '');
+      const cj = extractJSON(cr?.choices?.[0]?.message?.content || '');
+      criticNotes = String(cj?.notes || '');
       send({ _team_step: { phase: 'review', status: 'done', notes: criticNotes } });
     } catch (_) { /* review best-effort */ }
 
@@ -862,9 +865,10 @@ serve(async (req: Request) => {
         if (adminKey?.api_key) resolvedApiKey = adminKey.api_key;
       }
 
-      // Priority 4: ANY active key for this provider (single-class/pilot fallback,
-      // so a teacher's class-scoped key works even for students not yet enrolled).
-      if (!resolvedApiKey) {
+      // Priority 4 (PILOT ONLY): ANY active key for this provider — lets a teacher's
+      // class-scoped key serve students not yet enrolled. This is cross-tenant by design,
+      // so it is gated behind PILOT_OPEN_KEYS (default off). Enable only for an open single-class pilot.
+      if (!resolvedApiKey && Deno.env.get('PILOT_OPEN_KEYS') === 'true') {
         const pf = provider === 'dmxapi' ? ['dmxapi', 'openai', 'anthropic']
           : provider === 'moonshot' ? ['moonshot', 'kimi'] : [provider];
         const { data: anyKey } = await serviceClient
