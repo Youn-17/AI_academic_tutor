@@ -60,11 +60,11 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit }) => {
         <div className={cn("flex flex-col min-w-[200px]", isStudent ? "items-end" : "items-start")}>
 
           {/* Sender Name Label */}
-          <div className="flex items-center gap-2 mb-2 px-0.5">
-            <span className="text-xs font-bold text-secondary-DEFAULT font-heading tracking-wide">
-              {isStudent ? 'ME' : isSupervisor ? 'SUPERVISOR (INTERVENTION)' : 'AI TUTOR'}
+          <div className="flex items-center gap-2 mb-1.5 px-0.5">
+            <span className="text-xs font-semibold text-secondary-DEFAULT">
+              {isStudent ? '我' : isSupervisor ? '教师介入' : 'AI 导师'}
             </span>
-            <span className="text-[10px] text-secondary-light font-mono opacity-60">
+            <span className="text-[10px] text-secondary-light opacity-50">
               {message.timestamp}
             </span>
           </div>

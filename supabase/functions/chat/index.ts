@@ -449,6 +449,38 @@ async function callProviderJSON(apiUrl: string, key: string, params: any): Promi
   return await r.json();
 }
 
+// stream a provider completion, emitting each content delta via onDelta; returns the full text.
+// Used by the orchestrator's synthesis so content appears live (well within the edge time budget).
+async function streamProviderContent(apiUrl: string, key: string, params: any, onDelta: (s: string) => void): Promise<string> {
+  let r: Response;
+  try {
+    r = await fetchWithTimeout(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({ ...params, stream: true }),
+    }, T_PROVIDER);
+  } catch (_) { return ''; }
+  if (!r.ok || !r.body) return '';
+  const reader = r.body.getReader();
+  const dec = new TextDecoder();
+  let buf = ''; let full = '';
+  while (true) {
+    let res: ReadableStreamReadResult<Uint8Array>;
+    try { res = await reader.read(); } catch (_) { break; }
+    if (res.done) break;
+    buf += dec.decode(res.value, { stream: true });
+    const lines = buf.split('\n'); buf = lines.pop() || '';
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t.startsWith('data:')) continue;
+      const d = t.slice(5).trim();
+      if (d === '[DONE]' || !d) continue;
+      try { const j = JSON.parse(d); const c = j.choices?.[0]?.delta?.content; if (typeof c === 'string' && c) { full += c; onDelta(c); } } catch (_) { /* skip */ }
+    }
+  }
+  return full;
+}
+
 function buildBaseParams(model: string, provider: Provider, opts: any): any {
   const p: any = { model, max_tokens: 4096, temperature: 0.7 };
   if (provider === 'deepseek') {
@@ -586,7 +618,7 @@ async function runOrchestrator(controller: ReadableStreamDefaultController, opts
         plan = j.plan
           .map((x: any) => ({ role: String(x.role || '').toLowerCase(), subtask: String(x.subtask || '') }))
           .filter((x: any) => ROSTER[x.role] && x.subtask)
-          .slice(0, 4);
+          .slice(0, 3);
       }
     } catch (_) { /* fall back below */ }
     if (!plan.length) plan = [{ role: 'retriever', subtask: task }, { role: 'reasoner', subtask: task }];
@@ -629,75 +661,48 @@ async function runOrchestrator(controller: ReadableStreamDefaultController, opts
       return { label: spec.label, subtask: step.subtask, finding };
     }));
 
-    // ── Phase 2.5: REVIEW (critic / self-review — agents check each other, one bounded follow-up) ──
+    // ── Phase 2.5: REVIEW (lightweight critic — flags gaps for the synthesis; no extra round, to fit the edge time budget) ──
     let criticNotes = '';
     try {
       send({ _team_step: { phase: 'review', status: 'running' } });
-      const findingsText = findings.map((f) => `【${f.label}】${f.subtask}\n${String(f.finding).slice(0, 1200)}`).join('\n\n');
-      const availRoles = Object.keys(ROSTER).join('/');
+      const findingsText = findings.map((f) => `【${f.label}】${f.subtask}\n${String(f.finding).slice(0, 1000)}`).join('\n\n');
       const cr = await callProviderJSON(opts.apiUrl, opts.key, {
-        model: opts.model, max_tokens: 500, temperature: 0.3,
+        model: opts.model, max_tokens: 280, temperature: 0.3,
         response_format: { type: 'json_object' },
         messages: [
-          { role: 'system', content: `你是团队"质检员"。审查各专科的发现是否充分回答了学生任务：指出关键缺口、未被证据支持的说法、遗漏的角度。若存在一个明确且可补的关键缺口，提出 ONE 个追加子任务（role 从 ${availRoles} 中选）。只输出 JSON：{"notes":"给组长的质检要点(简短)","followup":{"role":"retriever","subtask":"…"}}，无需追加时 followup 设为 null。` },
+          { role: 'system', content: `你是团队"质检员"。快速审查各专科发现是否充分回答了学生任务：指出关键缺口、未被证据支持的说法、遗漏的角度，供组长综合时补强。只输出 JSON：{"notes":"质检要点(简短)"}` },
           { role: 'user', content: `学生任务：${task}\n\n各专科发现：\n${findingsText}` },
         ],
       });
       let craw = String(cr?.choices?.[0]?.message?.content || '');
       const ca = craw.indexOf('{'); const cb = craw.lastIndexOf('}');
       if (ca >= 0 && cb > ca) craw = craw.slice(ca, cb + 1);
-      const cj = JSON.parse(craw);
-      criticNotes = String(cj.notes || '');
+      criticNotes = String(JSON.parse(craw).notes || '');
       send({ _team_step: { phase: 'review', status: 'done', notes: criticNotes } });
-      const fu = cj.followup;
-      if (fu && fu.role && ROSTER[String(fu.role).toLowerCase()] && fu.subtask) {
-        const role = String(fu.role).toLowerCase();
-        const spec = ROSTER[role];
-        const sub = String(fu.subtask);
-        send({ _team_step: { phase: 'work', idx: 99, role, agent: spec.label, subtask: sub, status: 'running' } });
-        let extra = '';
-        try {
-          if (role === 'analyst') {
-            const cg = await callProviderJSON(opts.apiUrl, opts.key, { model: opts.model, max_tokens: 1200, temperature: 0.3, messages: [{ role: 'system', content: '你是数据分析师。针对子任务写完整可运行的 Python（已装 pandas/numpy/matplotlib/openpyxl/python-docx），print() 输出结论，画图 plt.show()，文件存 /data/。只输出代码。' }, { role: 'user', content: sub }] });
-            const code = extractCode(cg?.choices?.[0]?.message?.content || '');
-            if (code) { const res = await executeTool('run_python', { code }, opts.ctx); extra = res.content; if (res.artifacts) send({ _artifacts: res.artifacts }); }
-          } else if (spec.tool) {
-            const res = await executeTool(spec.tool, { query: sub }, opts.ctx);
-            extra = res.content; if (res.sources?.length) allSources.push(...res.sources);
-          } else {
-            const rr = await callProviderJSON(opts.apiUrl, opts.key, { model: opts.model, max_tokens: 900, temperature: 0.6, messages: [{ role: 'system', content: role === 'affective' ? '你是学习伙伴，给真诚的情感支持与一个最小可行步骤，不代做任务。' : '你是推理顾问，对子任务做严谨分析给要点，不编造文献数据。' }, { role: 'user', content: sub }] });
-            extra = stripThinking(rr?.choices?.[0]?.message?.content || '');
-          }
-        } catch (_) { extra = '（追加子任务未能完成）'; }
-        send({ _team_step: { phase: 'work', idx: 99, role, agent: spec.label, status: 'done' } });
-        findings.push({ label: `${spec.label}（追加）`, subtask: sub, finding: extra });
-      }
     } catch (_) { /* review best-effort */ }
 
-    // ── Phase 3: SYNTHESIZE (lead agent, epistemic-agency guardrail) ──
+    // ── Phase 3: SYNTHESIZE — streamed live so content appears well within the edge time budget ──
+    const seen = new Set<string>();
+    const sources = allSources.filter((s) => { const k = String(s.id || s.source_title); if (seen.has(k)) return false; seen.add(k); return true; });
+    if (sources.length) send({ _rag_sources: sources });
     send({ _team_step: { phase: 'synth', status: 'running' } });
     const synthInput = `学生任务：${task}\n\n各专科 agent 的发现：\n\n` +
       findings.map((f) => `【${f.label}】子任务：${f.subtask}\n${f.finding}`).join('\n\n---\n\n') +
       (criticNotes ? `\n\n---\n\n【质检员意见】${criticNotes}` : '');
-    let answer = '';
-    try {
-      const sr = await callProviderJSON(opts.apiUrl, opts.key, {
-        model: opts.model, max_tokens: 4096, temperature: 0.6,
-        messages: [
-          { role: 'system', content: `你是学习辅导团队的"组长"，把各专科 agent 的发现整合成给学生的最终回答：\n1. 综合所有发现，结构清晰（小标题/列表），直接回应任务。\n2. 标注依据来源（书/论文/网址/计算结果），区分"有依据的结论"与"推理推测"。\n3. 【关键】保护学生认知主体性：不要代替学生思考或给可照抄的成品；用引导性问题、给方法与思路、指出如何自己验证下一步，培养而非削弱独立思考。\n4. 证据不足或冲突时如实说明不确定性。\n5. 若收到【质检员意见】，据此补齐缺口、对不确定处加注，并保持温暖、能维持学习动机的语气。\n用中文回答。` },
-          { role: 'user', content: synthInput },
-        ],
-      });
-      answer = stripThinking(sr?.choices?.[0]?.message?.content || '');
-    } catch (_) { /* fall back below */ }
-    if (!answer) answer = findings.map((f) => `**${f.label}**：${f.finding}`).join('\n\n');
-    if (!answer) answer = '（团队未能形成结论，请换个问法或稍后重试。）';
-
-    const seen = new Set<string>();
-    const sources = allSources.filter((s) => { const k = String(s.id || s.source_title); if (seen.has(k)) return false; seen.add(k); return true; });
-    if (sources.length) send({ _rag_sources: sources });
+    let answer = await streamProviderContent(opts.apiUrl, opts.key, {
+      model: opts.model, max_tokens: 2200, temperature: 0.6,
+      messages: [
+        { role: 'system', content: `你是学习辅导团队的"组长"，把各专科 agent 的发现整合成给学生的最终回答：\n1. 综合所有发现，结构清晰（小标题/列表），直接回应任务。\n2. 标注依据来源（书/论文/网址/计算结果），区分"有依据的结论"与"推理推测"。\n3. 【关键】保护学生认知主体性：不要代替学生思考或给可照抄的成品；用引导性问题、给方法与思路、指出如何自己验证下一步，培养而非削弱独立思考。\n4. 证据不足或冲突时如实说明不确定性。\n5. 若收到【质检员意见】，据此补齐缺口、对不确定处加注，并保持温暖、能维持学习动机的语气。\n用中文回答。` },
+        { role: 'user', content: synthInput },
+      ],
+    }, (c) => send({ choices: [{ index: 0, delta: { content: c } }] }));
+    if (!answer.trim()) {
+      // synth produced nothing (upstream hiccup) — guarantee a non-empty result from the raw findings
+      answer = findings.filter((f) => f.finding && !f.finding.startsWith('（')).map((f) => `**${f.label}**\n${f.finding}`).join('\n\n')
+        || '（团队这次没能形成结论，请换个问法或稍后重试。）';
+      for (let i = 0; i < answer.length; i += 80) send({ choices: [{ index: 0, delta: { content: answer.slice(i, i + 80) } }] });
+    }
     send({ _team_step: { phase: 'synth', status: 'done' } });
-    for (let i = 0; i < answer.length; i += 60) send({ choices: [{ index: 0, delta: { content: answer.slice(i, i + 60) } }] });
     controller.enqueue(enc.encode('data: [DONE]\n\n'));
     controller.close();
   } catch (e) {

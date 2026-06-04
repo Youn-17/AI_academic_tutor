@@ -665,7 +665,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
 
                 {/* Input */}
                 <div className="px-4 pb-4">
-                    <div className={`${maxWidthClass} mx-auto rounded-2xl p-2 border shadow-lg transition-all`} style={{ backgroundColor: colors.card, borderColor: colors.border }}>
+                    <div className={`${maxWidthClass} mx-auto rounded-[26px] p-2 border shadow-md transition-all focus-within:border-blue-400/60 focus-within:shadow-lg focus-within:shadow-blue-500/10`} style={{ backgroundColor: colors.card, borderColor: colors.border }}>
                         {attachedFile && (
                             <div className="mx-2 mt-1 mb-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 text-xs font-medium">
                                 {attachedFile.type.startsWith('image/')
@@ -697,7 +697,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                             <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={handleKeyDown} placeholder={messages.length === 0 ? (isEN ? 'What would you like to explore?' : '今天想探索什么？') : (isEN ? 'Continue...' : '继续讨论...')} rows={1} className="flex-1 bg-transparent border-none focus:ring-0 px-3 py-3 min-h-[44px] max-h-[150px] resize-none text-sm outline-none leading-relaxed" style={{ color: colors.text }} disabled={loading} />
 
                             <div className="shrink-0 pb-1 pr-1">
-                                <button onClick={handleSubmit} disabled={(!inputValue.trim() && !attachedFile) || loading} className="p-3 rounded-full transition-all shadow-md" style={{ backgroundColor: (!inputValue.trim() && !attachedFile) || loading ? (isDark ? '#292524' : '#e7e5e4') : '#2563EB', color: ((!inputValue.trim() && !attachedFile) || loading) ? colors.textSecondary : '#fff' }}>
+                                <button onClick={handleSubmit} disabled={(!inputValue.trim() && !attachedFile) || loading} className="p-3 rounded-full transition-all shadow-md hover:scale-105 active:scale-95 disabled:hover:scale-100 disabled:shadow-none" style={{ backgroundColor: (!inputValue.trim() && !attachedFile) || loading ? (isDark ? '#1e293b' : '#e2e8f0') : '#2563EB', color: ((!inputValue.trim() && !attachedFile) || loading) ? colors.textSecondary : '#fff' }}>
                                     {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                                 </button>
                             </div>
