@@ -15,15 +15,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - id: auth
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
       - uses: google-github-actions/setup-gcloud@v2
 
       - name: Deploy to Cloud Run
         run: |
+          # GCP_SA_KEY_B64 = base64 of the service-account JSON. base64 is a single line
+          # and paste-safe, unlike the raw multi-line JSON which gets mangled in the secret field.
+          echo "${{ secrets.GCP_SA_KEY_B64 }}" | base64 -d > "$RUNNER_TEMP/sa.json"
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json"
           gcloud run deploy ci-backend \
             --source code-interpreter \
             --project "${{ secrets.GCP_PROJECT }}" \
@@ -31,5 +30,6 @@ jobs:
             --allow-unauthenticated \
             --port 8080 \
             --memory 512Mi --cpu 1 --timeout 300
+          rm -f "$RUNNER_TEMP/sa.json"
           # env vars (E2B_API_KEY / SUPABASE_* / ALLOWED_ORIGINS) are PRESERVED on the
-          # service across deploys, so we don't repeat them here (keeps secrets out of CI).
+          # service across deploys, so we don't repeat them here.
