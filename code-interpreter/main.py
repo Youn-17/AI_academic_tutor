@@ -29,7 +29,7 @@ import jwt
 from typing import Optional
 from fastapi.responses import StreamingResponse
 from orchestrator import OrchestratorIO, run_orchestrator
-from adapters import (make_llm, make_stream, make_retrieve, make_run_code, make_web,
+from adapters import (make_llm, make_stream, make_compose, make_retrieve, make_run_code, make_web,
                       resolve_key, DMXAPI_CHAT, DMXAPI_EMBED)
 
 E2B_API_KEY = os.environ.get("E2B_API_KEY", "")
@@ -254,6 +254,7 @@ async def orchestrate(req: OrchestrateReq, authorization: str = Header(default="
         run_code=make_run_code(_run_code_text),
         web=make_web(tavily),
         stream=make_stream(DMXAPI_CHAT, key, req.model, emit),
+        compose=make_compose(DMXAPI_CHAT, key, req.model),  # enables Reflexion (Ch4.4)
         emit=emit,
     )
 

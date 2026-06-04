@@ -38,6 +38,18 @@ def make_llm(api_url: str, key: str, model: str) -> Callable[[str, str, bool], A
     return llm
 
 
+def make_compose(api_url: str, key: str, model: str) -> Callable[[str, str], Awaitable[str]]:
+    """Non-streamed LONG completion — the Reflexion draft + refine (Ch4.4)."""
+    async def compose(system: str, user: str) -> str:
+        body = {
+            "model": model, "temperature": 0.6, "max_tokens": 6000,
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+        }
+        j = await _post_json(api_url, key, body, timeout=180)
+        return (j.get("choices") or [{}])[0].get("message", {}).get("content") or ""
+    return compose
+
+
 def make_stream(api_url: str, key: str, model: str,
                 emit: Callable[[dict], None]) -> Callable[[str, str], Awaitable[str]]:
     async def stream(system: str, user: str) -> str:

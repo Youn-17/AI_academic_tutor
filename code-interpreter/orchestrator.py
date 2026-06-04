@@ -59,6 +59,12 @@ SYNTH_GUARDRAIL = """你是学习辅导团队的"组长"，把各专科 agent �
 5. 若收到【质检员意见】，据此补齐缺口、对不确定处加注，并保持温暖、能维持学习动机的语气。
 用中文回答。"""
 
+# Reflexion (Ch4.4 Execute→Reflect→Refine): the lead reviews its own draft answer.
+REFLECT_PROMPT = """你是组长的"自检员"。审查这份即将给学生的回答草稿：
+1. 有无事实/逻辑错误、遗漏的关键方面、或未被证据支持的断言；
+2. 是否违反认识主体性护栏（代替学生思考、给可照抄的成品）。
+只输出 JSON：{"ok": true/false, "feedback": "需要修订什么（ok 时留空）"}。没有实质问题就 ok=true，不要鸡蛋里挑骨头。"""
+
 
 @dataclass
 class OrchestratorIO:
@@ -70,6 +76,7 @@ class OrchestratorIO:
     emit: Callable[[dict], None]                       # SSE event sink
     web: Optional[Callable[[str], Awaitable[str]]] = None          # (query) -> results
     stream: Optional[Callable[[str, str], Awaitable[str]]] = None  # streamed synth; emits + returns full
+    compose: Optional[Callable[[str, str], Awaitable[str]]] = None # non-streamed LONG llm → enables Reflexion (Ch4.4)
 
     @property
     def has_web(self) -> bool:
@@ -150,8 +157,38 @@ async def review(task: str, findings: list[dict], io: OrchestratorIO) -> str:
     return notes
 
 
+async def reflect_refine(task: str, draft: str, io: OrchestratorIO, max_rounds: int = 1) -> str:
+    """Reflexion (Ch4.4 Execute→Reflect→Refine): the lead reviews its own draft and refines it if
+    there are real issues. Backend-only (no edge wall-clock cap). Best-effort, never raises."""
+    for _ in range(max_rounds):
+        io.emit({"_team_step": {"phase": "reflect", "status": "running"}})
+        feedback, ok = "", True
+        try:
+            verdict = extract_json(await io.llm(
+                REFLECT_PROMPT, f"学生任务：{task}\n\n待审草稿：\n{draft[:4000]}", True)) or {}
+            ok = bool(verdict.get("ok", True))
+            feedback = str(verdict.get("feedback", ""))
+        except Exception:
+            ok = True
+        io.emit({"_team_step": {"phase": "reflect", "status": "done", "notes": feedback}})
+        if ok or not feedback.strip() or io.compose is None:
+            break
+        try:
+            refined = await io.compose(
+                SYNTH_GUARDRAIL,
+                f"学生任务：{task}\n\n你的上一版草稿：\n{draft}\n\n自检反馈（据此修订）：\n{feedback}\n\n"
+                "请输出修订后的完整回答，保持上述护栏。")
+            if refined.strip():
+                draft = refined
+        except Exception:
+            break
+    return draft
+
+
 async def synthesize(task: str, findings: list[dict], critic_notes: str, io: OrchestratorIO) -> str:
-    """Lead agent: integrate findings into the final answer, streamed, guardrail-bound."""
+    """Lead agent: integrate findings into the final answer, guardrail-bound. When io.compose is
+    wired, runs the Reflexion loop (draft → reflect → refine) then streams the final; otherwise
+    streams the synthesis directly."""
     io.emit({"_team_step": {"phase": "synth", "status": "running"}})
     body = "\n\n---\n\n".join(f"【{f['label']}】子任务：{f['subtask']}\n{f['finding']}" for f in findings)
     user = f"学生任务：{task}\n\n各专科 agent 的发现：\n\n{body}"
@@ -159,15 +196,27 @@ async def synthesize(task: str, findings: list[dict], critic_notes: str, io: Orc
         user += f"\n\n---\n\n【质检员意见】{critic_notes}"
 
     answer = ""
-    try:
-        if io.stream is not None:
-            answer = await io.stream(SYNTH_GUARDRAIL, user)
-        else:
-            answer = await io.llm(SYNTH_GUARDRAIL, user, False)
-            for i in range(0, len(answer), 60):
-                io.emit({"choices": [{"index": 0, "delta": {"content": answer[i : i + 60]}}]})
-    except Exception:
-        answer = ""
+    if io.compose is not None:
+        # Reflexion path: a non-streamed draft we can review, then refine, then stream the final.
+        try:
+            answer = await io.compose(SYNTH_GUARDRAIL, user)
+        except Exception:
+            answer = ""
+        if answer.strip():
+            answer = await reflect_refine(task, answer, io, max_rounds=1)
+        for i in range(0, len(answer), 80):
+            io.emit({"choices": [{"index": 0, "delta": {"content": answer[i : i + 80]}}]})
+    else:
+        # streaming path (no Reflexion seam wired — e.g. unit tests / the edge fallback shape)
+        try:
+            if io.stream is not None:
+                answer = await io.stream(SYNTH_GUARDRAIL, user)
+            else:
+                answer = await io.llm(SYNTH_GUARDRAIL, user, False)
+                for i in range(0, len(answer), 60):
+                    io.emit({"choices": [{"index": 0, "delta": {"content": answer[i : i + 60]}}]})
+        except Exception:
+            answer = ""
 
     if not answer.strip():
         # guarantee a non-empty result from the raw findings (drop error-only findings)

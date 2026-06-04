@@ -32,7 +32,7 @@ class Recorder:
                        for ev in self.events if "choices" in ev)
 
 
-def make_io(rec, *, llm=None, retrieve=None, run_code=None, web=None, stream=None):
+def make_io(rec, *, llm=None, retrieve=None, run_code=None, web=None, stream=None, compose=None):
     async def default_llm(system, user, json_mode):
         if json_mode and "plan" in system:
             return '{"plan":[{"role":"retriever","subtask":"找文献"},{"role":"reasoner","subtask":"分析"}]}'
@@ -50,7 +50,7 @@ def make_io(rec, *, llm=None, retrieve=None, run_code=None, web=None, stream=Non
         llm=llm or default_llm,
         retrieve=retrieve or default_retrieve,
         run_code=run_code or default_run_code,
-        emit=rec.emit, web=web, stream=stream,
+        emit=rec.emit, web=web, stream=stream, compose=compose,
     )
 
 
@@ -142,6 +142,49 @@ class TestOrchestratorEndToEnd(unittest.IsolatedAsyncioTestCase):
         rec = Recorder()
         answer = await run_orchestrator("任务", make_io(rec, llm=partial_llm))
         self.assertTrue(answer.strip())  # survived the dead specialist
+
+
+class TestReflexion(unittest.IsolatedAsyncioTestCase):
+    async def test_reflect_refine_runs_when_compose_wired(self):
+        calls = {"compose": 0}
+
+        async def fake_compose(system, user):
+            calls["compose"] += 1
+            return f"draft-v{calls['compose']}"
+
+        async def fake_llm(system, user, json_mode):
+            if json_mode and "plan" in system:
+                return '{"plan":[{"role":"reasoner","subtask":"x"}]}'
+            if json_mode and "质检员" in system:
+                return '{"notes":""}'
+            if json_mode and "自检员" in system:
+                return '{"ok":false,"feedback":"补一个例子"}'
+            return "finding"
+
+        rec = Recorder()
+        answer = await run_orchestrator("任务", make_io(rec, llm=fake_llm, compose=fake_compose))
+        self.assertEqual(calls["compose"], 2)          # draft + one refine
+        self.assertEqual(answer, "draft-v2")            # the refined draft is returned
+        self.assertIn(("reflect", "done"), rec.phases())
+
+    async def test_reflect_ok_skips_refine(self):
+        calls = {"compose": 0}
+
+        async def fake_compose(system, user):
+            calls["compose"] += 1
+            return "clean-draft"
+
+        async def fake_llm(system, user, json_mode):
+            if json_mode and "plan" in system:
+                return '{"plan":[{"role":"reasoner","subtask":"x"}]}'
+            if json_mode and "自检员" in system:
+                return '{"ok":true,"feedback":""}'
+            return "ok"
+
+        rec = Recorder()
+        answer = await run_orchestrator("任务", make_io(rec, llm=fake_llm, compose=fake_compose))
+        self.assertEqual(calls["compose"], 1)           # only the draft; no refine when ok
+        self.assertEqual(answer, "clean-draft")
 
 
 if __name__ == "__main__":
