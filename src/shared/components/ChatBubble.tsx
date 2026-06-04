@@ -40,8 +40,8 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit }) => {
       isStudent ? "justify-end" : "justify-start"
     )}>
       <div className={cn(
-        "flex max-w-[90%] md:max-w-[80%] gap-4",
-        isStudent ? "flex-row-reverse" : "flex-row"
+        "flex gap-4",
+        isStudent ? "max-w-[90%] md:max-w-[80%] flex-row-reverse" : "max-w-[95%] md:max-w-[96%] flex-row"
       )}>
 
         {/* Avatar */}

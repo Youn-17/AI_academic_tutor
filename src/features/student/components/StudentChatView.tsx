@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
     Send, Loader2, ChevronDown, Cpu, Paperclip, FileText,
-    XCircle, Network, PanelRightOpen, PanelRightClose, Plus, Minus, Type, Sun, Moon,
+    XCircle, Network, PanelRightOpen, PanelRightClose, Plus, Minus, Type, Sun, Moon, Image as ImageIcon,
     Search, BookOpen, ExternalLink, ChevronRight, Sparkles as SparklesIcon,
     Lightbulb, MessageSquare, ArrowRight, Copy, Trash2, Download, MoreVertical, Code, Check,
     GitCompare, Zap, Repeat, Clock
@@ -59,11 +59,12 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     const [attachedFile, setAttachedFile] = useState<File | null>(null);
     const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
     const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
+    const [attachMenuOpen, setAttachMenuOpen] = useState(false);
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
     const [showSearchInput, setShowSearchInput] = useState(false);
 
     // UI State
-    const [chatWidth, setChatWidth] = useState<ChatWidth>('normal');
+    const [chatWidth, setChatWidth] = useState<ChatWidth>('wide');
     const [fontSize, setFontSize] = useState<FontSize>('base');
     const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>(null);
 
@@ -118,6 +119,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const modelMenuRef = useRef<HTMLDivElement>(null);
     const roleMenuRef = useRef<HTMLDivElement>(null);
+    const attachMenuRef = useRef<HTMLDivElement>(null);
     const moreMenuRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const isDark = theme === 'dark';
@@ -152,6 +154,9 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
             }
             if (roleMenuRef.current && !roleMenuRef.current.contains(event.target as Node)) {
                 setIsRoleMenuOpen(false);
+            }
+            if (attachMenuRef.current && !attachMenuRef.current.contains(event.target as Node)) {
+                setAttachMenuOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -681,7 +686,21 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                         <div className="flex items-end gap-2">
                             <div className="flex items-center gap-1 shrink-0 pb-1 pl-1">
                                 <input ref={fileInputRef} type="file" accept="image/*,.pdf,.txt,.md,.markdown,.docx,.csv" className="hidden" onChange={handleFileSelect} />
-                                <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full transition-all hover:scale-110" style={{ color: colors.textSecondary }}><Plus size={20} /></button>
+                                <div className="relative" ref={attachMenuRef}>
+                                    <button onClick={() => setAttachMenuOpen(v => !v)} title="添加图片或文件" className="p-2 rounded-full transition-all hover:bg-blue-500/10" style={{ color: attachMenuOpen ? colors.primary : colors.textSecondary }}>
+                                        <Plus size={20} className={`transition-transform ${attachMenuOpen ? 'rotate-45' : ''}`} />
+                                    </button>
+                                    {attachMenuOpen && (
+                                        <div className="absolute bottom-full left-0 mb-2 w-48 rounded-xl border shadow-xl p-1.5 z-50" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
+                                            <button onClick={() => { if (fileInputRef.current) { fileInputRef.current.accept = 'image/*'; fileInputRef.current.click(); } setAttachMenuOpen(false); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-blue-500/10 transition-colors" style={{ color: colors.text }}>
+                                                <ImageIcon size={16} className="text-blue-500" /> 上传图片
+                                            </button>
+                                            <button onClick={() => { if (fileInputRef.current) { fileInputRef.current.accept = '.pdf,.txt,.md,.markdown,.docx,.csv'; fileInputRef.current.click(); } setAttachMenuOpen(false); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-blue-500/10 transition-colors" style={{ color: colors.text }}>
+                                                <Paperclip size={16} className="text-blue-500" /> 上传文档 <span className="ml-auto text-[10px]" style={{ color: colors.textSecondary }}>PDF·Word·CSV</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                                 {onToggleRag && (
                                     <button
                                         onClick={onToggleRag}
