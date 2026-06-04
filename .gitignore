@@ -35,3 +35,12 @@ supabase/.temp/
 
 # generated RAG corpus (large, do not commit)
 scripts/corpus_chunks.jsonl
+
+# internal planning / progress / strategy docs — keep LOCAL, not on the public repo
+/AGENT_ECOSYSTEM_PLAN.md
+/AUDIT_AND_PLAN.md
+/CODE_INTERPRETER_AND_RAG_BACKEND_PLAN.md
+/MORNING_REPORT.md
+/OVERNIGHT_PROGRESS.md
+/README_DEPLOY.md
+/AI_Academic_Tutor_平台技术规格文档_v2.md
