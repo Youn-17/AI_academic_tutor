@@ -3,7 +3,7 @@ import {
     Send, Loader2, ChevronDown, Cpu, Paperclip, FileText,
     XCircle, Network, PanelRightOpen, PanelRightClose, Plus, Minus, Type, Sun, Moon,
     Search, BookOpen, ExternalLink, ChevronRight, Sparkles as SparklesIcon,
-    Lightbulb, MessageSquare, ArrowRight, Copy, Trash2, Download, MoreVertical, Code, BookText, Check,
+    Lightbulb, MessageSquare, ArrowRight, Copy, Trash2, Download, MoreVertical, Code, Check,
     GitCompare, Zap, Repeat, Clock
 } from 'lucide-react';
 import { Conversation, Message, Role, Theme, Locale } from '@/types';
@@ -58,6 +58,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     const [inputValue, setInputValue] = useState('');
     const [attachedFile, setAttachedFile] = useState<File | null>(null);
     const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
+    const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
     const [showSearchInput, setShowSearchInput] = useState(false);
 
@@ -116,6 +117,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const modelMenuRef = useRef<HTMLDivElement>(null);
+    const roleMenuRef = useRef<HTMLDivElement>(null);
     const moreMenuRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const isDark = theme === 'dark';
@@ -147,6 +149,9 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
             }
             if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
                 setIsMoreMenuOpen(false);
+            }
+            if (roleMenuRef.current && !roleMenuRef.current.contains(event.target as Node)) {
+                setIsRoleMenuOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -297,14 +302,14 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
 
     const quickPrompts = useMemo(() => isEN ? [
         { text: 'Help me clarify my research question', icon: <MessageSquare size={14} /> },
-        { text: 'What theoretical frameworks could I use?', icon: <Code size={14} /> },
-        { text: 'How do I find relevant literature?', icon: <Search size={14} /> },
-        { text: 'Critique my methodology', icon: <BookText size={14} /> },
+        { text: 'Analyze data and plot a chart with Python', icon: <Code size={14} /> },
+        { text: 'Use the research team to review a topic', icon: <SparklesIcon size={14} />, model: 'team' },
+        { text: 'Find relevant literature in the knowledge base', icon: <Search size={14} /> },
     ] : [
         { text: '帮我澄清研究问题', icon: <MessageSquare size={14} /> },
-        { text: '我可以用什么理论框架？', icon: <Code size={14} /> },
-        { text: '如何找到相关文献？', icon: <Search size={14} /> },
-        { text: '批评我的方法论', icon: <BookText size={14} /> },
+        { text: '用 Python 分析数据并画一张图', icon: <Code size={14} /> },
+        { text: '用研究团队帮我综述一个主题', icon: <SparklesIcon size={14} />, model: 'team' },
+        { text: '从知识库找相关文献', icon: <Search size={14} /> },
     ], [isEN]);
 
     const suggestionPrompts = useMemo(() => isEN ? [
@@ -534,7 +539,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                     {quickPrompts.map((prompt, idx) => (
                                         <button
                                             key={idx}
-                                            onClick={() => { setInputValue(prompt.text); textareaRef.current?.focus(); }}
+                                            onClick={() => { if ((prompt as any).model) onModelSelect((prompt as any).model); setInputValue(prompt.text); textareaRef.current?.focus(); }}
                                             className="p-4 rounded-2xl border text-left transition-all hover:scale-[1.03] hover:shadow-lg hover:shadow-blue-500/5 active:scale-[0.98] group"
                                             style={{ backgroundColor: colors.card, borderColor: colors.border }}
                                         >
@@ -630,15 +635,31 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
 
                 {/* AI role picker — only for non-experiment users (participants stay on their A/B condition) */}
                 {onRoleSelect && !roleLocked && (
-                    <div className={`${maxWidthClass} mx-auto px-4 pb-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar`}>
-                        <span className="text-[10px] shrink-0 mr-1" style={{ color: colors.textSecondary }}>AI 角色</span>
-                        {AGENT_ROLES.map(r => (
-                            <button key={r.id} onClick={() => onRoleSelect(r.id)} title={r.desc}
-                                className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${selectedRole === r.id ? 'bg-blue-500 text-white border-blue-500 shadow-sm' : 'border-slate-200 dark:border-slate-700 hover:border-blue-300 hover:text-blue-500'}`}
-                                style={selectedRole === r.id ? {} : { color: colors.textSecondary }}>
-                                {r.emoji} {r.name}
+                    <div className={`${maxWidthClass} mx-auto px-4 pb-2 flex items-center gap-2`}>
+                        <div className="relative" ref={roleMenuRef}>
+                            <button onClick={() => setIsRoleMenuOpen(!isRoleMenuOpen)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all hover:border-blue-300"
+                                style={{ borderColor: colors.border, color: colors.textSecondary, backgroundColor: isRoleMenuOpen ? (isDark ? '#1e293b' : '#f1f5f9') : 'transparent' }}>
+                                {(() => { const r = AGENT_ROLES.find(x => x.id === selectedRole) || AGENT_ROLES[0]; return <span>{r.emoji} {r.name}</span>; })()}
+                                <ChevronDown size={11} className={`transition-transform ${isRoleMenuOpen ? 'rotate-180' : ''}`} />
                             </button>
-                        ))}
+                            {isRoleMenuOpen && (
+                                <div className="absolute bottom-full left-0 mb-2 w-64 max-h-[60vh] overflow-y-auto rounded-xl border shadow-xl p-1.5 z-50" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
+                                    {AGENT_ROLES.map(r => (
+                                        <button key={r.id} onClick={() => { onRoleSelect(r.id); setIsRoleMenuOpen(false); }}
+                                            className="w-full flex items-start gap-2 px-3 py-2 text-xs rounded-lg transition-all text-left"
+                                            style={{ backgroundColor: selectedRole === r.id ? 'rgba(37,99,235,0.1)' : 'transparent', color: selectedRole === r.id ? colors.primary : colors.text }}>
+                                            <span className="text-sm leading-none mt-0.5 shrink-0">{r.emoji}</span>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-semibold">{r.name}</div>
+                                                <div className="text-[10px] opacity-70 leading-snug">{r.desc}</div>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <span className="text-[10px]" style={{ color: colors.textSecondary }}>{isEN ? 'Optional · default Socratic' : '可选 · 默认苏格拉底导师，不选也能用'}</span>
                     </div>
                 )}
 
