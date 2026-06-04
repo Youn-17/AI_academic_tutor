@@ -561,6 +561,7 @@ async function runOrchestrator(controller: ReadableStreamDefaultController, opts
       retriever: { label: '检索专员', tool: 'deep_search' },
       analyst:   { label: '数据分析师', tool: 'run_python' },
       reasoner:  { label: '推理顾问', tool: null },
+      affective: { label: '学习伙伴', tool: null },
       ...(opts.tavily ? { web: { label: '联网调研员', tool: 'web_search' } } : {}),
     };
     const webLine = opts.tavily ? '\n- web（联网调研员）：联网搜索最新/实时信息，适合知识库可能没有的时效内容' : '';
@@ -573,7 +574,7 @@ async function runOrchestrator(controller: ReadableStreamDefaultController, opts
         model: opts.model, max_tokens: 700, temperature: 0.3,
         response_format: { type: 'json_object' },
         messages: [
-          { role: 'system', content: `你是多智能体学习辅导团队的"组长"。把学生任务拆成 2-4 个聚焦的子任务，分派给最合适的专科 agent。可用专科：\n- retriever（检索专员）：检索平台知识库（统计/学习科学教材与论文），适合要文献依据/概念/理论的子任务\n- analyst（数据分析师）：写并运行 Python 做计算/统计/画图/生成文件，适合涉及数据或可视化的子任务\n- reasoner（推理顾问）：纯推理/批判分析/方案设计，不需外部工具${webLine}\n原则：只派真正需要的 agent（不凑数）；子任务聚焦、可独立完成；优先用 retriever/analyst 拿真实依据。\n只输出 JSON：{"plan":[{"role":"retriever","subtask":"…"}]}` },
+          { role: 'system', content: `你是多智能体学习辅导团队的"组长"。把学生任务拆成 2-4 个聚焦的子任务，分派给最合适的专科 agent。可用专科：\n- retriever（检索专员）：检索平台知识库（统计/学习科学教材与论文），适合要文献依据/概念/理论的子任务\n- analyst（数据分析师）：写并运行 Python 做计算/统计/画图/生成文件，适合涉及数据或可视化的子任务\n- reasoner（推理顾问）：纯推理/批判分析/方案设计，不需外部工具\n- affective（学习伙伴）：情感支持/动机调节，当任务涉及焦虑、压力、拖延、信心不足时${webLine}\n原则：只派真正需要的 agent（不凑数）；子任务聚焦、可独立完成；优先用 retriever/analyst 拿真实依据。\n只输出 JSON：{"plan":[{"role":"retriever","subtask":"…"}]}` },
           { role: 'user', content: task },
         ],
       });
@@ -614,9 +615,12 @@ async function runOrchestrator(controller: ReadableStreamDefaultController, opts
           finding = res.content;
           if (res.sources?.length) allSources.push(...res.sources);
         } else {
+          const sysByRole = step.role === 'affective'
+            ? '你是学习伙伴（情感支持）。针对学生此刻的状态给予真诚共情、把困境正常化，并给一个现在就能做的最小一步与一个情绪/动机调节建议。温暖但不空洞、不说教；不代替学生完成学业任务。'
+            : '你是推理顾问。对子任务做严谨的分析/推理/方案设计，给有条理的要点。不要编造具体文献或数据（那是其他专员的职责）。';
           const rr = await callProviderJSON(opts.apiUrl, opts.key, {
             model: opts.model, max_tokens: 1000, temperature: 0.6,
-            messages: [{ role: 'system', content: '你是推理顾问。对子任务做严谨的分析/推理/方案设计，给有条理的要点。不要编造具体文献或数据（那是其他专员的职责）。' }, { role: 'user', content: step.subtask }],
+            messages: [{ role: 'system', content: sysByRole }, { role: 'user', content: step.subtask }],
           });
           finding = stripThinking(rr?.choices?.[0]?.message?.content || '');
         }
@@ -625,16 +629,62 @@ async function runOrchestrator(controller: ReadableStreamDefaultController, opts
       return { label: spec.label, subtask: step.subtask, finding };
     }));
 
+    // ── Phase 2.5: REVIEW (critic / self-review — agents check each other, one bounded follow-up) ──
+    let criticNotes = '';
+    try {
+      send({ _team_step: { phase: 'review', status: 'running' } });
+      const findingsText = findings.map((f) => `【${f.label}】${f.subtask}\n${String(f.finding).slice(0, 1200)}`).join('\n\n');
+      const availRoles = Object.keys(ROSTER).join('/');
+      const cr = await callProviderJSON(opts.apiUrl, opts.key, {
+        model: opts.model, max_tokens: 500, temperature: 0.3,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: `你是团队"质检员"。审查各专科的发现是否充分回答了学生任务：指出关键缺口、未被证据支持的说法、遗漏的角度。若存在一个明确且可补的关键缺口，提出 ONE 个追加子任务（role 从 ${availRoles} 中选）。只输出 JSON：{"notes":"给组长的质检要点(简短)","followup":{"role":"retriever","subtask":"…"}}，无需追加时 followup 设为 null。` },
+          { role: 'user', content: `学生任务：${task}\n\n各专科发现：\n${findingsText}` },
+        ],
+      });
+      let craw = String(cr?.choices?.[0]?.message?.content || '');
+      const ca = craw.indexOf('{'); const cb = craw.lastIndexOf('}');
+      if (ca >= 0 && cb > ca) craw = craw.slice(ca, cb + 1);
+      const cj = JSON.parse(craw);
+      criticNotes = String(cj.notes || '');
+      send({ _team_step: { phase: 'review', status: 'done', notes: criticNotes } });
+      const fu = cj.followup;
+      if (fu && fu.role && ROSTER[String(fu.role).toLowerCase()] && fu.subtask) {
+        const role = String(fu.role).toLowerCase();
+        const spec = ROSTER[role];
+        const sub = String(fu.subtask);
+        send({ _team_step: { phase: 'work', idx: 99, role, agent: spec.label, subtask: sub, status: 'running' } });
+        let extra = '';
+        try {
+          if (role === 'analyst') {
+            const cg = await callProviderJSON(opts.apiUrl, opts.key, { model: opts.model, max_tokens: 1200, temperature: 0.3, messages: [{ role: 'system', content: '你是数据分析师。针对子任务写完整可运行的 Python（已装 pandas/numpy/matplotlib/openpyxl/python-docx），print() 输出结论，画图 plt.show()，文件存 /data/。只输出代码。' }, { role: 'user', content: sub }] });
+            const code = extractCode(cg?.choices?.[0]?.message?.content || '');
+            if (code) { const res = await executeTool('run_python', { code }, opts.ctx); extra = res.content; if (res.artifacts) send({ _artifacts: res.artifacts }); }
+          } else if (spec.tool) {
+            const res = await executeTool(spec.tool, { query: sub }, opts.ctx);
+            extra = res.content; if (res.sources?.length) allSources.push(...res.sources);
+          } else {
+            const rr = await callProviderJSON(opts.apiUrl, opts.key, { model: opts.model, max_tokens: 900, temperature: 0.6, messages: [{ role: 'system', content: role === 'affective' ? '你是学习伙伴，给真诚的情感支持与一个最小可行步骤，不代做任务。' : '你是推理顾问，对子任务做严谨分析给要点，不编造文献数据。' }, { role: 'user', content: sub }] });
+            extra = stripThinking(rr?.choices?.[0]?.message?.content || '');
+          }
+        } catch (_) { extra = '（追加子任务未能完成）'; }
+        send({ _team_step: { phase: 'work', idx: 99, role, agent: spec.label, status: 'done' } });
+        findings.push({ label: `${spec.label}（追加）`, subtask: sub, finding: extra });
+      }
+    } catch (_) { /* review best-effort */ }
+
     // ── Phase 3: SYNTHESIZE (lead agent, epistemic-agency guardrail) ──
     send({ _team_step: { phase: 'synth', status: 'running' } });
     const synthInput = `学生任务：${task}\n\n各专科 agent 的发现：\n\n` +
-      findings.map((f) => `【${f.label}】子任务：${f.subtask}\n${f.finding}`).join('\n\n---\n\n');
+      findings.map((f) => `【${f.label}】子任务：${f.subtask}\n${f.finding}`).join('\n\n---\n\n') +
+      (criticNotes ? `\n\n---\n\n【质检员意见】${criticNotes}` : '');
     let answer = '';
     try {
       const sr = await callProviderJSON(opts.apiUrl, opts.key, {
         model: opts.model, max_tokens: 4096, temperature: 0.6,
         messages: [
-          { role: 'system', content: `你是学习辅导团队的"组长"，把各专科 agent 的发现整合成给学生的最终回答：\n1. 综合所有发现，结构清晰（小标题/列表），直接回应任务。\n2. 标注依据来源（书/论文/网址/计算结果），区分"有依据的结论"与"推理推测"。\n3. 【关键】保护学生认知主体性：不要代替学生思考或给可照抄的成品；用引导性问题、给方法与思路、指出如何自己验证下一步，培养而非削弱独立思考。\n4. 证据不足或冲突时如实说明不确定性。用中文回答。` },
+          { role: 'system', content: `你是学习辅导团队的"组长"，把各专科 agent 的发现整合成给学生的最终回答：\n1. 综合所有发现，结构清晰（小标题/列表），直接回应任务。\n2. 标注依据来源（书/论文/网址/计算结果），区分"有依据的结论"与"推理推测"。\n3. 【关键】保护学生认知主体性：不要代替学生思考或给可照抄的成品；用引导性问题、给方法与思路、指出如何自己验证下一步，培养而非削弱独立思考。\n4. 证据不足或冲突时如实说明不确定性。\n5. 若收到【质检员意见】，据此补齐缺口、对不确定处加注，并保持温暖、能维持学习动机的语气。\n用中文回答。` },
           { role: 'user', content: synthInput },
         ],
       });

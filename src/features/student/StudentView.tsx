@@ -84,6 +84,9 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     if (s.phase === 'work') return s.status === 'done'
       ? { label: `${s.agent} 完成`, status: 'done' }
       : { label: `${s.agent}${s.subtask ? ' · ' + String(s.subtask).slice(0, 24) : ''}`, status: 'running' };
+    if (s.phase === 'review') return s.status === 'done'
+      ? { label: `🔎 质检完成${s.notes ? ' · ' + String(s.notes).slice(0, 22) : ''}`, status: 'done' }
+      : { label: '🔎 质检员审查中', status: 'running' };
     if (s.phase === 'synth') return s.status === 'done'
       ? { label: '🧩 组长已综合各方发现', status: 'done' }
       : { label: '🧩 组长综合中', status: 'running' };

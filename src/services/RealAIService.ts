@@ -63,7 +63,7 @@ export interface StreamOptions {
     onReasoning?: (text: string) => void;       // reasoning_content / _reasoning channel
     onArtifacts?: (a: { charts: string[]; files: { name: string; b64?: string; url?: string }[] }) => void;  // run_python charts/files
     team?: boolean;                             // multi-agent orchestrator (research team)
-    onTeamStep?: (step: { phase?: string; status?: string; idx?: number; agent?: string; role?: string; subtask?: string; plan?: { role: string; label: string; subtask: string }[] }) => void;
+    onTeamStep?: (step: { phase?: string; status?: string; idx?: number; agent?: string; role?: string; subtask?: string; notes?: string; plan?: { role: string; label: string; subtask: string }[] }) => void;
     attachedFile?: { name: string; b64: string };  // a data file the student uploaded → run_python /data/
 }
 
