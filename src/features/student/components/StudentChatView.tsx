@@ -301,15 +301,15 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     ], [isEN]);
 
     const quickPrompts = useMemo(() => isEN ? [
-        { text: 'Help me clarify my research question', icon: <MessageSquare size={14} /> },
-        { text: 'Analyze data and plot a chart with Python', icon: <Code size={14} /> },
-        { text: 'Use the research team to review a topic', icon: <SparklesIcon size={14} />, model: 'team' },
-        { text: 'Find relevant literature in the knowledge base', icon: <Search size={14} /> },
+        { title: 'Socratic guidance', desc: 'I lead your thinking with questions, not just answers', text: 'Help me clarify my research question', icon: <MessageSquare size={18} />, grad: 'from-blue-500 to-sky-400' },
+        { title: 'Data & code', desc: 'Run Python to compute, plot, and build reports', text: 'Analyze a dataset with Python and plot a chart', icon: <Code size={18} />, grad: 'from-indigo-500 to-blue-500' },
+        { title: 'Research team', desc: 'Agents retrieve, analyze and reason in parallel', text: 'Use the research team to review a topic for me', icon: <SparklesIcon size={18} />, grad: 'from-blue-600 to-indigo-500', model: 'team' },
+        { title: 'Knowledge base', desc: 'Find sourced evidence from texts and papers', text: 'Find relevant literature in the knowledge base', icon: <Search size={18} />, grad: 'from-sky-500 to-cyan-400' },
     ] : [
-        { text: '帮我澄清研究问题', icon: <MessageSquare size={14} /> },
-        { text: '用 Python 分析数据并画一张图', icon: <Code size={14} /> },
-        { text: '用研究团队帮我综述一个主题', icon: <SparklesIcon size={14} />, model: 'team' },
-        { text: '从知识库找相关文献', icon: <Search size={14} /> },
+        { title: '苏格拉底引导', desc: '用追问带你深入思考，而非直接给答案', text: '帮我澄清研究问题', icon: <MessageSquare size={18} />, grad: 'from-blue-500 to-sky-400' },
+        { title: '数据与代码', desc: '跑 Python 算数据、画图、生成报告', text: '用 Python 分析数据并画一张图', icon: <Code size={18} />, grad: 'from-indigo-500 to-blue-500' },
+        { title: '研究团队', desc: '多智能体并行：检索 · 分析 · 推理', text: '用研究团队帮我综述一个主题', icon: <SparklesIcon size={18} />, grad: 'from-blue-600 to-indigo-500', model: 'team' },
+        { title: '知识库检索', desc: '从教材与论文里找有出处的依据', text: '从知识库找关于学习科学的内容', icon: <Search size={18} />, grad: 'from-sky-500 to-cyan-400' },
     ], [isEN]);
 
     const suggestionPrompts = useMemo(() => isEN ? [
@@ -510,43 +510,43 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                     <div className={`${maxWidthClass} mx-auto px-4 py-6 space-y-6`}>
                         {/* Welcome State */}
                         {messages.length === 0 && !loading && (
-                            <div className="min-h-[65vh] flex flex-col items-center justify-center text-center px-4 animate-in fade-in duration-500">
+                            <div className="relative min-h-[60vh] flex flex-col items-center justify-center text-center px-4 animate-in fade-in duration-500">
+                                {/* Soft brand glow — subtle, behind the hero */}
+                                <div aria-hidden className="pointer-events-none absolute top-[12%] left-1/2 -translate-x-1/2 w-[440px] h-[440px] max-w-[88vw] rounded-full blur-3xl opacity-[0.10] dark:opacity-[0.16]" style={{ background: 'radial-gradient(circle, #2563EB 0%, #38bdf8 50%, transparent 72%)' }} />
+
                                 {/* Hero Icon */}
-                                <div className="relative mb-8">
-                                    <div className="w-24 h-24 rounded-3xl flex items-center justify-center bg-gradient-to-br from-blue-600 via-sky-500 to-blue-500 shadow-2xl shadow-blue-500/25">
-                                        <SparklesIcon size={40} className="text-white" />
+                                <div className="relative mb-6">
+                                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br from-blue-600 via-sky-500 to-blue-500 shadow-lg shadow-blue-500/20">
+                                        <SparklesIcon size={28} className="text-white" />
                                     </div>
-                                    {/* Orbit ring */}
-                                    <div className="absolute inset-0 rounded-3xl border-2 border-blue-500/20 scale-125 animate-pulse" />
-                                    <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: colors.card, border: `1px solid ${colors.border}` }}>
+                                    <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: colors.card, border: `1px solid ${colors.border}` }}>
                                         <AITutorAvatar size="sm" theme={theme} />
                                     </div>
                                 </div>
 
-                                <h2 className="text-3xl font-bold mb-3 font-heading" style={{ color: colors.text }}>
-                                    {isEN ? 'Socratic Academic Tutor' : '苏格拉底式 AI 导师'}
+                                <h2 className="text-2xl sm:text-3xl font-bold mb-2.5 font-heading text-balance" style={{ color: colors.text }}>
+                                    {isEN ? 'What would you like to explore?' : '今天想探索什么？'}
                                 </h2>
-                                <p className="text-sm mb-2 max-w-sm leading-relaxed" style={{ color: colors.textSecondary }}>
-                                    {isEN ? 'I guide your thinking through questions — not just answers.' : '通过追问引导你深入思考，而非仅仅给出答案。'}
+                                <p className="text-sm mb-9 max-w-md leading-relaxed text-pretty" style={{ color: colors.textSecondary }}>
+                                    {isEN ? 'I can guide your thinking, search the literature, run code to analyze data, or convene a research team.' : '我可以引导你思考、检索文献、跑代码分析数据，或召集研究团队协作。'}
                                 </p>
-                                <div className="flex items-center gap-2 mb-10">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                                    <span className="text-xs font-medium" style={{ color: colors.primary }}>{isEN ? 'Ready to explore' : '随时开始探索'}</span>
-                                </div>
 
-                                {/* Quick Prompts */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl w-full mb-8">
+                                {/* Capability cards — teach what the tutor can do */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl w-full mb-7">
                                     {quickPrompts.map((prompt, idx) => (
                                         <button
                                             key={idx}
                                             onClick={() => { if ((prompt as any).model) onModelSelect((prompt as any).model); setInputValue(prompt.text); textareaRef.current?.focus(); }}
-                                            className="p-4 rounded-2xl border text-left transition-all hover:scale-[1.03] hover:shadow-lg hover:shadow-blue-500/5 active:scale-[0.98] group"
+                                            className="group flex items-start gap-3 p-4 rounded-2xl border text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md hover:shadow-blue-500/5 active:translate-y-0"
                                             style={{ backgroundColor: colors.card, borderColor: colors.border }}
                                         >
-                                            <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-blue-500/10 text-blue-500 group-hover:bg-blue-500/20 transition-colors">
+                                            <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${prompt.grad} text-white shadow-sm`}>
                                                 {prompt.icon}
                                             </div>
-                                            <h3 className="font-semibold text-xs leading-snug" style={{ color: colors.text }}>{prompt.text}</h3>
+                                            <div className="min-w-0">
+                                                <h3 className="font-semibold text-sm leading-tight mb-0.5" style={{ color: colors.text }}>{prompt.title}</h3>
+                                                <p className="text-xs leading-snug" style={{ color: colors.textSecondary }}>{prompt.desc}</p>
+                                            </div>
                                         </button>
                                     ))}
                                 </div>
