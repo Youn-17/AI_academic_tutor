@@ -535,6 +535,128 @@ async function runAgentStream(controller: ReadableStreamDefaultController, opts:
   }
 }
 
+// ── Multi-agent orchestrator (research team) ──────────────────────────────────
+//   Grounded in Liu et al. (2026) educational-agent role taxonomy: a LEAD agent plans
+//   → specialists (cognitive-epistemic retriever/analyst, self-regulatory reasoner,
+//   human-AI web) run in PARALLEL → the lead SYNTHESIZES with an epistemic-agency
+//   guardrail (Liu 2026 cautions cognitive dependency). Reuses callProviderJSON +
+//   executeTool; structured so it can later lift to the Cloud Run backend to break the
+//   ~150s edge ceiling into minutes-long autonomous runs.
+function extractCode(s: string): string {
+  let t = String(s || '');
+  const m = t.match(/```(?:python)?\s*([\s\S]*?)```/i);
+  if (m) t = m[1];
+  return t.trim();
+}
+
+async function runOrchestrator(controller: ReadableStreamDefaultController, opts: {
+  apiUrl: string; key: string; model: string; messages: any[]; ctx: ToolCtx; tavily: boolean;
+}) {
+  const enc = new TextEncoder();
+  const send = (o: any) => controller.enqueue(enc.encode(`data: ${JSON.stringify(o)}\n\n`));
+  const task = lastUserText(opts.messages);
+  const allSources: any[] = [];
+  try {
+    const ROSTER: Record<string, { label: string; tool: string | null }> = {
+      retriever: { label: '检索专员', tool: 'deep_search' },
+      analyst:   { label: '数据分析师', tool: 'run_python' },
+      reasoner:  { label: '推理顾问', tool: null },
+      ...(opts.tavily ? { web: { label: '联网调研员', tool: 'web_search' } } : {}),
+    };
+    const webLine = opts.tavily ? '\n- web（联网调研员）：联网搜索最新/实时信息，适合知识库可能没有的时效内容' : '';
+
+    // ── Phase 1: PLAN (lead agent) ──
+    send({ _team_step: { phase: 'plan', status: 'running' } });
+    let plan: { role: string; subtask: string }[] = [];
+    try {
+      const pr = await callProviderJSON(opts.apiUrl, opts.key, {
+        model: opts.model, max_tokens: 700, temperature: 0.3,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: `你是多智能体学习辅导团队的"组长"。把学生任务拆成 2-4 个聚焦的子任务，分派给最合适的专科 agent。可用专科：\n- retriever（检索专员）：检索平台知识库（统计/学习科学教材与论文），适合要文献依据/概念/理论的子任务\n- analyst（数据分析师）：写并运行 Python 做计算/统计/画图/生成文件，适合涉及数据或可视化的子任务\n- reasoner（推理顾问）：纯推理/批判分析/方案设计，不需外部工具${webLine}\n原则：只派真正需要的 agent（不凑数）；子任务聚焦、可独立完成；优先用 retriever/analyst 拿真实依据。\n只输出 JSON：{"plan":[{"role":"retriever","subtask":"…"}]}` },
+          { role: 'user', content: task },
+        ],
+      });
+      let raw = String(pr?.choices?.[0]?.message?.content || '');
+      const a = raw.indexOf('{'); const b = raw.lastIndexOf('}');
+      if (a >= 0 && b > a) raw = raw.slice(a, b + 1);
+      const j = JSON.parse(raw);
+      if (Array.isArray(j.plan)) {
+        plan = j.plan
+          .map((x: any) => ({ role: String(x.role || '').toLowerCase(), subtask: String(x.subtask || '') }))
+          .filter((x: any) => ROSTER[x.role] && x.subtask)
+          .slice(0, 4);
+      }
+    } catch (_) { /* fall back below */ }
+    if (!plan.length) plan = [{ role: 'retriever', subtask: task }, { role: 'reasoner', subtask: task }];
+    send({ _team_step: { phase: 'plan', status: 'done', plan: plan.map((p) => ({ role: p.role, label: ROSTER[p.role].label, subtask: p.subtask })) } });
+
+    // ── Phase 2: specialists run in PARALLEL ──
+    const findings = await Promise.all(plan.map(async (step, idx) => {
+      const spec = ROSTER[step.role];
+      send({ _team_step: { phase: 'work', idx, role: step.role, agent: spec.label, subtask: step.subtask, status: 'running' } });
+      let finding = '';
+      try {
+        if (step.role === 'analyst') {
+          const fileNote = opts.ctx.attachedFile ? `\n（用户上传的数据在 /data/${opts.ctx.attachedFile.name}，可用 pandas 读取）` : '';
+          const cg = await callProviderJSON(opts.apiUrl, opts.key, {
+            model: opts.model, max_tokens: 1200, temperature: 0.3,
+            messages: [{ role: 'system', content: `你是数据分析师。针对子任务写一段完整可独立运行的 Python（已装 pandas/numpy/matplotlib/openpyxl/python-docx）。用 print() 输出关键结论；需要图表就 plt.show()；要下载的文件存到 /data/。只输出代码。${fileNote}` }, { role: 'user', content: step.subtask }],
+          });
+          const code = extractCode(cg?.choices?.[0]?.message?.content || '');
+          if (code) {
+            const res = await executeTool('run_python', { code }, opts.ctx);
+            finding = res.content;
+            if (res.artifacts) send({ _artifacts: res.artifacts });
+          } else finding = '（未能生成可运行代码）';
+        } else if (spec.tool) {
+          const res = await executeTool(spec.tool, { query: step.subtask }, opts.ctx);
+          finding = res.content;
+          if (res.sources?.length) allSources.push(...res.sources);
+        } else {
+          const rr = await callProviderJSON(opts.apiUrl, opts.key, {
+            model: opts.model, max_tokens: 1000, temperature: 0.6,
+            messages: [{ role: 'system', content: '你是推理顾问。对子任务做严谨的分析/推理/方案设计，给有条理的要点。不要编造具体文献或数据（那是其他专员的职责）。' }, { role: 'user', content: step.subtask }],
+          });
+          finding = stripThinking(rr?.choices?.[0]?.message?.content || '');
+        }
+      } catch (_) { finding = `（${spec.label}未能完成该子任务）`; }
+      send({ _team_step: { phase: 'work', idx, role: step.role, agent: spec.label, status: 'done' } });
+      return { label: spec.label, subtask: step.subtask, finding };
+    }));
+
+    // ── Phase 3: SYNTHESIZE (lead agent, epistemic-agency guardrail) ──
+    send({ _team_step: { phase: 'synth', status: 'running' } });
+    const synthInput = `学生任务：${task}\n\n各专科 agent 的发现：\n\n` +
+      findings.map((f) => `【${f.label}】子任务：${f.subtask}\n${f.finding}`).join('\n\n---\n\n');
+    let answer = '';
+    try {
+      const sr = await callProviderJSON(opts.apiUrl, opts.key, {
+        model: opts.model, max_tokens: 4096, temperature: 0.6,
+        messages: [
+          { role: 'system', content: `你是学习辅导团队的"组长"，把各专科 agent 的发现整合成给学生的最终回答：\n1. 综合所有发现，结构清晰（小标题/列表），直接回应任务。\n2. 标注依据来源（书/论文/网址/计算结果），区分"有依据的结论"与"推理推测"。\n3. 【关键】保护学生认知主体性：不要代替学生思考或给可照抄的成品；用引导性问题、给方法与思路、指出如何自己验证下一步，培养而非削弱独立思考。\n4. 证据不足或冲突时如实说明不确定性。用中文回答。` },
+          { role: 'user', content: synthInput },
+        ],
+      });
+      answer = stripThinking(sr?.choices?.[0]?.message?.content || '');
+    } catch (_) { /* fall back below */ }
+    if (!answer) answer = findings.map((f) => `**${f.label}**：${f.finding}`).join('\n\n');
+    if (!answer) answer = '（团队未能形成结论，请换个问法或稍后重试。）';
+
+    const seen = new Set<string>();
+    const sources = allSources.filter((s) => { const k = String(s.id || s.source_title); if (seen.has(k)) return false; seen.add(k); return true; });
+    if (sources.length) send({ _rag_sources: sources });
+    send({ _team_step: { phase: 'synth', status: 'done' } });
+    for (let i = 0; i < answer.length; i += 60) send({ choices: [{ index: 0, delta: { content: answer.slice(i, i + 60) } }] });
+    controller.enqueue(enc.encode('data: [DONE]\n\n'));
+    controller.close();
+  } catch (e) {
+    console.error('orchestrator error:', e);
+    try { send({ choices: [{ index: 0, delta: { content: '（研究团队执行出错，请重试）' } }] }); controller.enqueue(enc.encode('data: [DONE]\n\n')); } catch (_) { /* ignore */ }
+    controller.close();
+  }
+}
+
 // ── Guarded passthrough for the non-agent stream (R3): idle watchdog + error
 //    closure so a stalled/broken upstream can't hang the client. Bytes are
 //    passed through unchanged (frontend handles <thinking> strip + reasoning).
@@ -597,7 +719,7 @@ serve(async (req: Request) => {
     const bodyJson = await req.json();
     const {
       messages, provider: rawProvider, model, stream = true,
-      use_rag = false, use_agent = false, course_id, layer_filter,
+      use_rag = false, use_agent = false, team = false, course_id, layer_filter,
       thinking, reasoning_effort, response_format, attached_file,
     } = bodyJson as any;
 
@@ -704,6 +826,22 @@ serve(async (req: Request) => {
 
     const apiUrl = resolveEndpoint(provider);
     const baseParams = buildBaseParams(effModel, provider, { thinking, reasoning_effort, response_format });
+
+    // ── 5a-team. MULTI-AGENT ORCHESTRATOR (research team) — plan → parallel specialists → synthesize ──
+    if (team && !imagePresent) {
+      let tavilyKey = Deno.env.get('TAVILY_API_KEY') || '';
+      try {
+        const { data: tv } = await serviceClient
+          .from('ai_api_configs').select('api_key')
+          .eq('provider', 'tavily').eq('is_active', true).not('api_key', 'is', null).limit(1).maybeSingle();
+        if (tv?.api_key) tavilyKey = tv.api_key;
+      } catch (_) { /* no tavily key */ }
+      const ctx: ToolCtx = { serviceClient, user, course_id: course_id || null, resolvedApiKey, tavilyKey, userToken: authHeader || undefined, apiUrl, model: effModel, attachedFile: (attached_file && attached_file.name && attached_file.b64) ? { name: String(attached_file.name), b64: String(attached_file.b64) } : undefined };
+      const streamOut = new ReadableStream({
+        start: (controller) => runOrchestrator(controller, { apiUrl, key: resolvedApiKey, model: effModel, messages, ctx, tavily: !!tavilyKey }),
+      });
+      return new Response(streamOut, { headers: SSE_HEADERS });
+    }
 
     // ── 5a. AGENT MODE (tool-calling) ── always streams its result ──
     //   (skipped when an image is present — the vision model glm-4v-flash has no tool-calling)

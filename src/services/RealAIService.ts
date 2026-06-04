@@ -62,6 +62,8 @@ export interface StreamOptions {
     onAgentStep?: (step: { tool?: string; args?: any; status?: string; found?: number }) => void;
     onReasoning?: (text: string) => void;       // reasoning_content / _reasoning channel
     onArtifacts?: (a: { charts: string[]; files: { name: string; b64?: string; url?: string }[] }) => void;  // run_python charts/files
+    team?: boolean;                             // multi-agent orchestrator (research team)
+    onTeamStep?: (step: { phase?: string; status?: string; idx?: number; agent?: string; role?: string; subtask?: string; plan?: { role: string; label: string; subtask: string }[] }) => void;
     attachedFile?: { name: string; b64: string };  // a data file the student uploaded → run_python /data/
 }
 
@@ -148,12 +150,12 @@ export async function* streamChat(
             body: JSON.stringify({
                 messages: fullMessages,
                 provider: config.provider,
-                model: config.model,
+                model: config.model === 'team' ? 'auto' : config.model,
                 stream: true,
                 api_key: config.apiKey,
                 base_url: config.baseUrl,
                 ...(ragOptions?.use_rag ? ragOptions : {}),
-                ...(opts.use_agent ? { use_agent: true } : {}),
+                ...((opts.team || config.model === 'team') ? { team: true } : opts.use_agent ? { use_agent: true } : {}),
                 ...(opts.thinking ? { thinking: opts.thinking } : {}),
                 ...(opts.reasoning_effort ? { reasoning_effort: opts.reasoning_effort } : {}),
                 ...(opts.attachedFile ? { attached_file: opts.attachedFile } : {}),
@@ -198,6 +200,7 @@ export async function* streamChat(
                     if (parsed._rag_sources) { onSources?.(parsed._rag_sources); continue; }
                     if (parsed._agent_step) { opts.onAgentStep?.(parsed._agent_step); continue; }
                     if (parsed._artifacts) { opts.onArtifacts?.(parsed._artifacts); continue; }
+                    if (parsed._team_step) { opts.onTeamStep?.(parsed._team_step); continue; }
                     if (parsed._reasoning) { opts.onReasoning?.(String(parsed._reasoning)); continue; }
                     if (parsed.error) { continue; } // stream-level error; loop ends on [DONE]/close
                     const delta = parsed.choices?.[0]?.delta || {};
@@ -329,6 +332,16 @@ export const AI_MODELS: Record<string, { id: string; name: string; provider: AIP
         description: '按任务自动选最合适的模型（Claude / GPT / Gemini）',
         category: 'free',
         color: 'bg-blue-600',
+    },
+    // === Multi-agent orchestrator (research team) ===
+    'team': {
+        id: 'team',
+        name: '🤝 研究团队',
+        provider: 'dmxapi',
+        model: 'team',
+        description: '多智能体协作：组长规划 → 检索/分析/推理专科并行 → 综合（复杂任务用）',
+        category: 'free',
+        color: 'bg-indigo-600',
     },
     // === ChatGPT via DMXAPI ===
     'gpt-5.4': {
@@ -629,7 +642,7 @@ export const AI_CONFIGS = {
 export const MODEL_CATEGORIES = {
     recommended: {
         name: '推荐 · 已就绪',
-        models: ['auto', 'claude-sonnet-4-6', 'deepseek-chat', 'deepseek-reasoner', 'glm-5', 'gpt-5.4'],
+        models: ['auto', 'team', 'claude-sonnet-4-6', 'deepseek-chat', 'deepseek-reasoner', 'glm-5', 'gpt-5.4'],
         color: 'bg-blue-500',
     },
 };

@@ -35,7 +35,7 @@ interface StudentChatViewProps {
     onClearChat?: () => Promise<void>;
     onExportChat?: () => Promise<void>;
     onCompareModels?: (models: string[]) => Promise<void>;
-    agentSteps?: { tool?: string; status?: string; found?: number }[];
+    agentSteps?: { tool?: string; status?: string; found?: number; label?: string }[];
     reasoning?: string;
     onStop?: () => void;
     selectedRole?: string;
@@ -589,7 +589,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                                         ? <Check size={13} className="text-blue-500 shrink-0" />
                                                         : <Loader2 size={13} className="animate-spin text-blue-500 shrink-0" />}
                                                     <span style={{ color: colors.textSecondary }}>
-                                                        {toolLabel(s.tool)}{s.status === 'done' && s.found ? ` · ${s.found}${isEN ? ' found' : ' 条'}` : '…'}
+                                                        {s.label || toolLabel(s.tool)}{s.status === 'done' ? (s.found ? ` · ${s.found}${isEN ? ' found' : ' 条'}` : '') : '…'}
                                                     </span>
                                                 </div>
                                             ))}

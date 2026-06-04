@@ -75,7 +75,20 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
   const handleRoleSelect = (id: string) => { setSelectedRole(id); try { localStorage.setItem('hak_role', id); } catch { /* ignore */ } };
   const [useRag, setUseRag] = useState(false);
   const [condition, setCondition] = useState<StudyCondition | null>(null);  // A/B 实验条件(非参与者=null)
-  const [agentSteps, setAgentSteps] = useState<{ tool?: string; status?: string; found?: number }[]>([]);
+  const [agentSteps, setAgentSteps] = useState<{ tool?: string; status?: string; found?: number; label?: string }[]>([]);
+  // research-team (orchestrator) steps → rendered in the same live activity strip as agent steps
+  const teamStepEntry = (s: any): { status?: string; label?: string } => {
+    if (s.phase === 'plan') return s.status === 'done'
+      ? { label: `🧭 组长已规划 · 派出 ${(s.plan || []).map((p: any) => p.label).join('、')}`, status: 'done' }
+      : { label: '🧭 组长规划任务中', status: 'running' };
+    if (s.phase === 'work') return s.status === 'done'
+      ? { label: `${s.agent} 完成`, status: 'done' }
+      : { label: `${s.agent}${s.subtask ? ' · ' + String(s.subtask).slice(0, 24) : ''}`, status: 'running' };
+    if (s.phase === 'synth') return s.status === 'done'
+      ? { label: '🧩 组长已综合各方发现', status: 'done' }
+      : { label: '🧩 组长综合中', status: 'running' };
+    return { label: '团队工作中', status: 'running' };
+  };
   const [reasoning, setReasoning] = useState('');
   const sendingRef = useRef(false);                       // in-flight guard — no concurrent send/edit (H2)
   const abortRef = useRef<AbortController | null>(null);  // current stream's aborter (Stop / chat-switch)
@@ -268,6 +281,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
             signal: abort.signal,
             use_agent: useAgent,
             onAgentStep: (step) => setAgentSteps(prev => [...prev, step]),
+            onTeamStep: (s) => setAgentSteps(prev => [...prev, teamStepEntry(s)]),
             onReasoning: (t) => setReasoning(prev => prev + t),
             onArtifacts: (a) => { collectedArtifacts = a; },
             attachedFile: dataFile,
@@ -359,6 +373,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
             signal: abort.signal,
             use_agent: useAgent,
             onAgentStep: (step) => setAgentSteps(prev => [...prev, step]),
+            onTeamStep: (s) => setAgentSteps(prev => [...prev, teamStepEntry(s)]),
             onReasoning: (t) => setReasoning(prev => prev + t),
             onArtifacts: (a) => { collectedArtifacts = a; },
             attachedFile: dataFile,
