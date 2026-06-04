@@ -161,15 +161,16 @@ const TOOL_DEFS = [
   }},
   { type: 'function', function: {
     name: 'recall_memory',
-    description: '回忆该学生过往的对话摘要、研究进展、待办、痛点以及教师反馈。需要延续之前讨论或了解学生背景时调用。',
+    description: '回忆关于该学生的分型记忆（过往经历、知识状态/误解、学习偏好）以及教师反馈。延续之前讨论、了解学生背景、或想个性化辅导时调用。',
     parameters: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] },
   }},
   { type: 'function', function: {
     name: 'save_memory',
-    description: '当出现值得长期记住的内容（关键决策、研究进展、反复出现的困难、待办）时保存为过程记忆，便于后续辅导延续。',
+    description: '当出现值得长期记住、有助于以后更懂这个学生的内容时，保存为分型记忆，便于跨会话延续辅导。',
     parameters: { type: 'object', properties: {
-      content: { type: 'string' },
-      memory_type: { type: 'string', enum: ['conversation_summary', 'research_progress', 'decision_log', 'pain_point', 'todo'] },
+      content: { type: 'string', description: '要记住的内容，写成对未来辅导有用的简洁陈述' },
+      memory_type: { type: 'string', enum: ['episodic', 'semantic', 'procedural'], description: 'episodic=该学生的具体经历/事件（某次卡在哪、问过什么、做了什么决定）；semantic=关于学生的事实（知识状态、典型误解、研究兴趣、目标）；procedural=他怎么学最有效（吃哪种讲法、学习策略、偏好）' },
+      importance: { type: 'number', description: '重要性 0~1：越能长期影响"如何辅导这个学生"越高（核心误解/研究方向≈0.9，一般进展≈0.5，临时待办≈0.3）' },
     }, required: ['content', 'memory_type'] },
   }},
 ];
@@ -287,15 +288,17 @@ async function executeTool(name: string, args: any, ctx: ToolCtx): Promise<ToolR
 
     if (name === 'save_memory') {
       const vec = await embedQuery(String(args.content || ''), ctx.resolvedApiKey);
+      const mtype = ['episodic', 'semantic', 'procedural'].includes(args.memory_type) ? args.memory_type : 'episodic';
       const ins: any = {
         owner_id: ctx.user.id,
-        memory_type: args.memory_type || 'conversation_summary',
+        memory_type: mtype,
         content: String(args.content || ''),
+        importance: Math.max(0, Math.min(1, Number(args.importance ?? 0.5))),
         visibility: 'private',
       };
       if (vec) ins.embedding = `[${vec.join(',')}]`;
       const { error } = await ctx.serviceClient.from('memories').insert(ins);
-      return { content: error ? `保存记忆失败：${error.message}` : '已保存到过程记忆。', sources: [] };
+      return { content: error ? `保存记忆失败：${error.message}` : `已保存到${mtype}记忆。`, sources: [] };
     }
 
     if (name === 'web_search') {
@@ -867,7 +870,7 @@ serve(async (req: Request) => {
       const ctx: ToolCtx = { serviceClient, user, course_id: course_id || null, resolvedApiKey, tavilyKey, userToken: authHeader || undefined, apiUrl, model: effModel, attachedFile: (attached_file && attached_file.name && attached_file.b64) ? { name: String(attached_file.name), b64: String(attached_file.b64) } : undefined };
       const tools = [...TOOL_DEFS, DEEP_SEARCH_TOOL, ...(tavilyKey ? [WEB_SEARCH_TOOL] : []), CODE_INTERPRETER_TOOL];
       const webNote = tavilyKey ? '、web_search(联网搜索最新/实时信息，知识库没有时用)' : '';
-      const note = `\n\n你具备工具能力：search_knowledge_base(单次检索平台知识库——已含多本统计/学习科学教材与论文)、deep_search(综合/多概念/综述类问题用它，自动把问题拆成多角度检索后合并，召回更全)${webNote}、run_python(需要对数据/表格做计算统计、画图表、或生成 Excel/Word 文件时，在隔离沙箱里跑 Python)、recall_memory(回忆该学生过往)、save_memory(保存关键决策/进展/待办)。需要依据或计算时优先调用工具，绝不编造文献或数据。调用工具后，请在回答中自然地说明你查阅了哪些来源（书名/论文/网址）或做了什么计算，便于学生核对。${ctx.attachedFile ? `\n\n注意：用户刚上传了数据文件，已放在沙箱 /data/${ctx.attachedFile.name}，需要分析它时用 run_python 读取（如 pandas.read_csv/read_excel("/data/${ctx.attachedFile.name}")）。` : ''}`;
+      const note = `\n\n你具备工具能力：search_knowledge_base(单次检索平台知识库——已含多本统计/学习科学教材与论文)、deep_search(综合/多概念/综述类问题用它，自动把问题拆成多角度检索后合并，召回更全)${webNote}、run_python(需要对数据/表格做计算统计、画图表、或生成 Excel/Word 文件时，在隔离沙箱里跑 Python)、recall_memory(回忆该学生的分型记忆:经历/知识状态/学习偏好——想个性化或延续之前讨论时先回忆)、save_memory(把值得长期记住的内容按 episodic=经历/semantic=关于他的事实与误解/procedural=他怎么学最有效 分型保存,并给 importance)。需要依据或计算时优先调用工具，绝不编造文献或数据。调用工具后，请在回答中自然地说明你查阅了哪些来源（书名/论文/网址）或做了什么计算，便于学生核对。${ctx.attachedFile ? `\n\n注意：用户刚上传了数据文件，已放在沙箱 /data/${ctx.attachedFile.name}，需要分析它时用 run_python 读取（如 pandas.read_csv/read_excel("/data/${ctx.attachedFile.name}")）。` : ''}`;
       const sysIdx = messages.findIndex((m: any) => m.role === 'system');
       const agentMsgs = sysIdx >= 0
         ? messages.map((m: any, i: number) => i === sysIdx ? { ...m, content: m.content + note } : m)
