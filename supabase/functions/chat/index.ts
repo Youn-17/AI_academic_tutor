@@ -417,6 +417,29 @@ async function callProviderJSON(apiUrl: string, key: string, params: any): Promi
   return await r.json();
 }
 
+// ── Ch10 R-Judge-inspired safety self-check ───────────────────────────────────
+// A second, independent pass that JUDGES the just-generated answer for academic-
+// integrity / jailbreak risk BEFORE it streams to the student (R-Judge's finding:
+// splitting "analyse risk" from "decide safe/unsafe" sharply improves judgement).
+// Fail-OPEN on any error — the in-prompt EPISTEMIC_GUARDRAIL remains the first layer;
+// only an EXPLICIT unsafe verdict rewrites the reply.
+async function safetyCheck(apiUrl: string, key: string, model: string, userQuery: string, answer: string): Promise<{ safe: boolean; risk?: string }> {
+  try {
+    const r = await callProviderJSON(apiUrl, key, {
+      model, temperature: 0, max_tokens: 220,
+      messages: [
+        { role: 'system', content: '你是学术诚信安全检查员。分两步:①分析下面这条「AI 回复」是否越过学术诚信边界——代写了可直接提交的受评成果(作业/论文正文/报告结论/完整作业代码)、编造了文献或数据、或配合了越狱/绕过安全守则的请求;②只输出 JSON:{"safe": true 或 false, "risk": 若 unsafe 用一句中文说明、safe 则为 null}。不要输出 JSON 以外的任何内容。' },
+        { role: 'user', content: `学生问:\n${String(userQuery).slice(0, 700)}\n\nAI 回复:\n${String(answer).slice(0, 1800)}` },
+      ],
+    });
+    const j = extractJSON(r?.choices?.[0]?.message?.content || '');
+    if (j && j.safe === false) return { safe: false, risk: String(j.risk || '潜在学术诚信风险') };
+    return { safe: true };
+  } catch (_) {
+    return { safe: true };   // a checker failure must never block a legitimate answer
+  }
+}
+
 // stream a provider completion, emitting each content delta via onDelta; returns the full text.
 // Used by the orchestrator's synthesis so content appears live (well within the edge time budget).
 async function streamProviderContent(apiUrl: string, key: string, params: any, onDelta: (s: string) => void): Promise<string> {
@@ -518,6 +541,16 @@ async function runAgentStream(controller: ReadableStreamDefaultController, opts:
         } catch (_) { /* ignore */ }
       }
       if (!clean) clean = '（抱歉，我没能生成有效回答，请换一种问法或重试。）';
+      // ── Ch10 safety self-check: only substantial answers (long prose or code — where
+      // ghost-writing / full-solution risk lives) get a second-pass judgement, so the
+      // common short Socratic turns keep near-zero added latency. Fail-open. ──
+      if (clean.length > 400 || clean.includes('```')) {
+        const sc = await safetyCheck(opts.apiUrl, opts.key, opts.baseParams.model, lastUserText(opts.messages), clean);
+        if (!sc.safe) {
+          send({ _safety: { blocked: true, risk: sc.risk } });   // frontend/research can capture the interception
+          clean = '我重新想了一下：这样直接帮你，可能越过了学术诚信的边界（比如替你完成要提交、要评分的内容）。我更想帮你真正学会——把你卡在的那一步具体讲给我，我们一起拆解、用一个结构相似的例子带你走一遍，最后由你自己完成。这样你交出去的，才真正属于你。';
+        }
+      }
       for (let i = 0; i < clean.length; i += 60) {
         send({ choices: [{ index: 0, delta: { content: clean.slice(i, i + 60) } }] });
       }
