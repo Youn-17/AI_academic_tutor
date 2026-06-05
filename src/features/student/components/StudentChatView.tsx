@@ -16,13 +16,14 @@ import type { PaperBasic } from '@/services/SemanticScholarService';
 import { createPortal } from 'react-dom';
 import { saveSnippetToKnowledgeBase } from '@/services/SnippetService';
 import { AGENT_ROLES } from '@/services/AgentRoles';
+import { isSubmitEnter } from '@/lib/keyboard';
 
 interface StudentChatViewProps {
     activeChat: Conversation;
     messages: Message[];
     loading: boolean;
     streamingContent: string;
-    onSendMessage: (content: string, file?: File) => Promise<void>;
+    onSendMessage: (content: string, file?: File) => Promise<boolean | void>;
     onEditMessage?: (messageId: string, newContent: string) => Promise<void>;
     selectedModel: string;
     onModelSelect: (modelId: string) => void;
@@ -116,6 +117,8 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     }, [kbModalText, kbReason]);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const nearBottomRef = useRef(true);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const modelMenuRef = useRef<HTMLDivElement>(null);
     const roleMenuRef = useRef<HTMLDivElement>(null);
@@ -136,8 +139,10 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
         return map[fontSize];
     }, [fontSize]);
 
-    // Auto-scroll
+    // Auto-scroll — but only when the student is already near the bottom, so reading earlier
+    // messages during a long streamed reply isn't yanked back down on every token.
     useEffect(() => {
+        if (!nearBottomRef.current) return;
         requestAnimationFrame(() => {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         });
@@ -179,17 +184,26 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     }, [searchResults, rightPanelTab]);
 
     // Handlers
-    const handleSubmit = useCallback(() => {
+    const handleSubmit = useCallback(async () => {
         if ((!inputValue.trim() && !attachedFile) || loading) return;
         const content = inputValue;
+        const file = attachedFile;
         setInputValue('');
         setAttachedFile(null);
         if (textareaRef.current) textareaRef.current.style.height = 'auto';
-        onSendMessage(content, attachedFile || undefined);
+        nearBottomRef.current = true;  // sending → follow my own message to the bottom
+        const ok = await onSendMessage(content, file || undefined);
+        if (ok === false) {
+            // send failed — restore the student's text + attachment so nothing is silently lost
+            setInputValue((cur) => cur || content);
+            setAttachedFile((cur) => cur || file);
+        }
     }, [inputValue, attachedFile, loading, onSendMessage]);
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        // isSubmitEnter ignores Enter during IME composition — critical for Chinese input,
+        // where Enter picks a candidate word rather than sending.
+        if (isSubmitEnter(e)) {
             e.preventDefault();
             handleSubmit();
         }
@@ -350,7 +364,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
             {/* Main Chat Area */}
             <div className="flex-1 flex flex-col h-full min-w-0">
                 {/* Header */}
-                <header className="h-16 px-4 sm:px-6 flex items-center justify-between border-b sticky top-0 backdrop-blur-md z-10" style={{ backgroundColor: colors.headerBg, borderColor: colors.border }}>
+                <header className="h-16 pl-14 md:pl-6 pr-4 sm:pr-6 flex items-center justify-between border-b sticky top-0 backdrop-blur-md z-10" style={{ backgroundColor: colors.headerBg, borderColor: colors.border }}>
                     {/* Left: Chat Info */}
                     <div className="flex items-center gap-3 min-w-0">
                         <AITutorAvatar size="md" theme={theme} animate={loading} />
@@ -470,7 +484,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                 </header>
 
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto w-full" onMouseUp={handleTextSelection} onScroll={() => setKbSel(null)}>
+                <div ref={scrollContainerRef} className="flex-1 overflow-y-auto w-full" onMouseUp={handleTextSelection} onScroll={(e) => { setKbSel(null); const el = e.currentTarget; nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120; }}>
                     {createPortal(
                         <>
                             {kbSel && (
@@ -733,7 +747,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
 
             {/* Right Panel */}
             {rightPanelTab && (
-                <div className="border-l transition-all w-[400px]" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
+                <div className="border-l transition-all w-[400px] hidden lg:block" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
                     {rightPanelTab === 'sources' && (
                         <div className="w-full h-full flex flex-col">
                             <div className="h-14 border-b flex items-center justify-between px-4" style={{ borderColor: colors.border }}>

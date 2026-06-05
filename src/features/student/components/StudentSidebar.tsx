@@ -5,6 +5,7 @@ import {
     MessageSquare, Sparkles
 } from 'lucide-react';
 import { Conversation, Theme, Locale } from '@/types';
+import { isSubmitEnter } from '@/lib/keyboard';
 
 interface StudentSidebarProps {
     conversations: Conversation[];
@@ -181,7 +182,7 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
                                 value={editTitle}
                                 onChange={(e) => setEditTitle(e.target.value)}
                                 onBlur={() => handleRenameSubmit(chat.id)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit(chat.id)}
+                                onKeyDown={(e) => isSubmitEnter(e) && handleRenameSubmit(chat.id)}
                                 className={`w-full text-sm px-3 py-2 rounded-lg outline-none border ${isDark ? 'bg-slate-800 border-blue-500/50 text-white' : 'bg-white border-blue-500 text-slate-900'}`}
                             />
                         ) : (

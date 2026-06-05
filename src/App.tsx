@@ -12,6 +12,8 @@ import ConsentPage from '@/features/auth/ConsentPage';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { Loader2 } from 'lucide-react';
 import { Locale, Theme } from '@/types';
+import ErrorBoundary from '@/shared/components/ErrorBoundary';
+import { FeedbackProvider } from '@/shared/components/FeedbackProvider';
 
 type AuthView = 'login' | 'register' | 'forgot-password';
 
@@ -28,7 +30,7 @@ function isConsentFlow(): boolean {
 }
 
 // Inner App component that uses auth context
-const AppContent: React.FC = () => {
+const AppContent: React.FC<{ locale: Locale; setLocale: (l: Locale) => void }> = ({ locale, setLocale }) => {
   const { user, profile, loading, profileError, signOut, refreshProfile } = useAuth();
   // 持久化到 sessionStorage，避免刷新后重新经历 Landing
   const [hasViewedLanding, setHasViewedLanding] = useState<boolean>(() => {
@@ -37,7 +39,6 @@ const AppContent: React.FC = () => {
   const [isRecovery, setIsRecovery] = useState<boolean>(() => isPasswordRecovery());
   const [isConsent] = useState<boolean>(() => isConsentFlow());
   const [authView, setAuthView] = useState<AuthView>('login');
-  const [locale, setLocale] = useState<Locale>('zh-CN');
   const [theme, setTheme] = useState<Theme>('light');
 
   const currentRole = profile?.role;
@@ -187,11 +188,23 @@ const AppContent: React.FC = () => {
   );
 };
 
-// Root App with AuthProvider wrapper
+// Root App with AuthProvider wrapper. Locale lives here (read once from the landing-page choice)
+// so it can feed the ErrorBoundary + FeedbackProvider fallbacks and persist across the auth flow.
 const App: React.FC = () => {
+  const [locale, setLocale] = useState<Locale>(
+    () => (localStorage.getItem('preferred-locale') as Locale) || 'zh-CN',
+  );
+  useEffect(() => {
+    localStorage.setItem('preferred-locale', locale);
+  }, [locale]);
+
   return (
     <AuthProvider>
-      <AppContent />
+      <ErrorBoundary locale={locale}>
+        <FeedbackProvider locale={locale}>
+          <AppContent locale={locale} setLocale={setLocale} />
+        </FeedbackProvider>
+      </ErrorBoundary>
     </AuthProvider>
   );
 };

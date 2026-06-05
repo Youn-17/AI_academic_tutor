@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Conversation, Role, Locale } from '@/types';
+import { isSubmitEnter } from '@/lib/keyboard';
 import { useAuth } from '@/features/auth/AuthProvider';
 import ChatBubble from '@/shared/components/ChatBubble';
 import ClassroomAnalyst from '@/features/supervisor/ClassroomAnalyst';
@@ -653,7 +654,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
               <div className="p-4 bg-white border-t border-slate-200">
                 <div className="flex gap-3 max-w-3xl mx-auto">
                   <input value={aiInput} onChange={e => setAiInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleAiSend()}
+                    onKeyDown={e => isSubmitEnter(e) && handleAiSend()}
                     placeholder="输入问题，和 AI 助手对话…"
                     disabled={aiStreaming}
                     className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm disabled:opacity-50 transition-all"
@@ -1077,7 +1078,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                   <div className="flex gap-2">
                     <input type="text" value={interventionText}
                       onChange={e => setInterventionText(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && handleIntervention()}
+                      onKeyDown={e => isSubmitEnter(e) && handleIntervention()}
                       placeholder="输入指导意见，直接介入对话..."
                       className="flex-1 px-4 py-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400 text-slate-900 placeholder-slate-400 transition-all text-sm"
                     />

@@ -14,6 +14,8 @@ import { getRolePrompt } from '@/services/AgentRoles';
 import { logResearchEvent } from '@/services/ResearchLog';
 import { readFileContent } from '@/services/DocumentService';
 import { getMyCondition, type StudyCondition } from '@/services/StudyService';
+import { useToast, useConfirm } from '@/shared/components/FeedbackProvider';
+import { Menu } from 'lucide-react';
 
 interface StudentViewProps {
   onLogout: () => void;
@@ -60,6 +62,9 @@ async function readFileAsBase64(file: File): Promise<string> {
 
 const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, theme, setTheme }) => {
   const { profile } = useAuth();
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [mobileNav, setMobileNav] = useState(false);
 
   // State
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -171,7 +176,11 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
   };
 
   const handleDeleteChat = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this chat?')) return;
+    const okToDelete = await confirm({
+      message: locale === 'en' ? 'Delete this conversation? This cannot be undone.' : '确定删除该对话吗？此操作不可恢复。',
+      danger: true,
+    });
+    if (!okToDelete) return;
     try {
       await ConversationService.deleteConversation(id);
       await loadConversations();
@@ -257,7 +266,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     if (convId === activeChatIdRef.current) setMessages(prev => [...prev, collectedArtifacts ? { ...aiMessage, artifacts: collectedArtifacts } : aiMessage]);
   };
 
-  const handleSendMessage = async (content: string, file?: File) => {
+  const handleSendMessage = async (content: string, file?: File): Promise<boolean | void> => {
     if (!activeChatId) return;
     if (sendingRef.current) return;          // H2: ignore re-entrant send while one is streaming
     sendingRef.current = true;
@@ -277,8 +286,9 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       }
     } catch (e) {
       console.error('File read failed:', e);
+      toast(locale === 'en' ? 'Could not read the file. Try again or use another.' : '文件读取失败，请重试或更换文件', 'error');
       sendingRef.current = false;
-      return;
+      return false;
     }
 
     // Optimistic Update
@@ -301,6 +311,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     abortRef.current = abort;
     const convId = activeChatId;
 
+    let sent = false;
     try {
       const userMessage = await ConversationService.sendMessage(convId, fullContent, Role.STUDENT);
       if (convId === activeChatIdRef.current) setMessages(prev => prev.map(m => m.id === tempUserMsgId ? userMessage : m));
@@ -317,6 +328,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       }
 
       await streamAndPersistTurn(convId, chatHistory, abort, dataFile);
+      sent = true;
 
       if (chatHistory.length === 1) {
         const newTitle = content.slice(0, 20) || 'New Chat';
@@ -326,6 +338,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     } catch (err) {
       console.error('Send failed:', err);
       setMessages(prev => prev.filter(m => m.id !== tempUserMsgId));
+      toast(locale === 'en' ? 'Send failed. Please try again.' : '发送失败，请重试', 'error');
     } finally {
       setIsThinking(false);
       setStreamingContent('');
@@ -334,6 +347,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       sendingRef.current = false;
       abortRef.current = null;
     }
+    return sent;
   };
 
   const handleEditMessage = async (messageId: string, newContent: string) => {
@@ -388,7 +402,11 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
   };
 
   const handleClearChat = async () => {
-    if (confirm('清空此对话？')) {
+    const okToClear = await confirm({
+      message: locale === 'en' ? 'Clear this conversation? This cannot be undone.' : '清空此对话？此操作不可恢复。',
+      danger: true,
+    });
+    if (okToClear) {
       await ConversationService.deleteConversation(activeChatId);
       setActiveChatId('');
       setViewMode('dashboard');
@@ -448,25 +466,39 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
 
   return (
     <div className={`flex h-screen overflow-hidden font-sans ${theme === 'light' ? 'bg-slate-50 text-slate-900' : 'bg-[#020617] text-slate-50'}`}>
-      <StudentSidebar
-        conversations={conversations}
-        activeChatId={activeChatId}
-        onSelectChat={setActiveChatId}
-        onCreateChat={handleCreateChat}
-        onDeleteChat={handleDeleteChat}
-        onArchiveChat={handleArchiveChat}
-        onRenameChat={handleRenameChat}
-        currentView={viewMode}
-        onSelectView={handleSelectView}
-        onLogout={onLogout}
-        theme={theme}
-        locale={locale}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
-      />
+      {/* Mobile drawer backdrop */}
+      {mobileNav && <div className="fixed inset-0 z-30 bg-black/40 md:hidden" onClick={() => setMobileNav(false)} />}
 
-      <div className="flex-1 h-full relative">
-        {viewMode === 'dashboard' && <StudentDashboard theme={theme} userName={profile?.full_name || 'Student'} />}
+      {/* Sidebar — slide-in drawer on mobile, inline column on md+ */}
+      <div className={`fixed inset-y-0 left-0 z-40 transition-transform md:static md:z-auto md:translate-x-0 ${mobileNav ? 'translate-x-0' : '-translate-x-full'}`}>
+        <StudentSidebar
+          conversations={conversations}
+          activeChatId={activeChatId}
+          onSelectChat={(id) => { setActiveChatId(id); setMobileNav(false); }}
+          onCreateChat={() => { handleCreateChat(); setMobileNav(false); }}
+          onDeleteChat={handleDeleteChat}
+          onArchiveChat={handleArchiveChat}
+          onRenameChat={handleRenameChat}
+          currentView={viewMode}
+          onSelectView={(v) => { handleSelectView(v); setMobileNav(false); }}
+          onLogout={onLogout}
+          theme={theme}
+          locale={locale}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
+        />
+      </div>
+
+      <div className="flex-1 h-full relative min-w-0">
+        {/* Mobile hamburger — opens the sidebar drawer */}
+        <button
+          onClick={() => setMobileNav(true)}
+          aria-label={locale === 'en' ? 'Open menu' : '打开菜单'}
+          className="fixed left-2.5 top-2.5 z-20 rounded-lg border border-slate-200 bg-white/90 p-2 shadow-md backdrop-blur md:hidden dark:border-slate-700 dark:bg-slate-800/90"
+        >
+          <Menu size={18} className="text-slate-600 dark:text-slate-300" />
+        </button>
+        {viewMode === 'dashboard' && <StudentDashboard theme={theme} userName={profile?.full_name || 'Student'} onNewChat={handleCreateChat} onOpenKnowledge={() => handleSelectView('knowledge')} />}
         {viewMode === 'profile' && <StudentProfile theme={theme} />}
         {viewMode === 'classroom' && <StudentClassroomView />}
         {viewMode === 'knowledge' && <StudentKnowledgeView theme={theme} />}

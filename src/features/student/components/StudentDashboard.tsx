@@ -10,7 +10,7 @@ import { getConversations, getMessages } from '@/services/ConversationService';
 import { Theme, Role } from '@/types';
 import { supabase } from '@/lib/supabase';
 
-interface StudentDashboardProps { theme: Theme; userName: string }
+interface StudentDashboardProps { theme: Theme; userName: string; onNewChat?: () => void; onOpenKnowledge?: () => void }
 
 const EDGE_FN = (import.meta.env.VITE_SUPABASE_FUNCTIONS_URL as string) || 'https://oztozjwngekmqtuylypt.supabase.co/functions/v1';
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -73,7 +73,7 @@ const INSIGHT_CFG: Record<string, { label: string; cls: string; border: string }
   milestone: { label: '里程碑', cls: 'bg-amber-100 text-amber-700', border: '#f59e0b' },
 };
 
-export default function StudentDashboard({ theme, userName }: StudentDashboardProps) {
+export default function StudentDashboard({ theme, userName, onNewChat, onOpenKnowledge }: StudentDashboardProps) {
   const isDark = theme === 'dark';
   const [stats, setStats] = useState<UserStats | null>(null);
   const [insights, setInsights] = useState<{ type: string; content: string }[]>([]);
@@ -126,12 +126,12 @@ export default function StudentDashboard({ theme, userName }: StudentDashboardPr
       {/* Quick actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: '新对话', sub: '与 AI 导师探讨', Icon: RiChat3Line },
-          { label: '知识图谱', sub: '可视化你的概念', Icon: RiNodeTree },
-          { label: '联网检索', sub: '让 AI 查最新资料', Icon: RiSearchEyeLine },
-          { label: '知识库', sub: '检索教材与论文', Icon: RiBookOpenLine },
+          { label: '新对话', sub: '与 AI 导师探讨', Icon: RiChat3Line, action: onNewChat },
+          { label: '知识图谱', sub: '可视化你的概念', Icon: RiNodeTree, action: onOpenKnowledge },
+          { label: '联网检索', sub: '让 AI 查最新资料', Icon: RiSearchEyeLine, action: onNewChat },
+          { label: '知识库', sub: '检索教材与论文', Icon: RiBookOpenLine, action: onOpenKnowledge },
         ].map((a, i) => (
-          <button key={i} className={`p-4 rounded-2xl border text-left transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] group ${cardBase}`}>
+          <button key={i} onClick={a.action} className={`p-4 rounded-2xl border text-left transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] group ${cardBase}`}>
             <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-blue-500/10 text-blue-500 group-hover:bg-blue-500/20 transition-colors"><a.Icon size={17} /></div>
             <p className={`text-sm font-semibold mb-0.5 ${isDark ? 'text-white' : 'text-slate-800'}`}>{a.label}</p>
             <p className={`text-[11px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{a.sub}</p>

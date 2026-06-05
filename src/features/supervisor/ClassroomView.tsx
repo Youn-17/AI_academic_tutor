@@ -3,6 +3,7 @@ import { Plus, Users, Copy, Check, School, Trash2, Calendar, MoreVertical, Edit2
 import * as ClassService from '@/services/ClassService';
 import { Class, ClassMember } from '@/services/ClassService';
 import { buildCsv, triggerDownload } from '@/lib/csvUtils';
+import { isSubmitEnter } from '@/lib/keyboard';
 
 const ClassroomView: React.FC = () => {
   const [classes, setClasses] = useState<Class[]>([]);
@@ -131,7 +132,7 @@ const ClassroomView: React.FC = () => {
               placeholder="例如: 2024 秋季算法课"
               value={newClassName}
               onChange={(e) => setNewClassName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreateClass()}
+              onKeyDown={(e) => isSubmitEnter(e) && handleCreateClass()}
             />
             <div className="flex gap-2 justify-end">
               <button onClick={() => setIsCreating(false)} className="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700">取消</button>
