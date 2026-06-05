@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 880 420" width="880" height="420" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrowSky" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#38bdf8"/>
+    </marker>
+    <linearGradient id="edgeFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eff6ff"/><stop offset="1" stop-color="#dbeafe"/>
+    </linearGradient>
+  </defs>
+
+  <!-- card background (readable on both light and dark GitHub themes) -->
+  <rect x="1" y="1" width="878" height="418" rx="18" fill="#f8fafc" stroke="#e2e8f0"/>
+
+  <text x="40" y="40" font-size="17" font-weight="700" fill="#0f172a">Live request flow</text>
+  <text x="40" y="62" font-size="12.5" fill="#64748b">Learner &#8594; edge agent loop &#8594; tools (RAG &#183; models &#183; sandbox) &#8594; streamed answer &#183; the browser talks only to the edge function</text>
+
+  <!-- wires (drawn first, under the nodes) -->
+  <path id="w1" d="M188,214 H300" fill="none" stroke="#cbd5e1" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path id="w2" d="M512,196 C600,196 612,120 700,120" fill="none" stroke="#cbd5e1" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path id="w3" d="M512,214 C600,214 612,222 700,222" fill="none" stroke="#cbd5e1" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path id="w4" d="M512,232 C600,232 612,326 700,326" fill="none" stroke="#cbd5e1" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path id="rback" d="M300,252 C238,274 232,250 188,236" fill="none" stroke="#bae6fd" stroke-width="2.5" stroke-dasharray="5 5" marker-end="url(#arrowSky)"/>
+
+  <!-- Learner -->
+  <rect x="38" y="178" width="150" height="72" rx="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="113" y="209" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">Learner</text>
+  <text x="113" y="229" text-anchor="middle" font-size="11.5" fill="#64748b">browser &#183; HTTPS + JWT</text>
+
+  <!-- Edge Function -->
+  <rect x="300" y="156" width="212" height="116" rx="16" fill="url(#edgeFill)" stroke="#2563eb" stroke-width="1.8"/>
+  <text x="406" y="187" text-anchor="middle" font-size="15" font-weight="700" fill="#1e3a8a">Edge Function</text>
+  <text x="406" y="207" text-anchor="middle" font-size="11.5" fill="#3b5bdb">tool-calling agent loop</text>
+  <text x="406" y="235" text-anchor="middle" font-size="11" fill="#64748b">router &#183; RAG &#183; memory</text>
+  <text x="406" y="251" text-anchor="middle" font-size="11" fill="#64748b">web &#183; code &#183; safety</text>
+  <!-- rotating loop glyph signals the agent iteration -->
+  <g transform="translate(488,178)">
+    <path d="M0,-9 A9,9 0 1 1 -9,0" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/>
+    <path d="M-2,-12 L2,-9 L-2,-6 z" fill="#2563eb"/>
+    <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="3s" repeatCount="indefinite" additive="sum"/>
+  </g>
+
+  <!-- Knowledge Base -->
+  <rect x="700" y="88" width="158" height="64" rx="14" fill="#ffffff" stroke="#10b981" stroke-width="1.5"/>
+  <text x="779" y="114" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0f172a">Knowledge Base</text>
+  <text x="779" y="132" text-anchor="middle" font-size="11" fill="#64748b">Postgres + pgvector</text>
+
+  <!-- AI Models -->
+  <rect x="700" y="190" width="158" height="64" rx="14" fill="#ffffff" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="779" y="216" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0f172a">AI Models</text>
+  <text x="779" y="234" text-anchor="middle" font-size="11" fill="#64748b">Claude &#183; GPT &#183; Gemini</text>
+
+  <!-- Code Sandbox -->
+  <rect x="700" y="294" width="158" height="64" rx="14" fill="#ffffff" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="779" y="320" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0f172a">Code Sandbox</text>
+  <text x="779" y="338" text-anchor="middle" font-size="11" fill="#64748b">E2B &#183; pandas &#183; plt</text>
+
+  <!-- animated packets -->
+  <circle r="5" fill="#2563eb"><animateMotion dur="1.3s" repeatCount="indefinite"><mpath xlink:href="#w1"/></animateMotion></circle>
+  <circle r="4.5" fill="#10b981"><animateMotion dur="1.7s" begin="0.2s" repeatCount="indefinite"><mpath xlink:href="#w2"/></animateMotion></circle>
+  <circle r="4.5" fill="#6366f1"><animateMotion dur="1.7s" begin="0.35s" repeatCount="indefinite"><mpath xlink:href="#w3"/></animateMotion></circle>
+  <circle r="4.5" fill="#f59e0b"><animateMotion dur="1.7s" begin="0.5s" repeatCount="indefinite"><mpath xlink:href="#w4"/></animateMotion></circle>
+  <!-- streamed-answer tokens flowing back -->
+  <circle r="4" fill="#38bdf8"><animateMotion dur="1.9s" begin="0s" repeatCount="indefinite"><mpath xlink:href="#rback"/></animateMotion></circle>
+  <circle r="4" fill="#38bdf8"><animateMotion dur="1.9s" begin="0.63s" repeatCount="indefinite"><mpath xlink:href="#rback"/></animateMotion></circle>
+  <circle r="4" fill="#38bdf8"><animateMotion dur="1.9s" begin="1.26s" repeatCount="indefinite"><mpath xlink:href="#rback"/></animateMotion></circle>
+</svg>

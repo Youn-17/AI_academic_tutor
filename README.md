@@ -65,6 +65,13 @@ flowchart TD
 学习者浏览器仅与**边缘函数**通信,其余调用均在服务端编排;代码解释器后端与模型提供方不被前端直连。
 The learner's browser communicates only with the **edge function**; all downstream calls are orchestrated server-side. The backend and model providers are never invoked directly from the client.
 
+<p align="center">
+  <img src="docs/diagrams/architecture-flow.svg" alt="Live request flow — learner to edge agent loop to tools (RAG, models, sandbox) and a streamed answer back" width="800">
+</p>
+
+> 动图(SVG 动画):请求从学习者经边缘函数的智能体环,扇出到检索 / 模型 / 沙箱,再以流式答案回到学习者。
+> Animated SVG — a request flows from the learner through the edge function's agent loop, fans out to retrieval / models / sandbox, and streams the answer back.
+
 **智能体生态 / Agent ecosystem**
 
 ```mermaid
