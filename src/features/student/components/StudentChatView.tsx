@@ -11,6 +11,7 @@ import ChatBubble from '@/shared/components/ChatBubble';
 import KnowledgeGraph from './KnowledgeGraph';
 import AITutorAvatar from '@/shared/components/AITutorAvatar';
 import AgentActivity from './AgentActivity';
+import { stripCardTags } from '@/lib/generativeContent';
 import { AI_MODELS, MODEL_CATEGORIES, COMPARE_RECOMMENDATIONS, compareAIModels } from '@/services/RealAIService';
 import * as SemanticScholar from '@/services/SemanticScholarService';
 import type { PaperBasic } from '@/services/SemanticScholarService';
@@ -622,7 +623,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                     <AgentActivity steps={agentSteps} reasoning={reasoning} isEN={isEN} colors={colors} isDark={isDark} />
                                     {/* Streamed answer or thinking dots */}
                                     {streamingContent ? (
-                                        <div className="text-sm whitespace-pre-wrap leading-relaxed">{streamingContent}<span className="inline-block w-[3px] h-[1.05em] ml-0.5 align-text-bottom rounded-full bg-blue-500 animate-pulse" /></div>
+                                        <div className="text-sm whitespace-pre-wrap leading-relaxed">{stripCardTags(streamingContent)}<span className="inline-block w-[3px] h-[1.05em] ml-0.5 align-text-bottom rounded-full bg-blue-500 animate-pulse" /></div>
                                     ) : (!agentSteps || agentSteps.length === 0) ? (
                                         <div className="flex items-center gap-3 text-sm">
                                             <div className="flex gap-1">

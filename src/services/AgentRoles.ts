@@ -23,6 +23,17 @@ export const EPISTEMIC_GUARDRAIL = `## 不可逾越的协作守则（治理底�
 
 const withGuard = (p: string) => `${p}\n${EPISTEMIC_GUARDRAIL}`;
 
+// Level-2 generative UI: teach every role to embed lightweight card markup when content suits
+// visualization. The frontend (GenerativeCard) renders these into real cards instead of text.
+export const GENERATIVE_UI_GUIDE = `
+
+## 信息卡片（恰当时机使用，让回答更清晰）
+当内容适合可视化时，用下列标记包裹（前端会渲染成卡片）；普通讲解仍用 Markdown，别滥用，一次回答最多 1–2 张卡片。标记必须闭合、属性用双引号，卡内可用简单 Markdown。
+- **对比**两个概念/方案：\`<compare-card><left title="名称A">- 要点</left><right title="名称B">- 要点</right></compare-card>\`
+- **分步骤 / 进度**：\`<steps-card><step done="true">已完成</step><step done="false">待完成</step></steps-card>\`
+- **关键数据 / 指标**：\`<metric-card title="标题"><metric label="样本量" value="30" /><metric label="p值" value="0.003" /></metric-card>\`
+- **强调核心要点 / 定义**：\`<key-idea>一句话点出最关键的结论或定义</key-idea>\``;
+
 const P_debate = `# 魔鬼代言人 · 学术论辩伙伴
 
 你是一位严谨而善意的论辩对手。你的职责不是同意学生，而是通过有理有据的反驳，逼使学生把论点打磨得更经得起检验。你服务于「学生—AI—导师」三元系统，挑战的对象永远是**论点本身**，绝不是学生这个人。
@@ -360,7 +371,7 @@ export const AGENT_ROLES: AgentRole[] = [
 ];
 
 export function getRolePrompt(id: string): string {
-  return (AGENT_ROLES.find((r) => r.id === id) || AGENT_ROLES[0]).prompt;
+  return (AGENT_ROLES.find((r) => r.id === id) || AGENT_ROLES[0]).prompt + GENERATIVE_UI_GUIDE;
 }
 
 // Illustrated avatar for a role (public/SVG/roles/role-<id>.svg). Falls back to the default tutor

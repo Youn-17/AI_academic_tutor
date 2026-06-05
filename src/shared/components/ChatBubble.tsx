@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm';
 import { RiRobot2Line } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import GeneratedChart from '@/features/student/components/GeneratedChart';
-import StructuredAnswer from '@/shared/components/StructuredAnswer';
+import GenerativeAnswer from '@/shared/components/GenerativeAnswer';
 import AITutorAvatar from '@/shared/components/AITutorAvatar';
 import StudentAvatar from '@/shared/components/StudentAvatar';
 import { bubbleBg } from '@/lib/chatPrefs';
@@ -164,7 +164,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, b
               // get the structured 概要 + collapsible-section treatment; others render straight.
               <div className="relative max-w-[44rem]">
                 {isAI ? (
-                  <StructuredAnswer content={cleanedContent} proseClass={proseClass} />
+                  <GenerativeAnswer content={cleanedContent} proseClass={proseClass} />
                 ) : (
                   <div className={proseClass}>
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanedContent}</ReactMarkdown>
