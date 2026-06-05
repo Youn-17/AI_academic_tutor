@@ -72,9 +72,9 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', '-apple-system', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
-        heading: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+        heading: ['Plus Jakarta Sans', '-apple-system', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', 'sans-serif'],
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",

@@ -622,7 +622,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                     <AgentActivity steps={agentSteps} reasoning={reasoning} isEN={isEN} colors={colors} isDark={isDark} />
                                     {/* Streamed answer or thinking dots */}
                                     {streamingContent ? (
-                                        <div className="text-sm whitespace-pre-wrap leading-relaxed">{streamingContent}</div>
+                                        <div className="text-sm whitespace-pre-wrap leading-relaxed">{streamingContent}<span className="inline-block w-[3px] h-[1.05em] ml-0.5 align-text-bottom rounded-full bg-blue-500 animate-pulse" /></div>
                                     ) : (!agentSteps || agentSteps.length === 0) ? (
                                         <div className="flex items-center gap-3 text-sm">
                                             <div className="flex gap-1">

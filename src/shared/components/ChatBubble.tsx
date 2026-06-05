@@ -76,12 +76,12 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, b
 
   return (
     <div className={cn(
-      "flex w-full mb-8 animate-in fade-in slide-in-from-bottom-2 duration-300",
+      "flex w-full mb-5 animate-in fade-in slide-in-from-bottom-2 duration-300",
       isStudent ? "justify-end" : "justify-start"
     )}>
       <div className={cn(
-        "flex gap-4",
-        isStudent ? "max-w-[90%] md:max-w-[80%] flex-row-reverse" : "max-w-[95%] md:max-w-[96%] flex-row"
+        "flex gap-3",
+        isStudent ? "max-w-[85%] md:max-w-[72%] flex-row-reverse" : "max-w-[92%] md:max-w-[85%] flex-row"
       )}>
 
         {/* Avatar */}
@@ -96,7 +96,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, b
         )}
 
         {/* Bubble Content */}
-        <div className={cn("group flex flex-col min-w-[200px]", isStudent ? "items-end" : "items-start")}>
+        <div className={cn("group flex flex-col min-w-0 max-w-full", isStudent ? "items-end" : "items-start")}>
 
           {/* Sender Name Label */}
           <div className="flex items-center gap-2 mb-1.5 px-0.5">
@@ -111,7 +111,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, b
           <div
             style={isStudent ? { background: bubbleBg(bubbleTheme) } : undefined}
             className={cn(
-              "p-5 rounded-2xl text-sm leading-relaxed shadow-sm relative transition-all font-sans",
+              "px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm relative transition-all font-sans w-fit max-w-full",
               isStudent
                 ? "text-primary-foreground rounded-tr-sm"
                 : isSupervisor
