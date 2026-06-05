@@ -261,3 +261,10 @@ export const AGENT_ROLES: AgentRole[] = [
 export function getRolePrompt(id: string): string {
   return (AGENT_ROLES.find((r) => r.id === id) || AGENT_ROLES[0]).prompt;
 }
+
+// Illustrated avatar for a role (public/SVG/roles/role-<id>.svg). Falls back to the default tutor
+// for unknown / undefined ids so callers (e.g. teacher view) always get a valid image.
+export function roleIconSrc(id?: string): string {
+  const r = AGENT_ROLES.find((x) => x.id === id) || AGENT_ROLES[0];
+  return `/SVG/roles/role-${r.id}.svg`;
+}

@@ -17,9 +17,10 @@ interface ChatBubbleProps {
   studentName?: string;   // teacher view: label the student's own messages with their name, not "我"
   bubbleTheme?: string;   // student-chosen bubble colour (chatPrefs)
   userAvatarId?: string;  // student-chosen avatar (chatPrefs)
+  aiRoleId?: string;      // current agent role → drives the AI tutor's illustrated avatar
 }
 
-const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, bubbleTheme, userAvatarId }) => {
+const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, bubbleTheme, userAvatarId, aiRoleId }) => {
   const isStudent = message.sender === Role.STUDENT;
   const isSupervisor = message.sender === Role.SUPERVISOR;
   const isAI = message.sender === Role.AI;
@@ -82,7 +83,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, b
 
         {/* Avatar */}
         {isAI ? (
-          <div className="flex-shrink-0"><AITutorAvatar size="lg" animate={false} /></div>
+          <div className="flex-shrink-0"><AITutorAvatar size="lg" animate={false} roleId={aiRoleId} /></div>
         ) : (
           <div
             style={isStudent ? { background: bubbleBg(bubbleTheme) } : undefined}

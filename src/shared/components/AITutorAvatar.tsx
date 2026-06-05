@@ -1,32 +1,36 @@
 import React from 'react';
+import { roleIconSrc } from '@/services/AgentRoles';
 
 interface AITutorAvatarProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   theme?: 'light' | 'dark';
   animate?: boolean;
+  roleId?: string;   // selected agent role → its illustrated icon (/SVG/roles/role-<id>.svg)
 }
 
-// AI tutor avatar — the platform's teacher mark (public/SVG/teacher-dashboard.svg, a navy figure)
-// on a soft blue rounded tile. Gently pulses while the tutor is thinking.
-const AITutorAvatar: React.FC<AITutorAvatarProps> = ({ size = 'md', animate = false }) => {
+// AI tutor avatar — shows the CURRENTLY-SELECTED agent's illustrated icon, so picking a different
+// agent swaps the chat avatar automatically. Each role SVG already carries its own background, so we
+// fill the whole rounded tile with it (rather than centring a figure on a gradient). Gently pulses
+// while the tutor is thinking.
+const AITutorAvatar: React.FC<AITutorAvatarProps> = ({ size = 'md', animate = false, roleId }) => {
   const sizeMap = { sm: 24, md: 32, lg: 40, xl: 48 };
   const d = sizeMap[size];
-  const inner = Math.round(d * 0.66);
+  const src = roleIconSrc(roleId);
 
   return (
     <div
-      className="relative flex items-center justify-center rounded-xl ring-1 ring-blue-200/60 shadow-sm overflow-hidden flex-shrink-0"
-      style={{ width: d, height: d, background: 'linear-gradient(135deg,#EFF6FF,#E0F2FE)' }}
+      className="relative rounded-xl ring-1 ring-blue-200/60 shadow-sm overflow-hidden flex-shrink-0 bg-white"
+      style={{ width: d, height: d }}
     >
       <img
-        src="/SVG/teacher-dashboard.svg"
+        src={src}
         alt="AI 导师"
         className={animate ? 'ai-tutor-pulse' : ''}
-        style={{ width: inner, height: inner }}
+        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
       />
       {animate && (
         <style>{`
-          @keyframes aiTutorPulse { 0%,100% { transform: scale(1) } 50% { transform: scale(1.08) } }
+          @keyframes aiTutorPulse { 0%,100% { transform: scale(1) } 50% { transform: scale(1.06) } }
           .ai-tutor-pulse { animation: aiTutorPulse 2.4s ease-in-out infinite }
           @media (prefers-reduced-motion: reduce){ .ai-tutor-pulse { animation: none } }
         `}</style>

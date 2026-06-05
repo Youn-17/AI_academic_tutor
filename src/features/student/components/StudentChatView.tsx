@@ -385,7 +385,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                 <header className="h-16 pl-14 md:pl-6 pr-4 sm:pr-6 flex items-center justify-between border-b sticky top-0 backdrop-blur-md z-10" style={{ backgroundColor: colors.headerBg, borderColor: colors.border }}>
                     {/* Left: Chat Info */}
                     <div className="flex items-center gap-3 min-w-0">
-                        <AITutorAvatar size="md" theme={theme} animate={loading} />
+                        <AITutorAvatar size="md" theme={theme} animate={loading} roleId={selectedRole} />
                         <div className="flex flex-col">
                             <div className="flex items-center gap-2">
                                 <h2 className="font-bold truncate text-sm" style={{ color: colors.text }}>{activeChat.title}</h2>
@@ -556,7 +556,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                         <IpMagic theme="outline" size={28} fill="#fff" />
                                     </div>
                                     <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: colors.card, border: `1px solid ${colors.border}` }}>
-                                        <AITutorAvatar size="sm" theme={theme} />
+                                        <AITutorAvatar size="sm" theme={theme} roleId={selectedRole} />
                                     </div>
                                 </div>
 
@@ -607,14 +607,14 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                         {/* Messages */}
                         {messages.map(msg => (
                             <div key={msg.id} id={`m-${msg.id}`}>
-                                <ChatBubble message={msg} onEdit={onEditMessage ? (c) => onEditMessage(msg.id, c) : undefined} bubbleTheme={bubbleTheme} userAvatarId={userAvatarId} />
+                                <ChatBubble message={msg} onEdit={onEditMessage ? (c) => onEditMessage(msg.id, c) : undefined} bubbleTheme={bubbleTheme} userAvatarId={userAvatarId} aiRoleId={selectedRole} />
                             </div>
                         ))}
 
                         {/* Loading */}
                         {loading && (
                             <div className="flex items-start gap-3 animate-in fade-in">
-                                <AITutorAvatar size="lg" theme={theme} animate />
+                                <AITutorAvatar size="lg" theme={theme} animate roleId={selectedRole} />
                                 <div className="px-5 py-4 rounded-2xl rounded-tl-none border shadow-sm max-w-2xl space-y-3" style={{ backgroundColor: colors.card, borderColor: colors.border, color: colors.text }}>
                                     {/* Agent tool activity (live) */}
                                     {agentSteps && agentSteps.length > 0 && (
