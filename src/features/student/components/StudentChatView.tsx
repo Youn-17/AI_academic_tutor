@@ -10,6 +10,7 @@ import { Conversation, Message, Role, Theme, Locale } from '@/types';
 import ChatBubble from '@/shared/components/ChatBubble';
 import KnowledgeGraph from './KnowledgeGraph';
 import AITutorAvatar from '@/shared/components/AITutorAvatar';
+import AgentActivity from './AgentActivity';
 import { AI_MODELS, MODEL_CATEGORIES, COMPARE_RECOMMENDATIONS, compareAIModels } from '@/services/RealAIService';
 import * as SemanticScholar from '@/services/SemanticScholarService';
 import type { PaperBasic } from '@/services/SemanticScholarService';
@@ -617,28 +618,8 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                             <div className="flex items-start gap-3 animate-in fade-in">
                                 <AITutorAvatar size="lg" theme={theme} animate roleId={selectedRole} />
                                 <div className="px-5 py-4 rounded-2xl rounded-tl-none border shadow-sm max-w-2xl space-y-3" style={{ backgroundColor: colors.card, borderColor: colors.border, color: colors.text }}>
-                                    {/* Agent tool activity (live) */}
-                                    {agentSteps && agentSteps.length > 0 && (
-                                        <div className="space-y-1.5">
-                                            {agentSteps.map((s, i) => (
-                                                <div key={i} className="flex items-center gap-2 text-xs">
-                                                    {s.status === 'done'
-                                                        ? <Check size={13} className="text-blue-500 shrink-0" />
-                                                        : <Loader2 size={13} className="animate-spin text-blue-500 shrink-0" />}
-                                                    <span style={{ color: colors.textSecondary }}>
-                                                        {s.label || toolLabel(s.tool)}{s.status === 'done' ? (s.found ? ` · ${s.found}${isEN ? ' found' : ' 条'}` : '') : '…'}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {/* Reasoning (collapsible) */}
-                                    {reasoning && (
-                                        <details className="text-xs rounded-lg p-2" style={{ backgroundColor: isDark ? 'rgba(37,99,235,0.06)' : '#f1f5f9' }}>
-                                            <summary className="cursor-pointer select-none font-medium" style={{ color: colors.textSecondary }}>{isEN ? 'Reasoning' : '思考过程'}</summary>
-                                            <div className="mt-2 whitespace-pre-wrap leading-relaxed" style={{ color: colors.textSecondary }}>{reasoning}</div>
-                                        </details>
-                                    )}
+                                    {/* Agent activity — live tool-call timeline + reasoning (CopilotKit-style) */}
+                                    <AgentActivity steps={agentSteps} reasoning={reasoning} isEN={isEN} colors={colors} isDark={isDark} />
                                     {/* Streamed answer or thinking dots */}
                                     {streamingContent ? (
                                         <div className="text-sm whitespace-pre-wrap leading-relaxed">{streamingContent}</div>
