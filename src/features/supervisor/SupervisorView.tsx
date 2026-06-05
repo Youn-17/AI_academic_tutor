@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Conversation, Role, Locale } from '@/types';
 import { isSubmitEnter } from '@/lib/keyboard';
+import { useToast, useConfirm } from '@/shared/components/FeedbackProvider';
 import { useAuth } from '@/features/auth/AuthProvider';
 import ChatBubble from '@/shared/components/ChatBubble';
 import ClassroomAnalyst from '@/features/supervisor/ClassroomAnalyst';
@@ -99,6 +100,9 @@ const ALL_CHAT_MODELS: ModelGroup[] = [
 
 const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLocale }) => {
   const { profile, refreshProfile } = useAuth();
+  const toast = useToast();
+  const confirm = useConfirm();
+  const loadErrorRef = useRef(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
@@ -155,8 +159,10 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
             ? { ...c, messages: existing.messages }
             : c;
         }));
+        loadErrorRef.current = false;
       } catch (err) {
         console.error('Failed to load supervisor data:', err);
+        if (!loadErrorRef.current) { loadErrorRef.current = true; toast('学生数据加载失败，请检查网络后刷新', 'error'); }
       }
     };
     fetchData();
@@ -260,6 +266,8 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
   };
 
   const handleDeleteApiConfig = async (id: string) => {
+    const ok = await confirm({ message: '确定删除该 API Key？依赖它的学生对话将立即失去该密钥。', danger: true });
+    if (!ok) return;
     const { supabase } = await import('@/lib/supabase');
     await supabase.from('ai_api_configs').delete().eq('id', id).eq('owner_id', profile?.id || '');
     setApiConfigs(prev => prev.filter(c => c.id !== id));
@@ -305,7 +313,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
       const msgs = await ConversationService.getMessages(chatId);
       setConversations(prev => prev.map(c => c.id === chatId ? { ...c, messages: msgs } : c));
     } catch {
-      alert('发送失败');
+      toast('发送失败，请重试', 'error');
       setConversations(prev => prev.map(c => c.id === chatId
         ? { ...c, messages: (c.messages || []).filter(m => m.id !== optimistic.id) } : c));
     }

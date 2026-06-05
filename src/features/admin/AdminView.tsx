@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Locale } from '@/types';
+import { useConfirm } from '@/shared/components/FeedbackProvider';
 import {
     Users, CheckCircle, XCircle, Clock, LogOut, ShieldCheck,
     RefreshCw, AlertTriangle, Search, Building2, BookOpen,
@@ -51,6 +52,7 @@ const NAV_ITEMS: { id: AdminTab; icon: React.ReactNode; label: string }[] = [
 ];
 
 const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
+    const confirm = useConfirm();
     const [activeTab, setActiveTab] = useState<AdminTab>('applications');
     const [pendingTeachers, setPendingTeachers] = useState<PendingTeacher[]>([]);
     const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
@@ -105,6 +107,8 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
     };
 
     const handleDeleteApiConfig = async (id: string) => {
+        const ok = await confirm({ message: '确定删除该平台 API Key？所有依赖它的学生对话将立即失去该密钥。', danger: true });
+        if (!ok) return;
         await supabase.from('ai_api_configs').delete().eq('id', id);
         setApiConfigs(prev => prev.filter(c => c.id !== id));
     };

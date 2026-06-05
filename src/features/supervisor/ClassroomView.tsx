@@ -4,8 +4,10 @@ import * as ClassService from '@/services/ClassService';
 import { Class, ClassMember } from '@/services/ClassService';
 import { buildCsv, triggerDownload } from '@/lib/csvUtils';
 import { isSubmitEnter } from '@/lib/keyboard';
+import { useToast } from '@/shared/components/FeedbackProvider';
 
 const ClassroomView: React.FC = () => {
+  const toast = useToast();
   const [classes, setClasses] = useState<Class[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [members, setMembers] = useState<ClassMember[]>([]);
@@ -31,6 +33,7 @@ const ClassroomView: React.FC = () => {
       }
     } catch (err) {
       console.error(err);
+      toast('班级列表加载失败，请检查网络后重试', 'error');
     }
   };
 
@@ -60,7 +63,7 @@ const ClassroomView: React.FC = () => {
       loadClasses();
     } catch (err) {
       console.error(err);
-      alert('Failed to create class');
+      toast('创建班级失败，请重试', 'error');
     }
   };
 
@@ -72,7 +75,7 @@ const ClassroomView: React.FC = () => {
       loadClasses();
     } catch (err) {
       console.error(err);
-      alert('Failed to update class');
+      toast('更新班级失败，请重试', 'error');
     }
   };
 
@@ -84,7 +87,7 @@ const ClassroomView: React.FC = () => {
       loadClasses();
     } catch (err) {
       console.error(err);
-      alert('Failed to delete class');
+      toast('删除班级失败，请重试', 'error');
     }
   };
 

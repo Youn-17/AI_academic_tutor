@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Users, School, ArrowRight, Loader2 } from 'lucide-react';
 import * as ClassService from '@/services/ClassService';
 import { Class } from '@/services/ClassService';
+import { useToast } from '@/shared/components/FeedbackProvider';
 
 const StudentClassroomView: React.FC = () => {
+  const toast = useToast();
   const [classes, setClasses] = useState<Class[]>([]);
   const [joinId, setJoinId] = useState('');
   const [isJoining, setIsJoining] = useState(false);
@@ -20,6 +22,7 @@ const StudentClassroomView: React.FC = () => {
       setClasses(data);
     } catch (err) {
       console.error(err);
+      toast('班级列表加载失败，请检查网络后重试', 'error');
     } finally {
       setLoading(false);
     }
@@ -32,10 +35,10 @@ const StudentClassroomView: React.FC = () => {
       await ClassService.joinClass(joinId.trim());
       setJoinId('');
       await loadClasses();
-      alert('成功加入班级');
+      toast('成功加入班级', 'success');
     } catch (err) {
       console.error(err);
-      alert('加入班级失败：请检查 ID 是否正确');
+      toast('加入失败：请检查班级 ID 是否正确', 'error');
     } finally {
       setIsJoining(false);
     }

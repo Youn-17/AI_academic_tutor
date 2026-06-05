@@ -160,7 +160,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister, onSwitchToFor
     setLoading(true);
     const { error } = await signIn(email, password);
     if (error) {
-      setError(error.message === 'Invalid login credentials' ? s.err_invalid : error.message);
+      const m = error.message || '';
+      const friendly =
+        m === 'Invalid login credentials' ? s.err_invalid
+        : /email not confirmed/i.test(m) ? (lang === 'en' ? 'Your email is not verified yet — please check your inbox.' : '邮箱尚未验证，请先查收验证邮件后再登录。')
+        : /network|failed to fetch|load failed/i.test(m) ? (lang === 'en' ? 'Network error. Check your connection and try again.' : '网络异常，请检查网络后重试。')
+        : (lang === 'en' ? 'Sign-in failed. Please try again.' : '登录失败，请稍后重试。');
+      setError(friendly);
       setLoading(false);
     } else {
       onSuccess();
