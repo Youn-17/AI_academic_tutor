@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
     LayoutDashboard, UserCircle, Presentation, Library,
     Plus, MoreVertical, Archive, Trash2, Edit2, LogOut, PanelLeftClose, PanelLeftOpen, Network,
@@ -72,7 +73,11 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
             setMenuOpenId(null);
         } else {
             const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            setMenuPosition({ top: rect.bottom + 5, left: rect.left });
+            // clamp so the menu never spills past the right / bottom edge of the viewport
+            const MENU_W = 152, MENU_H = 130;
+            const left = Math.max(8, Math.min(rect.left, window.innerWidth - MENU_W - 8));
+            const top = rect.bottom + 5 + MENU_H > window.innerHeight ? Math.max(8, rect.top - MENU_H) : rect.bottom + 5;
+            setMenuPosition({ top, left });
             setMenuOpenId(chatId);
         }
     };
@@ -233,10 +238,10 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
             </div>
 
             {/* Context Menu */}
-            {menuOpenId && menuPosition && (
+            {menuOpenId && menuPosition && createPortal(
                 <div
                     ref={menuRef}
-                    style={{ position: 'fixed', top: menuPosition.top, left: menuPosition.left + 16, zIndex: 9999 }}
+                    style={{ position: 'fixed', top: menuPosition.top, left: menuPosition.left, zIndex: 9999 }}
                     className={`w-36 rounded-xl border shadow-xl p-1 animate-in fade-in zoom-in-95 duration-100 ${isDark ? 'bg-[#0D1E2C] border-slate-700' : 'bg-white border-slate-200'}`}
                 >
                     <button onClick={() => { setEditingId(menuOpenId); setEditTitle(conversations.find(c => c.id === menuOpenId)?.title || ''); setMenuOpenId(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg transition-colors ${isDark ? 'hover:bg-slate-700 text-slate-200' : 'hover:bg-slate-50 text-slate-700'}`}>
@@ -249,7 +254,8 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
                     <button onClick={() => { onDeleteChat(menuOpenId); setMenuOpenId(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg transition-colors hover:bg-rose-50 dark:hover:bg-rose-900/20 text-rose-500">
                         <Trash2 size={12} /> {locale === 'en' ? 'Delete' : '删除'}
                     </button>
-                </div>
+                </div>,
+                document.body,
             )}
         </div>
     );
