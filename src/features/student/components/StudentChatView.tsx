@@ -17,6 +17,7 @@ import { createPortal } from 'react-dom';
 import { saveSnippetToKnowledgeBase } from '@/services/SnippetService';
 import { AGENT_ROLES } from '@/services/AgentRoles';
 import { isSubmitEnter } from '@/lib/keyboard';
+import { Comment as IpComment, Code as IpCode, PeoplesTwo as IpTeam, Search as IpSearch, MagicWand as IpMagic } from '@icon-park/react';
 
 interface StudentChatViewProps {
     activeChat: Conversation;
@@ -320,15 +321,15 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     ], [isEN]);
 
     const quickPrompts = useMemo(() => { const all = isEN ? [
-        { title: 'Socratic guidance', desc: 'I lead your thinking with questions, not just answers', text: 'Help me clarify my research question', icon: <MessageSquare size={18} />, grad: 'from-blue-500 to-sky-400' },
-        { title: 'Data & code', desc: 'Run Python to compute, plot, and build reports', text: 'Analyze a dataset with Python and plot a chart', icon: <Code size={18} />, grad: 'from-indigo-500 to-blue-500' },
-        { title: 'Research team', desc: 'Agents retrieve, analyze and reason in parallel', text: 'Use the research team to review a topic for me', icon: <SparklesIcon size={18} />, grad: 'from-blue-600 to-indigo-500', model: 'team' },
-        { title: 'Knowledge base', desc: 'Find sourced evidence from texts and papers', text: 'Find relevant literature in the knowledge base', icon: <Search size={18} />, grad: 'from-sky-500 to-cyan-400' },
+        { title: 'Socratic guidance', desc: 'I lead your thinking with questions, not just answers', text: 'Help me clarify my research question', icon: <IpComment theme="outline" size={18} fill="#fff" />, grad: 'from-blue-500 to-sky-400' },
+        { title: 'Data & code', desc: 'Run Python to compute, plot, and build reports', text: 'Analyze a dataset with Python and plot a chart', icon: <IpCode theme="outline" size={18} fill="#fff" />, grad: 'from-indigo-500 to-blue-500' },
+        { title: 'Research team', desc: 'Agents retrieve, analyze and reason in parallel', text: 'Use the research team to review a topic for me', icon: <IpTeam theme="outline" size={18} fill="#fff" />, grad: 'from-blue-600 to-indigo-500', model: 'team' },
+        { title: 'Knowledge base', desc: 'Find sourced evidence from texts and papers', text: 'Find relevant literature in the knowledge base', icon: <IpSearch theme="outline" size={18} fill="#fff" />, grad: 'from-sky-500 to-cyan-400' },
     ] : [
-        { title: '苏格拉底引导', desc: '用追问带你深入思考，而非直接给答案', text: '帮我澄清研究问题', icon: <MessageSquare size={18} />, grad: 'from-blue-500 to-sky-400' },
-        { title: '数据与代码', desc: '跑 Python 算数据、画图、生成报告', text: '用 Python 分析数据并画一张图', icon: <Code size={18} />, grad: 'from-indigo-500 to-blue-500' },
-        { title: '研究团队', desc: '多智能体并行：检索 · 分析 · 推理', text: '用研究团队帮我综述一个主题', icon: <SparklesIcon size={18} />, grad: 'from-blue-600 to-indigo-500', model: 'team' },
-        { title: '知识库检索', desc: '从教材与论文里找有出处的依据', text: '从知识库找关于学习科学的内容', icon: <Search size={18} />, grad: 'from-sky-500 to-cyan-400' },
+        { title: '苏格拉底引导', desc: '用追问带你深入思考，而非直接给答案', text: '帮我澄清研究问题', icon: <IpComment theme="outline" size={18} fill="#fff" />, grad: 'from-blue-500 to-sky-400' },
+        { title: '数据与代码', desc: '跑 Python 算数据、画图、生成报告', text: '用 Python 分析数据并画一张图', icon: <IpCode theme="outline" size={18} fill="#fff" />, grad: 'from-indigo-500 to-blue-500' },
+        { title: '研究团队', desc: '多智能体并行：检索 · 分析 · 推理', text: '用研究团队帮我综述一个主题', icon: <IpTeam theme="outline" size={18} fill="#fff" />, grad: 'from-blue-600 to-indigo-500', model: 'team' },
+        { title: '知识库检索', desc: '从教材与论文里找有出处的依据', text: '从知识库找关于学习科学的内容', icon: <IpSearch theme="outline" size={18} fill="#fff" />, grad: 'from-sky-500 to-cyan-400' },
     ];
         // A_direct participants are the no-agent control condition — hide the "research team" card
         // so they can't switch into multi-agent mode (which would break condition fidelity).
@@ -381,8 +382,6 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                             </div>
                             <div className="flex items-center gap-2 text-[10px]" style={{ color: colors.textSecondary }}>
                                 <span>{(AI_MODELS[selectedModel as keyof typeof AI_MODELS]?.name ?? selectedModel)}</span>
-                                <span>·</span>
-                                <span className="text-blue-500">{isEN ? 'Socratic' : '苏格拉底式'}</span>
                             </div>
                         </div>
                     </div>
@@ -530,7 +529,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                         </>,
                         document.body
                     )}
-                    <div className={`${maxWidthClass} mx-auto px-4 py-6 space-y-6`}>
+                    <div className={`${maxWidthClass} mx-auto px-3 sm:px-4 py-6 space-y-6`}>
                         {/* Welcome State */}
                         {messages.length === 0 && !loading && (
                             <div className="relative min-h-[60vh] flex flex-col items-center justify-center text-center px-4 animate-in fade-in duration-500">
@@ -540,7 +539,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                 {/* Hero Icon */}
                                 <div className="relative mb-6">
                                     <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br from-blue-600 via-sky-500 to-blue-500 shadow-lg shadow-blue-500/20">
-                                        <SparklesIcon size={28} className="text-white" />
+                                        <IpMagic theme="outline" size={28} fill="#fff" />
                                     </div>
                                     <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: colors.card, border: `1px solid ${colors.border}` }}>
                                         <AITutorAvatar size="sm" theme={theme} />
@@ -657,37 +656,10 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                 </div>
 
                 {/* AI role picker — only for non-experiment users (participants stay on their A/B condition) */}
-                {onRoleSelect && !roleLocked && (
-                    <div className={`${maxWidthClass} mx-auto px-4 pb-2 flex items-center gap-2`}>
-                        <div className="relative" ref={roleMenuRef}>
-                            <button onClick={() => setIsRoleMenuOpen(!isRoleMenuOpen)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all hover:border-blue-300"
-                                style={{ borderColor: colors.border, color: colors.textSecondary, backgroundColor: isRoleMenuOpen ? (isDark ? '#1e293b' : '#f1f5f9') : 'transparent' }}>
-                                {(() => { const r = AGENT_ROLES.find(x => x.id === selectedRole) || AGENT_ROLES[0]; return <span className="flex items-center gap-1.5"><r.icon theme="outline" size={14} fill="#2563EB" />{r.name}</span>; })()}
-                                <ChevronDown size={11} className={`transition-transform ${isRoleMenuOpen ? 'rotate-180' : ''}`} />
-                            </button>
-                            {isRoleMenuOpen && (
-                                <div className="absolute bottom-full left-0 mb-2 w-64 max-h-[60vh] overflow-y-auto rounded-xl border shadow-xl p-1.5 z-50" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
-                                    {AGENT_ROLES.map(r => (
-                                        <button key={r.id} onClick={() => { onRoleSelect(r.id); setIsRoleMenuOpen(false); }}
-                                            className="w-full flex items-start gap-2 px-3 py-2 text-xs rounded-lg transition-all text-left"
-                                            style={{ backgroundColor: selectedRole === r.id ? 'rgba(37,99,235,0.1)' : 'transparent', color: selectedRole === r.id ? colors.primary : colors.text }}>
-                                            <span className="mt-0.5 shrink-0"><r.icon theme="outline" size={17} fill="#2563EB" /></span>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="font-semibold">{r.name}</div>
-                                                <div className="text-[10px] opacity-70 leading-snug">{r.desc}</div>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        <span className="text-[10px]" style={{ color: colors.textSecondary }}>{isEN ? 'Optional · default tutor works too' : '可选 · 默认通用导师，不选也能用'}</span>
-                    </div>
-                )}
+                {/* 角色选择器已移到输入框左侧的控件区 */}
 
                 {/* Input */}
-                <div className="px-4 pb-4">
+                <div className="px-3 sm:px-4 pb-4">
                     <div className={`${maxWidthClass} mx-auto rounded-[26px] p-2 border shadow-md transition-all focus-within:border-blue-400/60 focus-within:shadow-lg focus-within:shadow-blue-500/10`} style={{ backgroundColor: colors.card, borderColor: colors.border }}>
                         {attachedFile && (
                             <div className="mx-2 mt-1 mb-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 text-xs font-medium">
@@ -729,6 +701,31 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                     >
                                         <BookOpen size={18} />
                                     </button>
+                                )}
+                                {/* Role selector — moved to the left of the input for a cleaner layout */}
+                                {onRoleSelect && !roleLocked && (
+                                    <div className="relative" ref={roleMenuRef}>
+                                        <button onClick={() => setIsRoleMenuOpen(!isRoleMenuOpen)} title={isEN ? 'Tutor role' : '导师角色'}
+                                            className="flex items-center gap-1 pl-1.5 pr-2 py-1.5 rounded-full transition-all hover:bg-blue-500/10"
+                                            style={{ color: isRoleMenuOpen ? colors.primary : colors.textSecondary }}>
+                                            {(() => { const r = AGENT_ROLES.find(x => x.id === selectedRole) || AGENT_ROLES[0]; return <><r.icon theme="outline" size={16} fill={isRoleMenuOpen ? '#2563EB' : 'currentColor'} /><span className="text-xs font-medium hidden md:inline max-w-[84px] truncate">{r.name}</span></>; })()}
+                                        </button>
+                                        {isRoleMenuOpen && (
+                                            <div className="absolute bottom-full left-0 mb-2 w-64 max-h-[55vh] overflow-y-auto rounded-xl border shadow-xl p-1.5 z-50" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
+                                                {AGENT_ROLES.map(r => (
+                                                    <button key={r.id} onClick={() => { onRoleSelect(r.id); setIsRoleMenuOpen(false); }}
+                                                        className="w-full flex items-start gap-2 px-3 py-2 text-xs rounded-lg transition-all text-left"
+                                                        style={{ backgroundColor: selectedRole === r.id ? 'rgba(37,99,235,0.1)' : 'transparent', color: selectedRole === r.id ? colors.primary : colors.text }}>
+                                                        <span className="mt-0.5 shrink-0"><r.icon theme="outline" size={17} fill="#2563EB" /></span>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="font-semibold">{r.name}</div>
+                                                            <div className="text-[10px] opacity-70 leading-snug">{r.desc}</div>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
 
