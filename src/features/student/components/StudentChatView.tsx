@@ -18,7 +18,7 @@ import { saveSnippetToKnowledgeBase } from '@/services/SnippetService';
 import { AGENT_ROLES } from '@/services/AgentRoles';
 import { isSubmitEnter } from '@/lib/keyboard';
 import { Comment as IpComment, Code as IpCode, PeoplesTwo as IpTeam, Search as IpSearch, MagicWand as IpMagic, Theme as IpTheme, ListView as IpList } from '@icon-park/react';
-import { BUBBLE_THEMES, USER_AVATARS, getBubbleTheme, setBubbleTheme, getUserAvatar, setUserAvatar } from '@/lib/chatPrefs';
+import { BUBBLE_THEMES, USER_AVATARS, MBTI_AVATARS, getBubbleTheme, setBubbleTheme, getUserAvatar, setUserAvatar } from '@/lib/chatPrefs';
 
 interface StudentChatViewProps {
     activeChat: Conversation;
@@ -766,7 +766,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                         <IpTheme theme="outline" size={18} fill={prefMenuOpen ? '#2563EB' : 'currentColor'} />
                                     </button>
                                     {prefMenuOpen && (
-                                        <div className="absolute bottom-full left-0 mb-2 w-60 rounded-xl border shadow-xl p-3 z-50" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
+                                        <div className="absolute bottom-full left-0 mb-2 w-72 rounded-xl border shadow-xl p-3 z-50" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
                                             <p className="text-[11px] font-bold mb-2" style={{ color: colors.textSecondary }}>{isEN ? 'Bubble colour' : '气泡颜色'}</p>
                                             <div className="flex flex-wrap gap-2 mb-3">
                                                 {BUBBLE_THEMES.map(t => (
@@ -776,14 +776,24 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                                 ))}
                                             </div>
                                             <p className="text-[11px] font-bold mb-2" style={{ color: colors.textSecondary }}>{isEN ? 'My avatar' : '我的头像'}</p>
-                                            <div className="grid grid-cols-4 gap-1.5">
+                                            <div className="grid grid-cols-6 gap-1.5 mb-2.5">
                                                 {USER_AVATARS.map(a => { const A = a.icon; return (
                                                     <button key={a.id} onClick={() => { setUserAvatarS(a.id); setUserAvatar(a.id); }} title={a.label}
-                                                        className="h-9 rounded-lg flex items-center justify-center transition-all hover:bg-blue-500/5"
-                                                        style={{ color: colors.text, backgroundColor: userAvatarId === a.id ? 'rgba(37,99,235,0.12)' : undefined, boxShadow: userAvatarId === a.id ? 'inset 0 0 0 1px #60a5fa' : undefined }}>
+                                                        className="aspect-square rounded-full flex items-center justify-center transition-all hover:bg-blue-500/5"
+                                                        style={{ color: colors.text, backgroundColor: userAvatarId === a.id ? 'rgba(37,99,235,0.12)' : undefined, boxShadow: userAvatarId === a.id ? 'inset 0 0 0 2px #2563EB' : 'inset 0 0 0 1px rgba(120,120,120,0.18)' }}>
                                                         <A theme="outline" size={18} fill="currentColor" />
                                                     </button>
                                                 ); })}
+                                            </div>
+                                            <p className="text-[10px] font-bold mb-1.5 flex items-center gap-1" style={{ color: colors.textSecondary }}>{isEN ? 'MBTI personalities' : 'MBTI 性格头像'}<span className="font-normal opacity-60">· 32</span></p>
+                                            <div className="grid grid-cols-6 gap-1.5 max-h-40 overflow-y-auto pr-0.5">
+                                                {MBTI_AVATARS.map(a => (
+                                                    <button key={a.id} onClick={() => { setUserAvatarS(a.id); setUserAvatar(a.id); }} title={a.label}
+                                                        className="relative aspect-square rounded-full overflow-hidden transition-transform hover:scale-105 bg-white"
+                                                        style={{ boxShadow: userAvatarId === a.id ? '0 0 0 2px #2563EB' : 'inset 0 0 0 1px rgba(0,0,0,0.06)' }}>
+                                                        <img src={a.src} alt={a.label} loading="lazy" style={{ position: 'absolute', width: '133%', height: '133%', left: '-17%', top: '-11%', maxWidth: 'none', objectFit: 'cover', display: 'block' }} />
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
                                     )}

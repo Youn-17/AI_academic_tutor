@@ -8,7 +8,8 @@ import { cn } from '@/lib/utils';
 import GeneratedChart from '@/features/student/components/GeneratedChart';
 import StructuredAnswer from '@/shared/components/StructuredAnswer';
 import AITutorAvatar from '@/shared/components/AITutorAvatar';
-import { bubbleBg, avatarIcon } from '@/lib/chatPrefs';
+import StudentAvatar from '@/shared/components/StudentAvatar';
+import { bubbleBg } from '@/lib/chatPrefs';
 import { RefreshCw } from 'lucide-react';
 
 interface ChatBubbleProps {
@@ -84,17 +85,11 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, b
         {/* Avatar */}
         {isAI ? (
           <div className="flex-shrink-0"><AITutorAvatar size="lg" animate={false} roleId={aiRoleId} /></div>
+        ) : isStudent ? (
+          <div className="flex-shrink-0"><StudentAvatar avatarId={userAvatarId} bubbleTheme={bubbleTheme} size={40} /></div>
         ) : (
-          <div
-            style={isStudent ? { background: bubbleBg(bubbleTheme) } : undefined}
-            className={cn(
-              "flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center shadow-sm ring-1 ring-white/10",
-              isStudent ? "text-white" : "bg-amber-100 text-amber-700"
-            )}
-          >
-            {isStudent
-              ? (() => { const A = avatarIcon(userAvatarId); return <A theme="outline" size={20} fill="#fff" />; })()
-              : <ShieldAlert size={18} />}
+          <div className="flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center shadow-sm ring-1 ring-white/10 bg-amber-100 text-amber-700">
+            <ShieldAlert size={18} />
           </div>
         )}
 

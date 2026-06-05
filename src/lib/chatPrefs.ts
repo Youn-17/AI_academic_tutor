@@ -31,6 +31,21 @@ export const USER_AVATARS: { id: AvatarId; label: string; icon: IPIcon }[] = [
   { id: 'ghost',  label: '幽灵', icon: Ghost },
 ];
 
+// MBTI personality avatars (16 types × ♀/♂ = 32): illustrated portraits students can pick to
+// represent themselves. Each renders as a circular, face-focused crop (the illustration carries its
+// own background), served as a tiny ~5KB WebP thumbnail from /public/avatars/<type>-<f|m>.webp.
+const MBTI_TYPES = ['INTJ', 'INTP', 'ENTJ', 'ENTP', 'INFJ', 'INFP', 'ENFJ', 'ENFP', 'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ', 'ISTP', 'ISFP', 'ESTP', 'ESFP'];
+export const MBTI_AVATARS: { id: string; label: string; src: string }[] = MBTI_TYPES.flatMap((t) => {
+  const k = t.toLowerCase();
+  return [
+    { id: `${k}-f`, label: `${t} ♀`, src: `/avatars/${k}-f.webp` },
+    { id: `${k}-m`, label: `${t} ♂`, src: `/avatars/${k}-m.webp` },
+  ];
+});
+const MBTI_SRC = new Map(MBTI_AVATARS.map((a) => [a.id, a.src] as const));
+// Returns the illustration thumbnail src if this id is an MBTI avatar, else undefined (it's a glyph).
+export const avatarIllusSrc = (id?: string): string | undefined => (id ? MBTI_SRC.get(id) : undefined);
+
 export const bubbleBg = (id?: string): string =>
   BUBBLE_THEMES.find((t) => t.id === id)?.bg || BUBBLE_THEMES[0].bg;
 export const avatarIcon = (id?: string): IPIcon =>
@@ -42,9 +57,9 @@ export function getBubbleTheme(): BubbleThemeId {
 export function setBubbleTheme(id: BubbleThemeId): void {
   try { localStorage.setItem('hak_bubble', id); } catch { /* ignore */ }
 }
-export function getUserAvatar(): AvatarId {
-  return (localStorage.getItem('hak_avatar') as AvatarId) || 'user';
+export function getUserAvatar(): string {
+  return localStorage.getItem('hak_avatar') || 'user';
 }
-export function setUserAvatar(id: AvatarId): void {
+export function setUserAvatar(id: string): void {
   try { localStorage.setItem('hak_avatar', id); } catch { /* ignore */ }
 }
