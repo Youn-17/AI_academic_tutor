@@ -88,7 +88,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, b
           <div
             style={isStudent ? { background: bubbleBg(bubbleTheme) } : undefined}
             className={cn(
-              "flex-shrink-0 h-10 w-10 rounded-xl flex items-center justify-center shadow-sm ring-1 ring-white/10",
+              "flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center shadow-sm ring-1 ring-white/10",
               isStudent ? "text-white" : "bg-amber-100 text-amber-700"
             )}
           >
