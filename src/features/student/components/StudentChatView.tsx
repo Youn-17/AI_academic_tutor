@@ -663,7 +663,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                             <button onClick={() => setIsRoleMenuOpen(!isRoleMenuOpen)}
                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all hover:border-blue-300"
                                 style={{ borderColor: colors.border, color: colors.textSecondary, backgroundColor: isRoleMenuOpen ? (isDark ? '#1e293b' : '#f1f5f9') : 'transparent' }}>
-                                {(() => { const r = AGENT_ROLES.find(x => x.id === selectedRole) || AGENT_ROLES[0]; return <span>{r.emoji} {r.name}</span>; })()}
+                                {(() => { const r = AGENT_ROLES.find(x => x.id === selectedRole) || AGENT_ROLES[0]; return <span className="flex items-center gap-1.5"><r.icon size={13} className="text-blue-500" />{r.name}</span>; })()}
                                 <ChevronDown size={11} className={`transition-transform ${isRoleMenuOpen ? 'rotate-180' : ''}`} />
                             </button>
                             {isRoleMenuOpen && (
@@ -672,7 +672,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                         <button key={r.id} onClick={() => { onRoleSelect(r.id); setIsRoleMenuOpen(false); }}
                                             className="w-full flex items-start gap-2 px-3 py-2 text-xs rounded-lg transition-all text-left"
                                             style={{ backgroundColor: selectedRole === r.id ? 'rgba(37,99,235,0.1)' : 'transparent', color: selectedRole === r.id ? colors.primary : colors.text }}>
-                                            <span className="text-sm leading-none mt-0.5 shrink-0">{r.emoji}</span>
+                                            <span className="mt-0.5 shrink-0 text-blue-500"><r.icon size={16} /></span>
                                             <div className="flex-1 min-w-0">
                                                 <div className="font-semibold">{r.name}</div>
                                                 <div className="text-[10px] opacity-70 leading-snug">{r.desc}</div>
