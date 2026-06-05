@@ -101,6 +101,13 @@ flowchart LR
     G --- RT
 ```
 
+<p align="center">
+  <img src="docs/diagrams/agent-ecosystem.svg" alt="Governable agent ecosystem — eleven roles in two archetypes bound by a central governance guardrail" width="820">
+</p>
+
+> 动图(SVG 动画):中央「治理护栏」(认识论主体性)向 11 个角色持续辐射,确保每个角色都在统一治理之下,学习者始终是知识的作者。
+> Animated SVG — a central governance guardrail (epistemic agency) radiates to all eleven roles, so every role operates under one governance layer and the learner stays the author of their knowledge.
+
 **代码解释器请求时序 / Code-interpreter request sequence**
 
 ```mermaid
