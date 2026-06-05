@@ -83,9 +83,13 @@ flowchart LR
     subgraph CA["课堂分析师 Classroom Analyst"]
         A["面向教师 · 可解释、可覆盖的介入建议<br/>teacher-facing, interpretable & overridable"]
     end
+    subgraph RT["多智能体研究团队 Research Team (Cloud Run)"]
+        O["组长 Lead<br/>规划→并行专科→质检→反思<br/>plan → specialists → critic → reflexion"]
+    end
     G --- LC
     G --- IA
     G --- CA
+    G --- RT
 ```
 
 **代码解释器请求时序 / Code-interpreter request sequence**
@@ -132,14 +136,24 @@ AI Academic Tutor 是一个研究型的学术辅导平台,服务于研究生的�
 
 | 能力 | 说明 |
 |---|---|
-| 可选智能体角色 | 七种学习伙伴/教学助手角色,每一种均为有学习科学依据的提示词预设 |
+| 八种智能体角色 | 苏格拉底导师 · 论辩伙伴 · 元认知教练 · 学习伙伴 · 论文反馈 · 课程导师 · 概念讲解 · 练习自测——每一种均为有学习科学依据的提示词预设 |
+| 多智能体研究团队 | 「组长」拆解任务 → 并行专科(检索 / 分析 / 推理 / 情感 / 联网)→ 质检 → 自检并精修(规划-求解 Plan-and-Solve + 反思 Reflexion);**依赖感知规划**让下游专科基于上游发现 |
 | 多模态 | 上传图表、截图或手写内容,由视觉模型识读 |
 | 代码解释器 | 在隔离沙箱中分析表格、绘制图表、生成 Excel / Word |
 | 检索增强与深度检索 | 基于 pgvector 的检索,并支持问题分解的多角度检索 |
-| 知识图谱 | 从对话中自动抽取概念关系图(React Flow) |
-| 跨会话记忆 | 记录研究进展、关键决策与反复出现的难点 |
+| 知识图谱 | 从对话自动抽取概念关系图(React Flow);可拖动、带动效;支持「综合(全部对话)」与按历史会话查看 |
+| 分型跨会话记忆 | 区分**经历 / 知识状态 / 学习策略**三类记忆,按 相似度 × 时间衰减 × 重要性 检索,越用越懂这个学生 |
 | 自动模型路由 | 依任务类型(推理 / 代码 / 长文 / 视觉)自动择优选用模型 |
 | 教师端 | 监看、介入,并获得可解释、可覆盖的分析师建议 |
+| 研究部署(A/B) | 应用内知情同意入组 + 均衡分配 A/B 条件;交互事件埋点;教师一键导出**匿名**研究数据(CSV/ZIP + codebook + 教育智能体指标) |
+
+### 研究部署(A/B 试点)
+
+平台本身是「生成式 AI 教育智能体」研究的部署载体,内建随机对照(A/B)试点支持:
+
+- **应用内知情同意** —— 学生首次进入先阅读知情同意页(研究目的、数据用途、自愿与退出);同意后由服务端**均衡分配** A/B 条件(`A_direct` 直接作答对照 / `B_socratic` 苏格拉底 + RAG);拒绝者以非参与者身份正常使用平台。
+- **过程数据埋点** —— 学生提问、AI 回应、工具调用、角色 / 模型切换、改写重发等交互事件按时序记录(`research_events`)。
+- **一键导出** —— 教师在督导端一键导出**去标识化**研究数据:participants / sessions / messages / events 的 CSV + 原始 JSON + codebook,并附**教育智能体行为指标**(追问率、引导比例、工具接地、主体性动作,按条件分组),可直接用于 ENA / 滞后序列分析 / GLMM。
 
 ### 技术栈
 
@@ -224,14 +238,24 @@ The system has grown from a single Socratic tutor into a **governable multi-agen
 
 | Capability | Description |
 |---|---|
-| Selectable agent roles | Seven companion / assistant roles, each a learning-science-grounded prompt preset |
+| Eight agent roles | Socratic Tutor · Devil's Advocate · Metacognitive Coach · Learning Companion · Paper Feedback · Course Tutor · Concept Explainer · Practice Quizzer — each a learning-science-grounded prompt preset |
+| Multi-agent research team | A "lead" decomposes the task → parallel specialists (retrieve / analyze / reason / affective / web) → critic → self-reflect & refine (Plan-and-Solve + Reflexion); **dependency-aware planning** lets downstream specialists build on upstream findings |
 | Multimodal | Upload a figure, screenshot, or handwriting for a vision model to read |
 | Code interpreter | Analyze tables, draw charts, and generate Excel / Word in an isolated sandbox |
 | RAG & deep search | pgvector retrieval plus multi-angle query decomposition |
-| Knowledge graph | A concept map auto-extracted from the conversation (React Flow) |
-| Cross-session memory | Retains research progress, key decisions, and recurring difficulties |
+| Knowledge graph | A concept map auto-extracted from the conversation (React Flow) — draggable & animated, with an aggregated "all conversations" view and per-conversation history |
+| Typed cross-session memory | Separates **episodic / semantic / procedural** memories, retrieved by similarity × time-decay × importance — it gets to know the student over time |
 | Automatic model routing | Selects the best model per task (reasoning / code / long-context / vision) |
 | Teacher dashboard | Monitor, intervene, and receive interpretable, overridable analyst suggestions |
+| Research deployment (A/B) | In-app informed-consent enrollment + balanced A/B assignment; interaction-event logging; one-click **anonymized** export for teachers (CSV/ZIP + codebook + educational-agent metrics) |
+
+### Research deployment (A/B pilot)
+
+The platform doubles as a deployment vehicle for research on generative-AI agents in education, with built-in support for a randomized (A/B) pilot:
+
+- **In-app informed consent** — on first entry a student reads a consent page (purpose, data use, voluntary participation & withdrawal); on agreement the server **balances** them into an A/B condition (`A_direct` plain-answer control / `B_socratic` Socratic + RAG); those who decline use the platform as non-participants.
+- **Process instrumentation** — student queries, AI responses, tool calls, role / model switches, and edit-resends are logged in order (`research_events`).
+- **One-click export** — from the supervisor view, teachers export **de-identified** research data: participants / sessions / messages / events as CSV + raw JSON + a codebook, plus **educational-agent behaviour metrics** (follow-up rate, scaffold ratio, tool-grounding, agency actions, split by condition) — ready for ENA / lag-sequential analysis / GLMM.
 
 ### Tech Stack
 

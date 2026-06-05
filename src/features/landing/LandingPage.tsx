@@ -30,7 +30,7 @@ const T: Record<Locale, any> = {
     nav: { home: '首页', design: '设计理念', learning: '学习理念', features: '平台功能' },
     hero: {
       badge: '学生 · AI · 导师 — 三元在环',
-      h1a: '让思考，', h1grad: '留在学生这一侧',
+      h1a: '答案越来越廉价，', h1grad: '思考越来越珍贵',
       sub: '学生—AI—导师 三元协同的科研支持平台。用引导式追问守护你的认知主体性，让每个有依据的回答都连着真实文献。',
       mission: '我们不替代导师，也不让你把思考外包给模型——在这里，AI 是那个"逼你想清楚"的人。',
       ctaPrimary: '立即使用', ctaSecondary: '了解理念',
@@ -100,7 +100,7 @@ const T: Record<Locale, any> = {
     nav: { home: '首頁', design: '設計理念', learning: '學習理念', features: '平台功能' },
     hero: {
       badge: '學生 · AI · 導師 — 三元在環',
-      h1a: '讓思考，', h1grad: '留在學生這一側',
+      h1a: '答案越來越廉價，', h1grad: '思考越來越珍貴',
       sub: '學生—AI—導師 三元協同的科研支持平台。用引導式追問守護你的認知主體性，讓每個有依據的回答都連著真實文獻。',
       mission: '我們不替代導師，也不讓你把思考外包給模型——在這裡，AI 是那個「逼你想清楚」的人。',
       ctaPrimary: '立即使用', ctaSecondary: '了解理念',
@@ -170,7 +170,7 @@ const T: Record<Locale, any> = {
     nav: { home: 'Home', design: 'Design', learning: 'Learning', features: 'Platform' },
     hero: {
       badge: 'Student · AI · Mentor — A Triad in the Loop',
-      h1a: 'Keep the thinking ', h1grad: 'on the student’s side',
+      h1a: 'As answers get cheaper, ', h1grad: 'thinking gets precious.',
       sub: 'A triadic research-support platform for student, AI, and mentor. We guard your epistemic agency through questioning, and anchor every grounded answer to real literature.',
       mission: 'We don’t replace your mentor, nor let you outsource thinking to a model—here, the AI is the one that makes you think it through.',
       ctaPrimary: 'Get Started', ctaSecondary: 'Our Philosophy',
