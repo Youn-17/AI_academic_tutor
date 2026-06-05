@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import { User, EmotionHappy, Star, Cat, Dog, Rabbit, Rocket, Ghost } from '@icon-park/react';
+import { StudentCap } from '@/shared/components/SvgGlyphs';
 
 // Student-personalizable chat preferences (bubble colour + avatar), stored in localStorage so each
 // student can make the chat feel like theirs. Pure data + tiny get/set helpers — no React.
@@ -17,9 +18,10 @@ export const BUBBLE_THEMES: { id: BubbleThemeId; label: string; bg: string }[] =
   { id: 'slate',   label: '石墨', bg: '#475569' },
 ];
 
-export type AvatarId = 'user' | 'smile' | 'star' | 'cat' | 'dog' | 'rabbit' | 'rocket' | 'ghost';
+export type AvatarId = 'user' | 'student' | 'smile' | 'star' | 'cat' | 'dog' | 'rabbit' | 'rocket' | 'ghost';
 export const USER_AVATARS: { id: AvatarId; label: string; icon: IPIcon }[] = [
-  { id: 'user',   label: '默认', icon: User },
+  { id: 'user',    label: '默认', icon: User },
+  { id: 'student', label: '学生', icon: StudentCap },
   { id: 'smile',  label: '笑脸', icon: EmotionHappy },
   { id: 'star',   label: '星星', icon: Star },
   { id: 'cat',    label: '猫', icon: Cat },
