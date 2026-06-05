@@ -21,7 +21,7 @@ const STR: Record<Lang, Record<string, string | Record<string, string>>> = {
     role_hint: '教师账号需经管理员审核后方可使用督导功能',
     name: '姓名', name_ph: '您的真实姓名',
     title_label: '职称', title_ph: '请选择职称',
-    nickname: '昵称', nickname_ph: '平台显示的昵称（无需真实姓名）',
+    nickname: '姓名', nickname_ph: '您的真实姓名（方便导师识别）',
     identity_label: '学生身份',
     school: '学校', school_ph: '所在学校 / 机构',
     email: '邮箱', email_ph: 'your@email.com',
@@ -33,7 +33,7 @@ const STR: Record<Lang, Record<string, string | Record<string, string>>> = {
     err_school: '请填写学校名称',
     err_name: '请填写您的姓名',
     err_title: '请选择您的职称',
-    err_nick: '请填写昵称',
+    err_nick: '请填写姓名',
     success_title: '注册成功！',
     success_student: '请检查您的邮箱并点击确认链接完成注册。',
     success_supervisor: '请先验证邮箱，验证后您的教师申请将等待管理员审核批准。',
@@ -55,7 +55,7 @@ const STR: Record<Lang, Record<string, string | Record<string, string>>> = {
     role_hint: '教師帳號需經管理員審核後方可使用督導功能',
     name: '姓名', name_ph: '您的真實姓名',
     title_label: '職稱', title_ph: '請選擇職稱',
-    nickname: '暱稱', nickname_ph: '平台顯示的暱稱（無需真實姓名）',
+    nickname: '姓名', nickname_ph: '您的真實姓名（方便導師識別）',
     identity_label: '學生身份',
     school: '學校', school_ph: '所在學校 / 機構',
     email: '郵箱', email_ph: 'your@email.com',
@@ -67,7 +67,7 @@ const STR: Record<Lang, Record<string, string | Record<string, string>>> = {
     err_school: '請填寫學校名稱',
     err_name: '請填寫您的姓名',
     err_title: '請選擇您的職稱',
-    err_nick: '請填寫暱稱',
+    err_nick: '請填寫姓名',
     success_title: '註冊成功！',
     success_student: '請檢查您的郵箱並點擊確認連結完成註冊。',
     success_supervisor: '請先驗證郵箱，驗證後您的教師申請將等待管理員審核批准。',
@@ -89,7 +89,7 @@ const STR: Record<Lang, Record<string, string | Record<string, string>>> = {
     role_hint: 'Supervisor accounts require admin approval before accessing supervision features.',
     name: 'Full Name', name_ph: 'Your real name',
     title_label: 'Academic Title', title_ph: 'Select your title',
-    nickname: 'Nickname', nickname_ph: 'Display name (no real name required)',
+    nickname: 'Full Name', nickname_ph: 'Your real name (for supervisor identification)',
     identity_label: 'Student Level',
     school: 'Institution', school_ph: 'Your university or institution',
     email: 'Email', email_ph: 'your@email.com',
@@ -101,7 +101,7 @@ const STR: Record<Lang, Record<string, string | Record<string, string>>> = {
     err_school: 'Please enter your institution',
     err_name: 'Please enter your full name',
     err_title: 'Please select your academic title',
-    err_nick: 'Please enter a nickname',
+    err_nick: 'Please enter your full name',
     success_title: 'Registration Successful!',
     success_student: 'Please check your email and click the confirmation link to complete registration.',
     success_supervisor: 'Please verify your email first. Your supervisor application will then await admin approval.',
@@ -150,6 +150,9 @@ const AnimStyles = () => (
       0%, 100% { transform: translateX(0px) translateY(0px); }
       33%       { transform: translateX(6px) translateY(-8px); }
       66%       { transform: translateX(-4px) translateY(4px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; }
     }
   `}</style>
 );
@@ -247,7 +250,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
   const { signUp } = useAuth();
   const isDark = theme === 'dark';
 
-  const [lang, setLang]               = useState<Lang>('zh-CN');
+  const [lang, setLang]               = useState<Lang>(() => (localStorage.getItem('preferred-locale') as Lang) || 'zh-CN');
   const [role, setRole]               = useState<'student' | 'supervisor'>('student');
   const [email, setEmail]             = useState('');
   const [password, setPassword]       = useState('');
@@ -295,7 +298,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
     setLoading(true);
     const metadata = role === 'supervisor'
       ? { full_name: fullName, title: titleVal, school, requested_role: 'supervisor' }
-      : { nickname, student_identity: identity, school, requested_role: 'student' };
+      : { nickname, full_name: nickname, student_identity: identity, school, requested_role: 'student' };
     const { error } = await signUp(email, password, metadata);
     if (error) { setError(error.message); setLoading(false); }
     else       { setSuccess(true); setLoading(false); }

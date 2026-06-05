@@ -263,20 +263,20 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
 
     // ── Shared styling ────────────────────────────────────────
 
-    const selectCls = `w-full px-3 py-2.5 rounded-lg border text-sm bg-white border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500`;
+    const selectCls = `w-full px-3 py-2.5 rounded-lg border text-sm bg-white border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500`;
 
     return (
         <div className="min-h-screen bg-slate-50 flex">
             {/* Sidebar */}
             <aside className="w-16 md:w-56 bg-white border-r border-slate-200 flex flex-col py-4 shrink-0">
                 <div className="px-4 mb-6 hidden md:flex items-center gap-2">
-                    <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                         <ShieldCheck size={16} className="text-white" />
                     </div>
                     <span className="font-bold text-slate-900 text-sm">管理控制台</span>
                 </div>
                 <div className="flex md:hidden items-center justify-center mb-6">
-                    <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                         <ShieldCheck size={16} className="text-white" />
                     </div>
                 </div>
@@ -287,7 +287,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                             onClick={() => setActiveTab(item.id)}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
                                 ${activeTab === item.id
-                                    ? 'bg-indigo-50 text-indigo-700'
+                                    ? 'bg-blue-50 text-blue-700'
                                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
                         >
                             {item.icon}
@@ -315,7 +315,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                     {/* Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                         {[
-                            { label: '总用户', value: stats.total, icon: <Users size={18} />, color: 'text-indigo-600 bg-indigo-50' },
+                            { label: '总用户', value: stats.total, icon: <Users size={18} />, color: 'text-blue-600 bg-blue-50' },
                             { label: '学生', value: stats.students, icon: <GraduationCap size={18} />, color: 'text-blue-600 bg-blue-50' },
                             { label: '教师', value: stats.supervisors, icon: <BookOpen size={18} />, color: 'text-blue-600 bg-blue-50' },
                             { label: '待审核', value: stats.pending, icon: <Clock size={18} />, color: 'text-amber-600 bg-amber-50' },
@@ -350,7 +350,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                         <div>
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="text-lg font-bold text-slate-900">教师申请审核</h2>
-                                <button onClick={fetchAll} className="text-slate-400 hover:text-indigo-600 transition-colors">
+                                <button onClick={fetchAll} className="text-slate-400 hover:text-blue-600 transition-colors">
                                     <RefreshCw size={16} />
                                 </button>
                             </div>
@@ -466,7 +466,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                                                                 setConsentForm(f => ({ ...f, teacher_id: c.teacher_id }));
                                                                 setActiveTab('consent');
                                                             }}
-                                                            className="text-indigo-600 hover:text-indigo-800 text-xs flex items-center gap-1"
+                                                            className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1"
                                                         >
                                                             <Eye size={12} /> 申请查看
                                                         </button>
@@ -486,7 +486,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                             {/* Send request form */}
                             <div className="bg-white rounded-xl border border-slate-200 p-6">
                                 <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                                    <Send size={16} className="text-indigo-600" /> 发起数据访问授权请求
+                                    <Send size={16} className="text-blue-600" /> 发起数据访问授权请求
                                 </h3>
                                 <p className="text-sm text-slate-500 mb-5">
                                     选择教师和学生后，系统将同时向双方发送授权确认邮件。<strong>只有双方都同意</strong>，您才能查看该学生与 AI 的交互数据。
@@ -552,7 +552,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                                     <button
                                         type="submit"
                                         disabled={actionLoading === 'consent-send'}
-                                        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+                                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50"
                                     >
                                         <Send size={14} />
                                         {actionLoading === 'consent-send' ? '发送中…' : '发送授权请求邮件'}
@@ -637,7 +637,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                                             <div>
                                                 <span className="font-medium text-slate-800">{cfg.label || `${cfg.provider} / ${cfg.model}`}</span>
                                                 <span className="ml-2 text-slate-400 font-mono text-xs">{cfg.masked_key}</span>
-                                                <span className="ml-2 text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full">平台</span>
+                                                <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">平台</span>
                                             </div>
                                             <button onClick={() => handleDeleteApiConfig(cfg.id)} className="text-slate-300 hover:text-rose-500 transition-colors">
                                                 <Trash2 size={14} />
@@ -649,14 +649,14 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
 
                             {/* Add new config */}
                             <div className="bg-white rounded-xl border border-slate-200 p-6">
-                                <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><PlusCircle size={16} className="text-indigo-600" /> 添加 API Key</h3>
+                                <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><PlusCircle size={16} className="text-blue-600" /> 添加 API Key</h3>
                                 <div className="space-y-3">
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="block text-xs font-medium text-slate-600 mb-1">服务商</label>
                                             <select value={apiForm.provider}
                                                 onChange={e => setApiForm(f => ({ ...f, provider: e.target.value, model: e.target.value === 'deepseek' ? 'deepseek-chat' : 'glm-4-flash' }))}
-                                                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                                                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20">
                                                 <option value="deepseek">DeepSeek</option>
                                                 <option value="zhipu">智谱 AI</option>
                                             </select>
@@ -664,7 +664,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                                         <div>
                                             <label className="block text-xs font-medium text-slate-600 mb-1">模型</label>
                                             <select value={apiForm.model} onChange={e => setApiForm(f => ({ ...f, model: e.target.value }))}
-                                                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                                                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20">
                                                 {apiForm.provider === 'deepseek'
                                                     ? <><option value="deepseek-chat">deepseek-chat</option><option value="deepseek-reasoner">deepseek-reasoner</option></>
                                                     : <><option value="glm-4-flash">glm-4-flash</option><option value="glm-4">glm-4</option></>}
@@ -677,7 +677,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                                             <input type={showApiKey ? 'text' : 'password'} value={apiForm.api_key}
                                                 onChange={e => setApiForm(f => ({ ...f, api_key: e.target.value }))}
                                                 placeholder="sk-xxxx"
-                                                className="w-full pl-3 pr-10 py-2 rounded-lg border border-slate-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
+                                                className="w-full pl-3 pr-10 py-2 rounded-lg border border-slate-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
                                             <button type="button" onClick={() => setShowApiKey(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                                                 {showApiKey ? <EyeOff size={15} /> : <Eye size={15} />}
                                             </button>
@@ -687,11 +687,11 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                                         <label className="block text-xs font-medium text-slate-600 mb-1">备注名称（可选）</label>
                                         <input value={apiForm.label} onChange={e => setApiForm(f => ({ ...f, label: e.target.value }))}
                                             placeholder="如：DeepSeek 平台默认"
-                                            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                                            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                                     </div>
                                     {apiMsg && <p className={`text-sm ${apiMsg.includes('已保存') ? 'text-blue-600' : 'text-rose-500'}`}>{apiMsg}</p>}
                                     <button onClick={handleSaveApiKey} disabled={apiSaving}
-                                        className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium disabled:opacity-50">
+                                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium disabled:opacity-50">
                                         <Key size={15} /> {apiSaving ? '保存中…' : '保存 API Key'}
                                     </button>
                                 </div>
@@ -711,7 +711,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                                         value={userSearch}
                                         onChange={e => setUserSearch(e.target.value)}
                                         placeholder="搜索姓名、昵称、邮箱、学校…"
-                                        className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                        className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                                     />
                                 </div>
                             </div>

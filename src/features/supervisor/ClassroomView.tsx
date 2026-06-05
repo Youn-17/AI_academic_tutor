@@ -115,23 +115,23 @@ const ClassroomView: React.FC = () => {
       <div className="w-80 border-r border-slate-200 bg-white flex flex-col">
         <div className="p-4 border-b border-slate-100 flex justify-between items-center">
           <h2 className="font-bold text-slate-800 font-heading flex items-center gap-2">
-            <School size={20} className="text-indigo-600" />
+            <School size={20} className="text-blue-600" />
             我的班级
           </h2>
           <button
             onClick={() => setIsCreating(true)}
-            className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+            className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
           >
             <Plus size={18} />
           </button>
         </div>
 
         {isCreating && (
-          <div className="p-4 bg-indigo-50/50 border-b border-indigo-100 animate-in slide-in-from-top-2">
-            <label className="text-xs font-bold text-indigo-900 uppercase mb-1 block">班级名称</label>
+          <div className="p-4 bg-blue-50/50 border-b border-blue-100 animate-in slide-in-from-top-2">
+            <label className="text-xs font-bold text-blue-900 uppercase mb-1 block">班级名称</label>
             <input
               autoFocus
-              className="w-full px-3 py-2 rounded-lg border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2 text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2 text-sm"
               placeholder="例如: 2024 秋季算法课"
               value={newClassName}
               onChange={(e) => setNewClassName(e.target.value)}
@@ -139,7 +139,7 @@ const ClassroomView: React.FC = () => {
             />
             <div className="flex gap-2 justify-end">
               <button onClick={() => setIsCreating(false)} className="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700">取消</button>
-              <button onClick={handleCreateClass} className="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded-md hover:bg-indigo-700 shadow-sm">创建</button>
+              <button onClick={handleCreateClass} className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm">创建</button>
             </div>
           </div>
         )}
@@ -154,7 +154,7 @@ const ClassroomView: React.FC = () => {
               <div
                 key={cls.id}
                 onClick={() => setSelectedClassId(cls.id)}
-                className={`p-3 rounded-lg cursor-pointer border transition-all group relative ${selectedClassId === cls.id ? 'bg-indigo-50 border-indigo-200 shadow-sm' : 'bg-white border-transparent hover:bg-slate-50'}`}
+                className={`p-3 rounded-lg cursor-pointer border transition-all group relative ${selectedClassId === cls.id ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-white border-transparent hover:bg-slate-50'}`}
               >
                 {editingClassId === cls.id ? (
                    <div className="flex flex-col gap-2" onClick={e => e.stopPropagation()}>
@@ -166,13 +166,13 @@ const ClassroomView: React.FC = () => {
                       />
                       <div className="flex gap-2 justify-end">
                         <button onClick={() => setEditingClassId(null)} className="text-xs text-slate-500">取消</button>
-                        <button onClick={() => handleUpdateClass(cls.id)} className="text-xs text-indigo-600 font-bold">保存</button>
+                        <button onClick={() => handleUpdateClass(cls.id)} className="text-xs text-blue-600 font-bold">保存</button>
                       </div>
                    </div>
                 ) : (
                    <>
                     <div className="flex justify-between items-start">
-                        <h3 className={`font-bold text-sm ${selectedClassId === cls.id ? 'text-indigo-900' : 'text-slate-700'}`}>{cls.name}</h3>
+                        <h3 className={`font-bold text-sm ${selectedClassId === cls.id ? 'text-blue-900' : 'text-slate-700'}`}>{cls.name}</h3>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button 
                                 onClick={(e) => {
@@ -208,7 +208,7 @@ const ClassroomView: React.FC = () => {
                         <div className="flex justify-between items-center mt-2">
                         <span className="text-[10px] text-slate-400 font-mono bg-slate-100 px-1.5 py-0.5 rounded flex items-center gap-1.5" title="点击复制班级ID" onClick={(e) => { e.stopPropagation(); handleCopyId(cls.id); }}>
                             ID: {cls.id.slice(0, 8)}...
-                            {copiedId === cls.id ? <Check size={10} className="text-blue-500" /> : <Copy size={10} className="hover:text-indigo-500 cursor-pointer" />}
+                            {copiedId === cls.id ? <Check size={10} className="text-blue-500" /> : <Copy size={10} className="hover:text-blue-500 cursor-pointer" />}
                         </span>
                         <span className="text-[10px] text-slate-400 flex items-center gap-1">
                             <Calendar size={10} />
@@ -243,7 +243,7 @@ const ClassroomView: React.FC = () => {
                 {members.length > 0 && (
                   <button
                     onClick={handleDownloadClass}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors font-medium"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium"
                   >
                     <Download size={13} /> 下载名单 CSV
                   </button>

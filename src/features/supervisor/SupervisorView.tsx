@@ -732,7 +732,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                   <div className="p-5 space-y-3">
                     {exportMsg && <p className={`text-sm font-medium ${exportMsg.startsWith('✓') ? 'text-blue-600' : 'text-rose-500'}`}>{exportMsg}</p>}
                     <button onClick={handleExportResearch} disabled={exporting} className={btnPrimary}>
-                      {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} {exporting ? '导出中…' : '导出研究数据 (ZIP)'}
+                      {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} {exporting ? '导出中，请勿关闭页面…' : '导出研究数据 (ZIP)'}
                     </button>
                     <p className="text-[11px] text-slate-400 leading-relaxed">已匿名化(P0001…)、已排除退出研究者、保留对话原文；含 codebook 说明每列对应的分析。暂未做 LLM 自动编码(留给离线)。</p>
                   </div>

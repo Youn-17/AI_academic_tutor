@@ -312,7 +312,7 @@ export default function StudentProfile({ theme }: StudentProfileProps) {
                             </div>
                             <div>
                                 <h2 className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>研究兴趣</h2>
-                                <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>选择你感兴趣的领域，AI 导师将为你定制学习建议</p>
+                                <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>选择你感兴趣的研究领域</p>
                             </div>
                         </div>
                     </div>

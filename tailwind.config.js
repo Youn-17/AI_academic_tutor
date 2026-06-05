@@ -5,6 +5,13 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  // Provider/knowledge cards build color classes dynamically (e.g. `border-${color}-400`), which the
+  // JIT can't see in source — without this, e.g. Kimi's violet selected-state renders blank. Safelist
+  // the color utilities used dynamically.
+  safelist: [
+    { pattern: /(bg|text|border|ring)-(blue|sky|cyan|violet|purple|amber|emerald|rose|teal|indigo)-(50|100|400|500)/ },
+    { pattern: /shadow-(blue|sky|violet|purple|amber|emerald|rose|teal)-500\/20/ },
+  ],
   theme: {
     container: {
       center: true,

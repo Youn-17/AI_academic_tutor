@@ -140,7 +140,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister, onSwitchToFor
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lang, setLang] = useState<Lang>('zh-CN');
+  const [lang, setLang] = useState<Lang>(() => (localStorage.getItem('preferred-locale') as Lang) || 'zh-CN');
 
   const s = STR[lang];
   const quotes = QUOTES[lang];

@@ -85,7 +85,7 @@ const AppContent: React.FC<{ locale: Locale; setLocale: (l: Locale) => void }> =
       <div className={`min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center ${theme === 'dark' ? 'bg-[#0B0F19] text-slate-200' : 'bg-slate-50 text-slate-700'}`}>
         <p className="text-sm max-w-sm">{locale === 'en' ? 'Could not load your profile (slow network or session issue).' : '无法加载个人资料(网络较慢或登录态异常)。'}</p>
         <div className="flex gap-3">
-          <button onClick={() => refreshProfile()} className="px-4 py-2 rounded-lg bg-indigo-500 text-white text-sm font-medium hover:bg-indigo-600 transition-colors">{locale === 'en' ? 'Retry' : '重试'}</button>
+          <button onClick={() => refreshProfile()} className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition-colors">{locale === 'en' ? 'Retry' : '重试'}</button>
           <button onClick={handleLogout} className="px-4 py-2 rounded-lg border text-sm font-medium hover:bg-black/5 transition-colors">{locale === 'en' ? 'Sign out' : '重新登录'}</button>
         </div>
       </div>
@@ -96,7 +96,7 @@ const AppContent: React.FC<{ locale: Locale; setLocale: (l: Locale) => void }> =
   if (loading || (user && !profile)) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-[#0B0F19]' : 'bg-slate-50'}`}>
-        <Loader2 size={32} className="animate-spin text-indigo-500" />
+        <Loader2 size={32} className="animate-spin text-blue-500" />
       </div>
     );
   }

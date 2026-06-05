@@ -319,7 +319,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
         { name: isEN ? 'Reasoning' : '推理专用', models: ['deepseek-reasoner', 'claude-3-5-sonnet', 'glm-4-plus'] },
     ], [isEN]);
 
-    const quickPrompts = useMemo(() => isEN ? [
+    const quickPrompts = useMemo(() => { const all = isEN ? [
         { title: 'Socratic guidance', desc: 'I lead your thinking with questions, not just answers', text: 'Help me clarify my research question', icon: <MessageSquare size={18} />, grad: 'from-blue-500 to-sky-400' },
         { title: 'Data & code', desc: 'Run Python to compute, plot, and build reports', text: 'Analyze a dataset with Python and plot a chart', icon: <Code size={18} />, grad: 'from-indigo-500 to-blue-500' },
         { title: 'Research team', desc: 'Agents retrieve, analyze and reason in parallel', text: 'Use the research team to review a topic for me', icon: <SparklesIcon size={18} />, grad: 'from-blue-600 to-indigo-500', model: 'team' },
@@ -329,7 +329,11 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
         { title: '数据与代码', desc: '跑 Python 算数据、画图、生成报告', text: '用 Python 分析数据并画一张图', icon: <Code size={18} />, grad: 'from-indigo-500 to-blue-500' },
         { title: '研究团队', desc: '多智能体并行：检索 · 分析 · 推理', text: '用研究团队帮我综述一个主题', icon: <SparklesIcon size={18} />, grad: 'from-blue-600 to-indigo-500', model: 'team' },
         { title: '知识库检索', desc: '从教材与论文里找有出处的依据', text: '从知识库找关于学习科学的内容', icon: <Search size={18} />, grad: 'from-sky-500 to-cyan-400' },
-    ], [isEN]);
+    ];
+        // A_direct participants are the no-agent control condition — hide the "research team" card
+        // so they can't switch into multi-agent mode (which would break condition fidelity).
+        return roleLocked ? all.filter((p: { model?: string }) => p.model !== 'team') : all;
+    }, [isEN, roleLocked]);
 
     const suggestionPrompts = useMemo(() => isEN ? [
         'How do I narrow my research topic?',
