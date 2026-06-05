@@ -530,37 +530,22 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                   </>
                 );
               })()}
-              {viewMode === 'chat' && selectedChat && (() => {
-                const studentConvs = conversations.filter(c => c.studentId === selectedChat.studentId);
-                return (
-                  <>
-                    <span className="text-slate-300 text-xs">/</span>
-                    <span className="text-sm text-slate-600">{selectedChat.studentName}</span>
-                    {studentConvs.length > 1 ? (
-                      <select
-                        value={selectedChatId || ''}
-                        onChange={e => handleChatSelect(e.target.value)}
-                        title="切换该学生的对话"
-                        className="ml-1 max-w-[180px] text-xs rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-600 outline-none cursor-pointer focus:border-blue-400"
-                      >
-                        {studentConvs.map(c => <option key={c.id} value={c.id}>{c.title || '对话'}</option>)}
-                      </select>
-                    ) : (
-                      <span className="text-xs text-slate-400">· {selectedChat.title || '对话'}</span>
-                    )}
-                    <button
-                      onClick={() => {
-                        const newStatus = selectedChat.status === 'flagged' ? 'active' : 'flagged';
-                        ConversationService.updateConversationStatus(selectedChat.id, newStatus).then(() => setRefreshTrigger(p => p + 1));
-                      }}
-                      title={selectedChat.status === 'flagged' ? '取消预警' : '标记预警'}
-                      className={`p-1 rounded transition-colors ${selectedChat.status === 'flagged' ? 'text-rose-500' : 'text-slate-300 hover:text-rose-400'}`}
-                    >
-                      <Flag size={13} fill={selectedChat.status === 'flagged' ? 'currentColor' : 'none'} />
-                    </button>
-                  </>
-                );
-              })()}
+              {viewMode === 'chat' && selectedChat && (
+                <>
+                  <span className="text-slate-300 text-xs">/</span>
+                  <span className="text-sm text-slate-600">{selectedChat.studentName}</span>
+                  <button
+                    onClick={() => {
+                      const newStatus = selectedChat.status === 'flagged' ? 'active' : 'flagged';
+                      ConversationService.updateConversationStatus(selectedChat.id, newStatus).then(() => setRefreshTrigger(p => p + 1));
+                    }}
+                    title={selectedChat.status === 'flagged' ? '取消预警' : '标记预警'}
+                    className={`p-1 rounded transition-colors ${selectedChat.status === 'flagged' ? 'text-rose-500' : 'text-slate-300 hover:text-rose-400'}`}
+                  >
+                    <Flag size={13} fill={selectedChat.status === 'flagged' ? 'currentColor' : 'none'} />
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -1113,12 +1098,25 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
               {/* Intervention bar */}
               <div className="bg-white p-4 border-t border-slate-200 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.04)] z-20">
                 <div className="flex flex-col gap-2 max-w-4xl mx-auto">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 px-2.5 py-1 bg-amber-50 border border-amber-200/70 rounded-lg">
-                      <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                      <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">导师介入模式</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-2 px-2.5 py-1 bg-amber-50 border border-amber-200/70 rounded-lg shrink-0">
+                        <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                        <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">导师介入模式</span>
+                      </div>
+                      {/* conversation selector — switch which of this student's conversations you're viewing */}
+                      {(() => {
+                        const studentConvs = conversations.filter(c => c.studentId === selectedChat.studentId);
+                        return studentConvs.length > 1 ? (
+                          <select value={selectedChatId || ''} onChange={e => handleChatSelect(e.target.value)}
+                            title="切换该学生的对话"
+                            className="max-w-[220px] text-xs rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-600 outline-none cursor-pointer focus:border-blue-400">
+                            {studentConvs.map((c, i) => <option key={c.id} value={c.id}>对话 {i + 1}：{c.title || '未命名'}</option>)}
+                          </select>
+                        ) : null;
+                      })()}
                     </div>
-                    <span className="text-xs text-slate-400">消息将高亮显示给学生</span>
+                    <span className="text-xs text-slate-400 shrink-0">消息将高亮显示给学生</span>
                   </div>
                   <div className="flex gap-2">
                     <input type="text" value={interventionText}

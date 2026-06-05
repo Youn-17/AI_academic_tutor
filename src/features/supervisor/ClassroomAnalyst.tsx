@@ -14,7 +14,7 @@ const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 // Teacher-facing classroom analyst — interpretable, OVERRIDABLE recommendation.
 // Output never reaches the student directly; the teacher accepts/edits/dismisses.
-const ANALYST_PROMPT = `你是面向教师的「课堂分析师」。你的唯一读者是教师本人；你的输出绝不会直接发送给学生。你阅读一段学生与 AI 导师的对话记录，给教师一条可解释、可推翻的指导建议。
+const ANALYST_PROMPT = `你是面向教师的「教学顾问」。你的唯一读者是教师本人；你的输出绝不会直接发送给学生。你阅读一段学生与 AI 导师的对话记录，给教师一条可解释、可推翻的指导建议。
 
 严守治理底线：你建议的「推动方式（nudge）」必须是支持式的——帮助学生自己往前想（提问、给框架、指出待澄清处、建议查证），绝不能是替学生给出答案、替学生写将被评分/计入共同体的内容、或让 AI 代劳。如对话中出现 AI 有代写/给现成答案/无据断言的迹象，请在 risks 中点出并据此设计纠偏的 nudge。
 
@@ -79,7 +79,7 @@ const ClassroomAnalyst: React.FC<Props> = ({ messages, studentName, onUseNudge }
         <button onClick={analyze} disabled={status === 'loading'}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition-all disabled:opacity-50">
           {status === 'loading' ? <RiLoader4Line size={14} className="animate-spin" /> : <RiBrainLine size={14} />}
-          {status === 'loading' ? '分析中…' : status === 'done' ? '重新分析' : '课堂分析师'}
+          {status === 'loading' ? '分析中…' : status === 'done' ? '重新分析' : '教学顾问'}
         </button>
         <span className="text-[11px] text-slate-400">AI 读这段对话 → 给你可解释、可改的介入建议（不会发给学生）</span>
         {status === 'done' && <button onClick={() => setOpen(o => !o)} className="ml-auto text-[11px] text-blue-500">{open ? '收起' : '展开'}</button>}

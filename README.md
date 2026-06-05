@@ -80,7 +80,7 @@ flowchart LR
         C["概念讲解 Concept Explainer"]
         Q["练习自测 Practice Quizzer"]
     end
-    subgraph CA["课堂分析师 Classroom Analyst"]
+    subgraph CA["教学顾问 Classroom Analyst"]
         A["面向教师 · 可解释、可覆盖的介入建议<br/>teacher-facing, interpretable & overridable"]
     end
     subgraph RT["多智能体研究团队 Research Team (Cloud Run)"]
@@ -130,7 +130,7 @@ flowchart LR
 
 AI Academic Tutor 是一个研究型的学术辅导平台,服务于研究生的科研训练与课程学习。其设计目标不是提高「获得答案的效率」,而是在 AI 介入的过程中,**保护并强化学习者对自身知识的主体性**。
 
-系统由单一的苏格拉底式导师,逐步发展为一个**可治理的多智能体生态**,涵盖学习科学研究中识别出的三类智能体原型——学习伙伴、教学助手与课堂分析师——并由一层统一的治理护栏约束,确保学习者始终是知识的作者。该平台同时作为「生成式 AI 教育智能体」相关研究的部署载体。
+系统由单一的苏格拉底式导师,逐步发展为一个**可治理的多智能体生态**,涵盖学习科学研究中识别出的三类智能体原型——学习伙伴、教学助手与教学顾问（课堂分析师）——并由一层统一的治理护栏约束,确保学习者始终是知识的作者。该平台同时作为「生成式 AI 教育智能体」相关研究的部署载体。
 
 ### 核心能力
 
