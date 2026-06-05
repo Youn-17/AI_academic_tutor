@@ -599,6 +599,8 @@ async function runOrchestrator(controller: ReadableStreamDefaultController, opts
   const send = (o: any) => controller.enqueue(enc.encode(`data: ${JSON.stringify(o)}\n\n`));
   const task = lastUserText(opts.messages);
   const allSources: any[] = [];
+  const usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, provider_calls: 0 };
+  const addU = (r: any) => { const u = r?.usage; if (u) { usage.prompt_tokens += u.prompt_tokens || 0; usage.completion_tokens += u.completion_tokens || 0; usage.total_tokens += u.total_tokens || 0; } usage.provider_calls += 1; };
   try {
     const ROSTER: Record<string, { label: string; tool: string | null }> = {
       retriever: { label: '检索专员', tool: 'deep_search' },
@@ -621,6 +623,7 @@ async function runOrchestrator(controller: ReadableStreamDefaultController, opts
           { role: 'user', content: task },
         ],
       });
+      addU(pr);
       const j = extractJSON(pr?.choices?.[0]?.message?.content || '');
       if (j && Array.isArray(j.plan)) {
         plan = j.plan
@@ -644,6 +647,7 @@ async function runOrchestrator(controller: ReadableStreamDefaultController, opts
             model: opts.model, max_tokens: 1200, temperature: 0.3,
             messages: [{ role: 'system', content: `你是数据分析师。针对子任务写一段完整可独立运行的 Python（已装 pandas/numpy/matplotlib/openpyxl/python-docx）。用 print() 输出关键结论；需要图表就 plt.show()；要下载的文件存到 /data/。只输出代码。${fileNote}` }, { role: 'user', content: step.subtask }],
           });
+          addU(cg);
           const code = extractCode(cg?.choices?.[0]?.message?.content || '');
           if (code) {
             const res = await executeTool('run_python', { code }, opts.ctx);
@@ -662,6 +666,7 @@ async function runOrchestrator(controller: ReadableStreamDefaultController, opts
             model: opts.model, max_tokens: 1000, temperature: 0.6,
             messages: [{ role: 'system', content: sysByRole }, { role: 'user', content: step.subtask }],
           });
+          addU(rr);
           finding = stripThinking(rr?.choices?.[0]?.message?.content || '');
         }
       } catch (_) { finding = `（${spec.label}未能完成该子任务）`; }
@@ -682,6 +687,7 @@ async function runOrchestrator(controller: ReadableStreamDefaultController, opts
           { role: 'user', content: `学生任务：${task}\n\n各专科发现：\n${findingsText}` },
         ],
       });
+      addU(cr);
       const cj = extractJSON(cr?.choices?.[0]?.message?.content || '');
       criticNotes = String(cj?.notes || '');
       send({ _team_step: { phase: 'review', status: 'done', notes: criticNotes } });
@@ -709,6 +715,7 @@ async function runOrchestrator(controller: ReadableStreamDefaultController, opts
       for (let i = 0; i < answer.length; i += 80) send({ choices: [{ index: 0, delta: { content: answer.slice(i, i + 80) } }] });
     }
     send({ _team_step: { phase: 'synth', status: 'done' } });
+    send({ _usage: { ...usage, model: opts.model, mode: 'team' } });
     controller.enqueue(enc.encode('data: [DONE]\n\n'));
     controller.close();
   } catch (e) {
