@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { Message, Role } from '@/types';
 import { User, Bot, ShieldAlert, Copy, ThumbsUp, ThumbsDown, Book, ExternalLink, Activity, Edit2, X, Check } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import MarkdownView from '@/shared/components/MarkdownView';
 import { RiRobot2Line } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import GeneratedChart from '@/features/student/components/GeneratedChart';
@@ -166,9 +165,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, b
                 {isAI ? (
                   <GenerativeAnswer content={cleanedContent} proseClass={proseClass} />
                 ) : (
-                  <div className={proseClass}>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanedContent}</ReactMarkdown>
-                  </div>
+                  <MarkdownView className={proseClass}>{cleanedContent}</MarkdownView>
                 )}
 
               </div>

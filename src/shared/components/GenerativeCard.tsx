@@ -1,6 +1,5 @@
 import React from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import MarkdownView from './MarkdownView';
 import { Check, Circle, Lightbulb } from 'lucide-react';
 import type { Segment } from '@/lib/generativeContent';
 
@@ -8,7 +7,7 @@ import type { Segment } from '@/lib/generativeContent';
 
 const cardProse = 'prose prose-sm max-w-none break-words prose-p:my-1 prose-li:my-0.5 prose-ul:my-1 prose-ol:my-1 prose-strong:font-semibold prose-code:text-pink-600 prose-code:bg-slate-100 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none';
 const MD: React.FC<{ children: string }> = ({ children }) => (
-  <div className={cardProse}><ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown></div>
+  <MarkdownView className={cardProse}>{children}</MarkdownView>
 );
 
 const GenerativeCard: React.FC<{ seg: Segment }> = ({ seg }) => {

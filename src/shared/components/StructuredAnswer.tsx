@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import MarkdownView from '@/shared/components/MarkdownView';
 import { ChevronDown, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseAnswer } from '@/lib/answerStructure';
@@ -11,9 +10,7 @@ import { parseAnswer } from '@/lib/answerStructure';
 // with the upgraded typography. The structure comes from parseAnswer (pure + tested).
 
 const Md: React.FC<{ children: string; className?: string }> = ({ children, className }) => (
-  <div className={className}>
-    <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
-  </div>
+  <MarkdownView className={className}>{children}</MarkdownView>
 );
 
 const SummaryCard: React.FC<{ text: string }> = ({ text }) => (

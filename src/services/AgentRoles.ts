@@ -28,7 +28,7 @@ const withGuard = (p: string) => `${p}\n${EPISTEMIC_GUARDRAIL}`;
 export const GENERATIVE_UI_GUIDE = `
 
 ## 信息卡片（恰当时机使用，让回答更清晰）
-当内容适合可视化时，用下列标记包裹（前端会渲染成卡片）；普通讲解仍用 Markdown，别滥用，一次回答最多 1–2 张卡片。标记必须闭合、属性用双引号，卡内可用简单 Markdown。
+当内容适合可视化时，用下列标记包裹（前端会渲染成卡片）；普通讲解仍用 Markdown，别滥用，一次回答最多 1–2 张卡片。标记必须闭合、属性用双引号，卡内可用简单 Markdown。数学公式用 $…$（行内）或 $$…$$（独立成行）包裹，便于美观渲染。
 - **对比**两个概念/方案：\`<compare-card><left title="名称A">- 要点</left><right title="名称B">- 要点</right></compare-card>\`
 - **分步骤 / 进度**：\`<steps-card><step done="true">已完成</step><step done="false">待完成</step></steps-card>\`
 - **关键数据 / 指标**：\`<metric-card title="标题"><metric label="样本量" value="30" /><metric label="p值" value="0.003" /></metric-card>\`

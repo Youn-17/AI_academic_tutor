@@ -1,6 +1,5 @@
 import React from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import MarkdownView from './MarkdownView';
 import { parseGenerative, hasCards } from '@/lib/generativeContent';
 import GenerativeCard from './GenerativeCard';
 import StructuredAnswer from './StructuredAnswer';
@@ -18,7 +17,7 @@ const GenerativeAnswer: React.FC<{ content: string; proseClass: string }> = ({ c
       {segments.map((s, i) =>
         s.type === 'md'
           ? (s.text.trim()
-              ? <div key={i} className={proseClass}><ReactMarkdown remarkPlugins={[remarkGfm]}>{s.text}</ReactMarkdown></div>
+              ? <MarkdownView key={i} className={proseClass}>{s.text}</MarkdownView>
               : null)
           : <GenerativeCard key={i} seg={s} />
       )}
