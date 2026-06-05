@@ -433,7 +433,8 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
 
                         {/* Model Selector */}
                         <div className="relative" ref={modelMenuRef}>
-                            <button onClick={() => setIsModelMenuOpen(!isModelMenuOpen)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all" style={{ backgroundColor: isModelMenuOpen ? (isDark ? '#292524' : '#f5f5f4') : 'transparent', color: colors.textSecondary }}>
+                            <button onClick={() => setIsModelMenuOpen(!isModelMenuOpen)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all" style={{ backgroundColor: isModelMenuOpen ? (isDark ? '#292524' : '#f5f5f4') : 'transparent', color: colors.textSecondary }}>
+                                <IpMagic theme="outline" size={13} fill="currentColor" />
                                 <span className="hidden sm:inline">{(AI_MODELS[selectedModel as keyof typeof AI_MODELS]?.name ?? selectedModel)}</span>
                                 <ChevronDown size={12} className={`transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} />
                             </button>

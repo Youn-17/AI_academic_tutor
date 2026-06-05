@@ -308,7 +308,7 @@ export const AI_MODELS: Record<string, { id: string; name: string; provider: AIP
     // === Auto router (DMXAPI: one key, best model per task) ===
     'auto': {
         id: 'auto',
-        name: '🪄 自动选择',
+        name: '自动选择',
         provider: 'dmxapi',
         model: 'auto',
         description: '按任务自动选最合适的模型（Claude / GPT / Gemini）',
@@ -318,7 +318,7 @@ export const AI_MODELS: Record<string, { id: string; name: string; provider: AIP
     // === Multi-agent orchestrator (research team) ===
     'team': {
         id: 'team',
-        name: '🤝 研究团队',
+        name: '研究团队',
         provider: 'dmxapi',
         model: 'team',
         description: '多智能体协作：组长规划 → 检索/分析/推理专科并行 → 综合（复杂任务用）',
