@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthProvider';
 import * as ClassService from '@/services/ClassService';
+import { useToast } from '@/shared/components/FeedbackProvider';
 import {
   uploadToLibrary, getLibraryDocuments, deleteLibraryDocument,
   formatFileSize, validateFile, RagDoc
@@ -72,6 +73,7 @@ const RESOURCE_TYPES = [
 
 export default function KnowledgeBaseView() {
   const { profile } = useAuth();
+  const toast = useToast();
   const [activeLayer, setActiveLayer] = useState<1 | 2 | 3 | 4>(3);
   const [docs, setDocs] = useState<RagDoc[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,6 +106,7 @@ export default function KnowledgeBaseView() {
       }
     } catch (e) {
       console.error(e);
+      toast('知识库文档加载失败，请检查网络后重试', 'error');
     } finally {
       setLoading(false);
     }

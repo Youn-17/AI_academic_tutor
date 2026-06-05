@@ -705,7 +705,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                             <div className="flex items-center gap-1 shrink-0 pb-1 pl-1">
                                 <input ref={fileInputRef} type="file" accept="image/*,.pdf,.txt,.md,.markdown,.docx,.csv" className="hidden" onChange={handleFileSelect} />
                                 <div className="relative" ref={attachMenuRef}>
-                                    <button onClick={() => setAttachMenuOpen(v => !v)} title="添加图片或文件" className="p-2 rounded-full transition-all hover:bg-blue-500/10" style={{ color: attachMenuOpen ? colors.primary : colors.textSecondary }}>
+                                    <button onClick={() => setAttachMenuOpen(v => !v)} aria-label={isEN ? 'Add image or file' : '添加图片或文件'} title="添加图片或文件" className="p-2 rounded-full transition-all hover:bg-blue-500/10" style={{ color: attachMenuOpen ? colors.primary : colors.textSecondary }}>
                                         <Plus size={20} className={`transition-transform ${attachMenuOpen ? 'rotate-45' : ''}`} />
                                     </button>
                                     {attachMenuOpen && (
@@ -722,6 +722,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                 {onToggleRag && (
                                     <button
                                         onClick={onToggleRag}
+                                        aria-label={useRag ? '关闭知识库增强' : '开启知识库增强'}
                                         title={useRag ? '关闭知识库增强' : '开启知识库增强 (RAG)'}
                                         className={`p-2 rounded-full transition-all hover:scale-110 ${useRag ? 'text-blue-500 bg-blue-500/10' : ''}`}
                                         style={{ color: useRag ? undefined : colors.textSecondary }}
@@ -734,7 +735,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                             <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={handleKeyDown} placeholder={messages.length === 0 ? (isEN ? 'What would you like to explore?' : '今天想探索什么？') : (isEN ? 'Continue...' : '继续讨论...')} rows={1} className="flex-1 bg-transparent border-none focus:ring-0 px-3 py-3 min-h-[44px] max-h-[150px] resize-none text-sm outline-none leading-relaxed" style={{ color: colors.text }} disabled={loading} />
 
                             <div className="shrink-0 pb-1 pr-1">
-                                <button onClick={handleSubmit} disabled={(!inputValue.trim() && !attachedFile) || loading} className="p-3 rounded-full transition-all shadow-md hover:scale-105 active:scale-95 disabled:hover:scale-100 disabled:shadow-none" style={{ backgroundColor: (!inputValue.trim() && !attachedFile) || loading ? (isDark ? '#1e293b' : '#e2e8f0') : '#2563EB', color: ((!inputValue.trim() && !attachedFile) || loading) ? colors.textSecondary : '#fff' }}>
+                                <button onClick={handleSubmit} aria-label={isEN ? 'Send' : '发送'} disabled={(!inputValue.trim() && !attachedFile) || loading} className="p-3 rounded-full transition-all shadow-md hover:scale-105 active:scale-95 disabled:hover:scale-100 disabled:shadow-none" style={{ backgroundColor: (!inputValue.trim() && !attachedFile) || loading ? (isDark ? '#1e293b' : '#e2e8f0') : '#2563EB', color: ((!inputValue.trim() && !attachedFile) || loading) ? colors.textSecondary : '#fff' }}>
                                     {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                                 </button>
                             </div>

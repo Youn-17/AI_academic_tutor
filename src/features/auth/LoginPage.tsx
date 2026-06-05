@@ -310,7 +310,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToRegister, onSwitchToFor
                 {[s.privacy, s.ethics, s.about].map((l: string, i: number) => (
                   <React.Fragment key={i}>
                     {i > 0 && <span>·</span>}
-                    <a href="#" className="transition-opacity hover:opacity-100 cursor-pointer">{l}</a>
+                    <span className="transition-opacity">{l}</span>
                   </React.Fragment>
                 ))}
               </div>
