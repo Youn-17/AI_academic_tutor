@@ -17,7 +17,7 @@ import { createPortal } from 'react-dom';
 import { saveSnippetToKnowledgeBase } from '@/services/SnippetService';
 import { AGENT_ROLES } from '@/services/AgentRoles';
 import { isSubmitEnter } from '@/lib/keyboard';
-import { Comment as IpComment, Code as IpCode, PeoplesTwo as IpTeam, Search as IpSearch, MagicWand as IpMagic, Theme as IpTheme } from '@icon-park/react';
+import { Comment as IpComment, Code as IpCode, PeoplesTwo as IpTeam, Search as IpSearch, MagicWand as IpMagic, Theme as IpTheme, ListView as IpList } from '@icon-park/react';
 import { BUBBLE_THEMES, USER_AVATARS, getBubbleTheme, setBubbleTheme, getUserAvatar, setUserAvatar } from '@/lib/chatPrefs';
 
 interface StudentChatViewProps {
@@ -68,6 +68,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     const [prefMenuOpen, setPrefMenuOpen] = useState(false);
     const [bubbleTheme, setBubbleThemeS] = useState<string>(() => getBubbleTheme());
     const [userAvatarId, setUserAvatarS] = useState<string>(() => getUserAvatar());
+    const [outlineOpen, setOutlineOpen] = useState(false);
 
     // UI State
     const [chatWidth, setChatWidth] = useState<ChatWidth>('wide');
@@ -130,6 +131,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     const attachMenuRef = useRef<HTMLDivElement>(null);
     const moreMenuRef = useRef<HTMLDivElement>(null);
     const prefMenuRef = useRef<HTMLDivElement>(null);
+    const outlineRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const isDark = theme === 'dark';
     const isEN = locale === 'en';
@@ -171,6 +173,9 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
             }
             if (prefMenuRef.current && !prefMenuRef.current.contains(event.target as Node)) {
                 setPrefMenuOpen(false);
+            }
+            if (outlineRef.current && !outlineRef.current.contains(event.target as Node)) {
+                setOutlineOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -375,7 +380,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     return (
         <div className={`flex h-full w-full relative overflow-hidden ${fontSizeClass}`} style={{ backgroundColor: colors.bg }}>
             {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col h-full min-w-0">
+            <div className="flex-1 flex flex-col h-full min-w-0 relative">
                 {/* Header */}
                 <header className="h-16 pl-14 md:pl-6 pr-4 sm:pr-6 flex items-center justify-between border-b sticky top-0 backdrop-blur-md z-10" style={{ backgroundColor: colors.headerBg, borderColor: colors.border }}>
                     {/* Left: Chat Info */}
@@ -600,7 +605,9 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
 
                         {/* Messages */}
                         {messages.map(msg => (
-                            <ChatBubble key={msg.id} message={msg} onEdit={onEditMessage ? (c) => onEditMessage(msg.id, c) : undefined} bubbleTheme={bubbleTheme} userAvatarId={userAvatarId} />
+                            <div key={msg.id} id={`m-${msg.id}`}>
+                                <ChatBubble message={msg} onEdit={onEditMessage ? (c) => onEditMessage(msg.id, c) : undefined} bubbleTheme={bubbleTheme} userAvatarId={userAvatarId} />
+                            </div>
                         ))}
 
                         {/* Loading */}
@@ -658,6 +665,29 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
 
                 {/* AI role picker — only for non-experiment users (participants stay on their A/B condition) */}
                 {/* 角色选择器已移到输入框左侧的控件区 */}
+
+                {/* Question outline — collapsible quick-jump index of the student's questions */}
+                {messages.some(m => m.sender === Role.STUDENT) && (
+                    <div className="absolute right-3 bottom-28 z-20" ref={outlineRef}>
+                        {outlineOpen && (
+                            <div className="absolute bottom-full right-0 mb-2 w-64 max-h-[55vh] overflow-y-auto rounded-xl border shadow-xl p-2 animate-in fade-in slide-in-from-bottom-1" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
+                                <p className="text-[11px] font-bold px-2 py-1" style={{ color: colors.textSecondary }}>{isEN ? 'My questions · click to jump' : '我的问题 · 点击跳转'}</p>
+                                {messages.filter(m => m.sender === Role.STUDENT).map((m, i) => (
+                                    <button key={m.id} onClick={() => { document.getElementById(`m-${m.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); setOutlineOpen(false); }}
+                                        className="w-full text-left px-2 py-1.5 rounded-lg text-xs hover:bg-blue-500/10 transition-colors flex gap-2" style={{ color: colors.text }}>
+                                        <span className="text-blue-500 font-mono shrink-0">{i + 1}.</span>
+                                        <span className="truncate">{(m.content || '').replace(/\n+/g, ' ').replace(/[#*`>]/g, '').trim().slice(0, 42) || '（图片/附件）'}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        <button onClick={() => setOutlineOpen(v => !v)} title={isEN ? 'Question outline' : '问题目录'}
+                            className="w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105 border backdrop-blur"
+                            style={{ backgroundColor: colors.card, borderColor: colors.border, color: outlineOpen ? colors.primary : colors.textSecondary }}>
+                            <IpList theme="outline" size={18} fill={outlineOpen ? '#2563EB' : 'currentColor'} />
+                        </button>
+                    </div>
+                )}
 
                 {/* Input */}
                 <div className="px-3 sm:px-4 pb-4">
