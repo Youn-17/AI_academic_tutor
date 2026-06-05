@@ -8,9 +8,11 @@ export type Segment =
   | { type: 'compare'; left: { title: string; body: string }; right: { title: string; body: string } }
   | { type: 'steps'; steps: { done: boolean; text: string }[] }
   | { type: 'metric'; title?: string; metrics: { label: string; value: string }[] }
-  | { type: 'keyidea'; body: string };
+  | { type: 'keyidea'; body: string }
+  | { type: 'tasklist'; tasks: { done: boolean; text: string }[] }
+  | { type: 'htmlviz'; html: string; height: number };
 
-const CARD_RE = /<(compare-card|steps-card|metric-card|key-idea)((?:\s[^>]*)?)>([\s\S]*?)<\/\1>/g;
+const CARD_RE = /<(compare-card|steps-card|metric-card|key-idea|task-list|html-viz)((?:\s[^>]*)?)>([\s\S]*?)<\/\1>/g;
 
 function attr(s: string | undefined, name: string): string | undefined {
   if (!s) return undefined;
@@ -26,7 +28,20 @@ export function hasCards(text: string): boolean {
 // Strip just the card tags (keep the inner text) — used to keep the live streaming view clean
 // before the final message renders the real cards.
 export function stripCardTags(text: string): string {
-  return (text || '').replace(/<\/?(compare-card|steps-card|metric-card|key-idea|left|right|step|metric)((?:\s[^>]*)?)\/?>/gi, '');
+  return (text || '')
+    .replace(/<html-viz[\s\S]*?<\/html-viz>/gi, '［可视化生成中…］')
+    .replace(/<follow-ups[\s\S]*?<\/follow-ups>/gi, '')
+    .replace(/<\/?(compare-card|steps-card|metric-card|key-idea|task-list|left|right|step|metric|task)((?:\s[^>]*)?)\/?>/gi, '');
+}
+
+// Pull a trailing <follow-ups> block out so it renders as clickable suggestion chips below the answer.
+export function extractFollowUps(text: string): { text: string; questions: string[] } {
+  const m = (text || '').match(/<follow-ups((?:\s[^>]*)?)>([\s\S]*?)<\/follow-ups>/i);
+  if (!m) return { text: text || '', questions: [] };
+  const questions = [...m[2].matchAll(/<q((?:\s[^>]*)?)>([\s\S]*?)<\/q>/gi)]
+    .map((q) => (q[2] || '').replace(/\s+/g, ' ').trim()).filter(Boolean).slice(0, 4);
+  const cleaned = ((text.slice(0, m.index) + text.slice((m.index || 0) + m[0].length))).trim();
+  return { text: cleaned, questions };
 }
 
 export function parseGenerative(text: string): Segment[] {
@@ -61,6 +76,15 @@ export function parseGenerative(text: string): Segment[] {
         if (metrics.length) segs.push({ type: 'metric', title: attr(attrs, 'title'), metrics });
       } else if (kind === 'key-idea') {
         segs.push({ type: 'keyidea', body: inner.trim() });
+      } else if (kind === 'task-list') {
+        const tasks = [...inner.matchAll(/<task((?:\s[^>]*)?)>([\s\S]*?)<\/task>/gi)].map((s) => ({
+          done: /true|done|完成|✓/i.test(attr(s[1], 'done') || ''),
+          text: (s[2] || '').replace(/\s+/g, ' ').trim(),
+        })).filter((t) => t.text);
+        if (tasks.length) segs.push({ type: 'tasklist', tasks });
+      } else if (kind === 'html-viz') {
+        const h = parseInt(attr(attrs, 'height') || '320', 10);
+        segs.push({ type: 'htmlviz', html: inner.trim(), height: isNaN(h) ? 320 : Math.min(Math.max(h, 120), 600) });
       }
     } catch {
       segs.push({ type: 'md', text: m[0] }); // malformed → show as raw text

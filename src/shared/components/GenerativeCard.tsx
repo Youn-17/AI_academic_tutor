@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import MarkdownView from './MarkdownView';
-import { Check, Circle, Lightbulb } from 'lucide-react';
+import { Check, Circle, Lightbulb, Sparkles } from 'lucide-react';
 import type { Segment } from '@/lib/generativeContent';
 
 // Renders one generative-UI card. The AI emits the markup; these are the components it drives.
@@ -10,7 +10,52 @@ const MD: React.FC<{ children: string }> = ({ children }) => (
   <MarkdownView className={cardProse}>{children}</MarkdownView>
 );
 
+const simpleHash = (s: string) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h).toString(36); };
+
+// Level-3 interactive: a checkable task list whose tick state persists in localStorage.
+const TaskList: React.FC<{ tasks: { done: boolean; text: string }[] }> = ({ tasks }) => {
+  const key = 'hak_task_' + simpleHash(tasks.map((t) => t.text).join('|'));
+  const [done, setDone] = useState<Record<number, boolean>>(() => {
+    try { const s = JSON.parse(localStorage.getItem(key) || 'null'); if (s && typeof s === 'object') return s; } catch { /* ignore */ }
+    return Object.fromEntries(tasks.map((t, i) => [i, t.done]));
+  });
+  const toggle = (i: number) => setDone((d) => { const n = { ...d, [i]: !d[i] }; try { localStorage.setItem(key, JSON.stringify(n)); } catch { /* ignore */ } return n; });
+  const total = tasks.length;
+  const completed = tasks.filter((_, i) => done[i]).length;
+  return (
+    <div className="my-3 rounded-xl border border-slate-200 bg-white shadow-sm px-3 py-2.5">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-xs font-semibold text-slate-600">任务清单</span>
+        <span className="text-[11px] text-slate-400 tabular-nums">{completed}/{total}</span>
+      </div>
+      <div className="h-1 rounded-full bg-slate-100 mb-2 overflow-hidden"><div className="h-full bg-emerald-400 transition-all duration-300" style={{ width: `${total ? (completed / total) * 100 : 0}%` }} /></div>
+      <ul className="space-y-1">
+        {tasks.map((t, i) => (
+          <li key={i}>
+            <button onClick={() => toggle(i)} className="flex items-start gap-2 text-left w-full group/task">
+              <span className={`mt-0.5 shrink-0 w-[16px] h-[16px] rounded flex items-center justify-center border transition-colors ${done[i] ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 group-hover/task:border-emerald-400'}`}>{done[i] && <Check size={11} className="text-white" />}</span>
+              <span className={`text-sm ${done[i] ? 'text-slate-400 line-through decoration-slate-300' : 'text-slate-700'}`}>{t.text}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+// Level-4 open-ended: AI-generated self-contained HTML/SVG in a sandboxed iframe (no same-origin
+// → can't touch the parent, cookies or network-of-record), so the model can ship interactive
+// visualizations (sliders, animations, diagrams) safely.
+const HtmlViz: React.FC<{ html: string; height: number }> = ({ html, height }) => (
+  <div className="my-3 rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+    <div className="px-3 py-1 bg-slate-50 border-b border-slate-200 text-[10px] font-mono text-slate-400 flex items-center gap-1"><Sparkles size={10} /> 交互可视化</div>
+    <iframe sandbox="allow-scripts allow-popups" srcDoc={html} className="w-full block bg-white" style={{ height, border: 0 }} title="交互可视化" loading="lazy" />
+  </div>
+);
+
 const GenerativeCard: React.FC<{ seg: Segment }> = ({ seg }) => {
+  if (seg.type === 'tasklist') return <TaskList tasks={seg.tasks} />;
+  if (seg.type === 'htmlviz') return <HtmlViz html={seg.html} height={seg.height} />;
   if (seg.type === 'compare') {
     return (
       <div className="my-3 rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">

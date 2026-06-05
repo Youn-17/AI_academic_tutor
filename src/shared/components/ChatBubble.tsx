@@ -6,6 +6,7 @@ import { RiRobot2Line } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import GeneratedChart from '@/features/student/components/GeneratedChart';
 import GenerativeAnswer from '@/shared/components/GenerativeAnswer';
+import { extractFollowUps } from '@/lib/generativeContent';
 import AITutorAvatar from '@/shared/components/AITutorAvatar';
 import StudentAvatar from '@/shared/components/StudentAvatar';
 import { bubbleBg } from '@/lib/chatPrefs';
@@ -19,9 +20,10 @@ interface ChatBubbleProps {
   userAvatarId?: string;  // student-chosen avatar (chatPrefs)
   aiRoleId?: string;      // current agent role → drives the AI tutor's illustrated avatar
   onFeedback?: (kind: 'helpful' | 'improve') => void;  // student rates the AI reply (RLHF preference signal)
+  onFollowUp?: (q: string) => void;  // student clicks a suggested follow-up chip
 }
 
-const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, bubbleTheme, userAvatarId, aiRoleId, onFeedback }) => {
+const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, bubbleTheme, userAvatarId, aiRoleId, onFeedback, onFollowUp }) => {
   const isStudent = message.sender === Role.STUDENT;
   const isSupervisor = message.sender === Role.SUPERVISOR;
   const isAI = message.sender === Role.AI;
@@ -33,6 +35,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, b
   // already strips at the source; this also cleans messages stored earlier.
   const cleanedContent = (message.content || '')
     .replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/gi, '').trim() || message.content;
+  const { text: displayContent, questions: followUps } = extractFollowUps(cleanedContent);
 
   // Shared markdown typography — a comfortable CJK reading rhythm + a real heading hierarchy so
   // sections read as groups (the old prose-p:my-1.5 / prose-headings:my-2 collapsed everything into
@@ -68,7 +71,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, b
   const [copied, setCopied] = useState(false);
   const [feedback, setFeedback] = useState<'helpful' | 'improve' | null>(null);
   const handleCopy = () => {
-    navigator.clipboard?.writeText(cleanedContent)
+    navigator.clipboard?.writeText(displayContent)
       .then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); })
       .catch(() => { /* ignore */ });
   };
@@ -163,7 +166,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, b
               // get the structured 概要 + collapsible-section treatment; others render straight.
               <div className="relative max-w-[44rem]">
                 {isAI ? (
-                  <GenerativeAnswer content={cleanedContent} proseClass={proseClass} />
+                  <GenerativeAnswer content={displayContent} proseClass={proseClass} />
                 ) : (
                   <MarkdownView className={proseClass}>{cleanedContent}</MarkdownView>
                 )}
@@ -218,6 +221,17 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, b
             )}
 
           </div>
+
+          {/* Follow-up suggestion chips (AI) — one click asks it */}
+          {isAI && followUps.length > 0 && onFollowUp && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {followUps.map((q, i) => (
+                <button key={i} onClick={() => onFollowUp(q)} className="text-xs px-2.5 py-1 rounded-full border border-blue-200 text-blue-600 bg-blue-50/50 hover:bg-blue-100 transition-colors text-left leading-snug">
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Hover toolbar — sits just under the bubble, aligned to its side, fitting the message */}
           {!isEditing && (

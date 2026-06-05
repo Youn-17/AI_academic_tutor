@@ -370,8 +370,14 @@ export const AGENT_ROLES: AgentRole[] = [
   { id: 'coding', name: '编程导师', nameEn: 'Programming Tutor', emoji: '💻', icon: Code, desc: '工程素养教练：复现→假设→红绿重构，不替你交代码', category: 'course', prompt: withGuard(P_coding) },
 ];
 
+// More generative-UI markers (Level-3 interactive task list, Level-4 sandboxed viz, follow-up chips).
+export const GENERATIVE_UI_GUIDE2 = `
+- **可勾选任务清单**（学生能逐项打勾，进度本地记住）：\`<task-list><task done="false">第一步</task><task done="false">第二步</task></task-list>\`
+- **交互可视化**（仅当动态演示确有帮助，如概率滑块 / 算法动画 / 几何或函数图；自包含，别引外部网络资源）：\`<html-viz height="360">…自包含 HTML/SVG，可含 <style> 与 <script>…</html-viz>\`
+- **追问建议**（放回答最末尾，给 2–3 个学生可能接着问的问题，会渲染成可点芯片）：\`<follow-ups><q>问题一</q><q>问题二</q></follow-ups>\``;
+
 export function getRolePrompt(id: string): string {
-  return (AGENT_ROLES.find((r) => r.id === id) || AGENT_ROLES[0]).prompt + GENERATIVE_UI_GUIDE;
+  return (AGENT_ROLES.find((r) => r.id === id) || AGENT_ROLES[0]).prompt + GENERATIVE_UI_GUIDE + GENERATIVE_UI_GUIDE2;
 }
 
 // Illustrated avatar for a role (public/SVG/roles/role-<id>.svg). Falls back to the default tutor

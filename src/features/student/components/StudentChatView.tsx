@@ -610,7 +610,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                         {/* Messages */}
                         {messages.map(msg => (
                             <div key={msg.id} id={`m-${msg.id}`}>
-                                <ChatBubble message={msg} onEdit={onEditMessage ? (c) => onEditMessage(msg.id, c) : undefined} bubbleTheme={bubbleTheme} userAvatarId={userAvatarId} aiRoleId={selectedRole} onFeedback={(kind) => logResearchEvent({ event_type: 'preference', event_subtype: kind, session_id: activeChat.id, active_role: selectedRole, model: selectedModel, message_id: msg.id, payload: { kind } })} />
+                                <ChatBubble message={msg} onEdit={onEditMessage ? (c) => onEditMessage(msg.id, c) : undefined} bubbleTheme={bubbleTheme} userAvatarId={userAvatarId} aiRoleId={selectedRole} onFeedback={(kind) => logResearchEvent({ event_type: 'preference', event_subtype: kind, session_id: activeChat.id, active_role: selectedRole, model: selectedModel, message_id: msg.id, payload: { kind } })} onFollowUp={(q) => onSendMessage(q)} />
                             </div>
                         ))}
 
