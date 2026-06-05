@@ -51,6 +51,7 @@ export interface Message {
   chartData?: any;
   // run_python (code-interpreter) outputs: base64 PNG charts + downloadable files (transient, not persisted)
   artifacts?: { charts: string[]; files: { name: string; b64?: string; url?: string }[] };
+  agentSteps?: { tool?: string; status?: string; found?: number; label?: string }[];  // tool-call summary kept in the transcript (transient, not persisted in DB)
 }
 
 export interface Conversation {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Message, Role } from '@/types';
-import { User, Bot, ShieldAlert, Copy, ThumbsUp, ThumbsDown, Book, ExternalLink, Activity, Edit2, X, Check } from 'lucide-react';
+import { User, Bot, ShieldAlert, Copy, ThumbsUp, ThumbsDown, Book, ExternalLink, Activity, Edit2, X, Check, Wrench } from 'lucide-react';
 import MarkdownView from '@/shared/components/MarkdownView';
 import { RiRobot2Line } from '@remixicon/react';
 import { cn } from '@/lib/utils';
@@ -21,9 +21,10 @@ interface ChatBubbleProps {
   aiRoleId?: string;      // current agent role → drives the AI tutor's illustrated avatar
   onFeedback?: (kind: 'helpful' | 'improve') => void;  // student rates the AI reply (RLHF preference signal)
   onFollowUp?: (q: string) => void;  // student clicks a suggested follow-up chip
+  onRegenerate?: () => void;  // re-run this AI reply from the prompting question
 }
 
-const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, bubbleTheme, userAvatarId, aiRoleId, onFeedback, onFollowUp }) => {
+const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, bubbleTheme, userAvatarId, aiRoleId, onFeedback, onFollowUp, onRegenerate }) => {
   const isStudent = message.sender === Role.STUDENT;
   const isSupervisor = message.sender === Role.SUPERVISOR;
   const isAI = message.sender === Role.AI;
@@ -165,6 +166,19 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, b
               // the bubble can still go wide for tables/code/charts (they scroll inside). AI answers
               // get the structured 概要 + collapsible-section treatment; others render straight.
               <div className="relative max-w-[44rem]">
+                {isAI && message.agentSteps && message.agentSteps.length > 0 && (
+                  <details className="mb-2 text-xs">
+                    <summary className="cursor-pointer select-none text-secondary-light hover:text-primary flex items-center gap-1.5"><Wrench size={12} /> 用了 {message.agentSteps.length} 个工具</summary>
+                    <div className="mt-1.5 space-y-1 pl-1">
+                      {message.agentSteps.map((s, i) => (
+                        <div key={i} className="flex items-center gap-2 text-secondary-light">
+                          <Check size={12} className="text-emerald-500 shrink-0" />
+                          <span>{s.label || s.tool}{s.found != null ? ` · ${s.found} 条` : ''}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
                 {isAI ? (
                   <GenerativeAnswer content={displayContent} proseClass={proseClass} />
                 ) : (
@@ -249,6 +263,9 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, b
               )}
               {isAI && (
                 <>
+                  {onRegenerate && (
+                    <button onClick={onRegenerate} title="重答" className="p-1.5 rounded-md text-secondary-light hover:text-primary hover:bg-secondary/40 transition-colors"><RefreshCw size={13} /></button>
+                  )}
                   <button onClick={() => { setFeedback('helpful'); onFeedback?.('helpful'); }} title={feedback === 'helpful' ? '已标记：有帮助' : '有帮助'} className={cn("p-1.5 rounded-md transition-colors", feedback === 'helpful' ? "text-emerald-500 bg-emerald-50" : "text-secondary-light hover:text-primary hover:bg-secondary/40")}><ThumbsUp size={13} /></button>
                   <button onClick={() => { setFeedback('improve'); onFeedback?.('improve'); }} title={feedback === 'improve' ? '已标记：待改进' : '待改进'} className={cn("p-1.5 rounded-md transition-colors", feedback === 'improve' ? "text-rose-500 bg-rose-50" : "text-secondary-light hover:text-rose-500 hover:bg-secondary/40")}><ThumbsDown size={13} /></button>
                   {message.citations && message.citations.length > 0 && (

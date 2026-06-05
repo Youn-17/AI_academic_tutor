@@ -30,6 +30,7 @@ interface StudentChatViewProps {
     streamingContent: string;
     onSendMessage: (content: string, file?: File) => Promise<boolean | void>;
     onEditMessage?: (messageId: string, newContent: string) => Promise<void>;
+    onRegenerate?: (aiMessageId: string) => Promise<void>;
     selectedModel: string;
     onModelSelect: (modelId: string) => void;
     useRag?: boolean;
@@ -55,7 +56,7 @@ type FontSize = 'sm' | 'base' | 'lg';
 
 const StudentChatView: React.FC<StudentChatViewProps> = ({
     activeChat, messages, loading, streamingContent,
-    onSendMessage, onEditMessage, selectedModel, onModelSelect,
+    onSendMessage, onEditMessage, onRegenerate, selectedModel, onModelSelect,
     useRag = false, onToggleRag,
     theme, onToggleTheme, locale, onLocaleChange, onClearChat, onExportChat,
     agentSteps, reasoning, onStop,
@@ -67,6 +68,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
     const [attachMenuOpen, setAttachMenuOpen] = useState(false);
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+    const [showJump, setShowJump] = useState(false);
     const [showSearchInput, setShowSearchInput] = useState(false);
     const [prefMenuOpen, setPrefMenuOpen] = useState(false);
     const [bubbleTheme, setBubbleThemeS] = useState<string>(() => getBubbleTheme());
@@ -504,7 +506,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                 </header>
 
                 {/* Messages */}
-                <div ref={scrollContainerRef} className="flex-1 overflow-y-auto w-full" onMouseUp={handleTextSelection} onScroll={(e) => { setKbSel(null); const el = e.currentTarget; nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120; }}>
+                <div ref={scrollContainerRef} className="flex-1 overflow-y-auto w-full" onMouseUp={handleTextSelection} onScroll={(e) => { setKbSel(null); const el = e.currentTarget; const gap = el.scrollHeight - el.scrollTop - el.clientHeight; nearBottomRef.current = gap < 120; setShowJump(gap > 280); }}>
                     {createPortal(
                         <>
                             {kbSel && (
@@ -610,7 +612,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                         {/* Messages */}
                         {messages.map(msg => (
                             <div key={msg.id} id={`m-${msg.id}`}>
-                                <ChatBubble message={msg} onEdit={onEditMessage ? (c) => onEditMessage(msg.id, c) : undefined} bubbleTheme={bubbleTheme} userAvatarId={userAvatarId} aiRoleId={selectedRole} onFeedback={(kind) => logResearchEvent({ event_type: 'preference', event_subtype: kind, session_id: activeChat.id, active_role: selectedRole, model: selectedModel, message_id: msg.id, payload: { kind } })} onFollowUp={(q) => onSendMessage(q)} />
+                                <ChatBubble message={msg} onEdit={onEditMessage ? (c) => onEditMessage(msg.id, c) : undefined} bubbleTheme={bubbleTheme} userAvatarId={userAvatarId} aiRoleId={selectedRole} onFeedback={(kind) => logResearchEvent({ event_type: 'preference', event_subtype: kind, session_id: activeChat.id, active_role: selectedRole, model: selectedModel, message_id: msg.id, payload: { kind } })} onFollowUp={(q) => onSendMessage(q)} onRegenerate={onRegenerate ? () => onRegenerate(msg.id) : undefined} />
                             </div>
                         ))}
 
@@ -651,6 +653,13 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                 {/* 角色选择器已移到输入框左侧的控件区 */}
 
                 {/* Question outline — collapsible quick-jump index of the student's questions */}
+                {showJump && (
+                  <button onClick={() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })} title="回到最新"
+                    className="absolute left-1/2 -translate-x-1/2 bottom-28 z-20 w-9 h-9 rounded-full shadow-lg border flex items-center justify-center transition-all hover:scale-105 animate-in fade-in"
+                    style={{ backgroundColor: colors.card, borderColor: colors.border, color: colors.primary }}>
+                    <ChevronDown size={18} />
+                  </button>
+                )}
                 {messages.some(m => m.sender === Role.STUDENT) && (
                     <div className="absolute right-3 bottom-28 z-20" ref={outlineRef}>
                         {outlineOpen && (

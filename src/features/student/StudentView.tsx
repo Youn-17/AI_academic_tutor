@@ -250,6 +250,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     let fullResponse = '';
     let ragSources: { id: string; source_title: string; layer: number }[] = [];
     let collectedArtifacts: { charts: string[]; files: { name: string; b64?: string; url?: string }[] } | undefined;
+    const collectedSteps: { tool?: string; status?: string; found?: number; label?: string }[] = [];
 
     try {
       for await (const chunk of streamChat(chatHistory, config, sysPrompt, ragOptions,
@@ -257,8 +258,8 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
         {
           signal: abort.signal,
           use_agent: useAgent,
-          onAgentStep: (step) => { setAgentSteps(prev => [...prev, step]); if (step.status === 'running' && step.tool) logTool(step.tool); },
-          onTeamStep: (s) => { setAgentSteps(prev => [...prev, teamStepEntry(s)]); if (s.phase === 'plan' && s.status === 'done') logTool('research_team', { plan: (s.plan || []).map((p: any) => p.role) }); },
+          onAgentStep: (step) => { setAgentSteps(prev => [...prev, step]); collectedSteps.push(step); if (step.status === 'running' && step.tool) logTool(step.tool); },
+          onTeamStep: (s) => { const e = teamStepEntry(s); setAgentSteps(prev => [...prev, e]); collectedSteps.push(e); if (s.phase === 'plan' && s.status === 'done') logTool('research_team', { plan: (s.plan || []).map((p: any) => p.role) }); },
           onReasoning: (t) => setReasoning(prev => prev + t),
           onArtifacts: (a) => { collectedArtifacts = a; },
           onUsage: (u) => logModelUsage({ conversation_id: convId, provider: config.provider, model: u.model || config.model, active_role: condition === 'A_direct' ? null : selectedRole, mode: u.mode, prompt_tokens: u.prompt_tokens, completion_tokens: u.completion_tokens, total_tokens: u.total_tokens, provider_calls: u.provider_calls, tools: u.tools, safety_blocked: u.safety_blocked }),
@@ -275,7 +276,8 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     const citations = ragSources.map(s => ({ id: s.id, title: s.source_title, source: s.source_title, author: '', year: 0, url: '' }));
     const aiMessage = await ConversationService.sendMessage(convId, fullResponse, Role.AI, selectedModel, citations);
     logResearchEvent({ event_type: 'ai_response', event_subtype: selectedModel === 'team' ? 'team' : (condition === 'A_direct' ? 'direct' : selectedRole), session_id: convId, condition, active_role: selectedRole, model: selectedModel, message_id: aiMessage.id, payload: { chars: fullResponse.length, n_citations: citations.length, n_artifacts: (collectedArtifacts?.charts?.length || 0) + (collectedArtifacts?.files?.length || 0) } });
-    if (convId === activeChatIdRef.current) setMessages(prev => [...prev, collectedArtifacts ? { ...aiMessage, artifacts: collectedArtifacts } : aiMessage]);
+    const doneSteps = collectedSteps.filter(s => s.status === 'done');
+    if (convId === activeChatIdRef.current) setMessages(prev => [...prev, { ...aiMessage, ...(collectedArtifacts ? { artifacts: collectedArtifacts } : {}), ...(doneSteps.length ? { agentSteps: doneSteps } : {}) }]);
   };
 
   const handleSendMessage = async (content: string, file?: File): Promise<boolean | void> => {
@@ -414,6 +416,15 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       sendingRef.current = false;
       abortRef.current = null;
     }
+  };
+
+  // Regenerate: re-run the turn from the user message that prompted this AI reply (reuses the edit path).
+  const handleRegenerate = async (aiMessageId: string) => {
+    const idx = messages.findIndex(m => m.id === aiMessageId);
+    if (idx <= 0) return;
+    let u = idx - 1;
+    while (u >= 0 && messages[u].sender !== Role.STUDENT) u--;
+    if (u >= 0) await handleEditMessage(messages[u].id, messages[u].content);
   };
 
   const handleUpdateTags = async (id: string, tags: string[]) => {
@@ -562,6 +573,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
             streamingContent={streamingContent}
             onSendMessage={handleSendMessage}
             onEditMessage={handleEditMessage}
+            onRegenerate={handleRegenerate}
             selectedModel={selectedModel}
             onModelSelect={(m) => { setSelectedModel(m); logResearchEvent({ event_type: 'model_switched', event_subtype: m, session_id: activeChatIdRef.current, condition }); }}
             useRag={useRag}
