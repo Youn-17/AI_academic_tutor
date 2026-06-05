@@ -6,6 +6,7 @@ import StudentProfile from '@/features/student/components/StudentProfile';
 import StudentKnowledgeView from '@/features/student/StudentKnowledgeView';
 import StudentSidebar from '@/features/student/components/StudentSidebar';
 import StudentChatView from '@/features/student/components/StudentChatView';
+import ConsentEnrollmentPage from '@/features/student/ConsentEnrollmentPage';
 
 import { useAuth } from '@/features/auth/AuthProvider';
 import * as ConversationService from '@/services/ConversationService';
@@ -13,9 +14,9 @@ import { streamChat, AI_CONFIGS, AI_MODELS, SYSTEM_PROMPTS, ChatMessage } from '
 import { getRolePrompt } from '@/services/AgentRoles';
 import { logResearchEvent } from '@/services/ResearchLog';
 import { readFileContent } from '@/services/DocumentService';
-import { getMyCondition, type StudyCondition } from '@/services/StudyService';
+import { getMyCondition, getEnrollmentStatus, enrollInStudy, type StudyCondition } from '@/services/StudyService';
 import { useToast, useConfirm } from '@/shared/components/FeedbackProvider';
-import { Menu } from 'lucide-react';
+import { Menu, Loader2 } from 'lucide-react';
 
 interface StudentViewProps {
   onLogout: () => void;
@@ -65,6 +66,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
   const toast = useToast();
   const confirm = useConfirm();
   const [mobileNav, setMobileNav] = useState(false);
+  const [enrollState, setEnrollState] = useState<'checking' | 'needed' | 'done'>('checking');
 
   // State
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -140,6 +142,13 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       setCondition(c);
       if (c === 'B_socratic') setUseRag(true);
       else if (c === 'A_direct') setUseRag(false);
+    });
+  }, []);
+
+  // 首次进入:无入组记录或 consent 仍为 pending → 展示知情同意入组页(其余直接进工作区)
+  useEffect(() => {
+    getEnrollmentStatus().then(st => {
+      setEnrollState(!st || st.consent_status === 'pending' ? 'needed' : 'done');
     });
   }, []);
 
@@ -463,6 +472,32 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
     setViewMode(v);
     setActiveChatId('');
   };
+
+  const handleConsentRespond = async (consent: boolean) => {
+    const ok = await enrollInStudy(consent);
+    if (!ok) {
+      toast(locale === 'en' ? 'Network error, please try again.' : '网络异常，请重试。', 'error');
+      return;
+    }
+    // refresh condition (granted → A/B + RAG default; declined → null = platform default)
+    const c = await getMyCondition();
+    setCondition(c);
+    if (c === 'B_socratic') setUseRag(true);
+    else if (c === 'A_direct') setUseRag(false);
+    setEnrollState('done');
+  };
+
+  // Informed-consent enrollment gate — a research participant responds once before using the platform.
+  if (enrollState === 'checking') {
+    return (
+      <div className={`flex h-screen items-center justify-center ${theme === 'light' ? 'bg-slate-50' : 'bg-[#020617]'}`}>
+        <Loader2 size={28} className="animate-spin text-blue-500" />
+      </div>
+    );
+  }
+  if (enrollState === 'needed') {
+    return <ConsentEnrollmentPage locale={locale} onRespond={handleConsentRespond} />;
+  }
 
   return (
     <div className={`flex h-screen overflow-hidden font-sans ${theme === 'light' ? 'bg-slate-50 text-slate-900' : 'bg-[#020617] text-slate-50'}`}>
