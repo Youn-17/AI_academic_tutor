@@ -7,14 +7,19 @@ import { RiRobot2Line } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import GeneratedChart from '@/features/student/components/GeneratedChart';
 import StructuredAnswer from '@/shared/components/StructuredAnswer';
+import AITutorAvatar from '@/shared/components/AITutorAvatar';
+import { bubbleBg, avatarIcon } from '@/lib/chatPrefs';
+import { RefreshCw } from 'lucide-react';
 
 interface ChatBubbleProps {
   message: Message;
   onEdit?: (newContent: string) => void;
   studentName?: string;   // teacher view: label the student's own messages with their name, not "我"
+  bubbleTheme?: string;   // student-chosen bubble colour (chatPrefs)
+  userAvatarId?: string;  // student-chosen avatar (chatPrefs)
 }
 
-const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName }) => {
+const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, bubbleTheme, userAvatarId }) => {
   const isStudent = message.sender === Role.STUDENT;
   const isSupervisor = message.sender === Role.SUPERVISOR;
   const isAI = message.sender === Role.AI;
@@ -58,6 +63,13 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName })
     setIsEditing(false);
   };
 
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard?.writeText(cleanedContent)
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); })
+      .catch(() => { /* ignore */ });
+  };
+
   return (
     <div className={cn(
       "flex w-full mb-8 animate-in fade-in slide-in-from-bottom-2 duration-300",
@@ -69,19 +81,24 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName })
       )}>
 
         {/* Avatar */}
-        <div className={cn(
-          "flex-shrink-0 h-10 w-10 rounded-lg flex items-center justify-center shadow-sm mt-0 ring-1 ring-white/10",
-          isStudent ? "bg-primary text-primary-foreground" :
-            isSupervisor ? "bg-amber-100 text-amber-700" :
-              "bg-white border border-secondary/20 text-primary"
-        )}>
-          {isStudent && <User size={18} />}
-          {isSupervisor && <ShieldAlert size={18} />}
-          {isAI && <RiRobot2Line size={18} />}
-        </div>
+        {isAI ? (
+          <div className="flex-shrink-0"><AITutorAvatar size="lg" animate={false} /></div>
+        ) : (
+          <div
+            style={isStudent ? { background: bubbleBg(bubbleTheme) } : undefined}
+            className={cn(
+              "flex-shrink-0 h-10 w-10 rounded-xl flex items-center justify-center shadow-sm ring-1 ring-white/10",
+              isStudent ? "text-white" : "bg-amber-100 text-amber-700"
+            )}
+          >
+            {isStudent
+              ? (() => { const A = avatarIcon(userAvatarId); return <A theme="outline" size={20} fill="#fff" />; })()
+              : <ShieldAlert size={18} />}
+          </div>
+        )}
 
         {/* Bubble Content */}
-        <div className={cn("flex flex-col min-w-[200px]", isStudent ? "items-end" : "items-start")}>
+        <div className={cn("group flex flex-col min-w-[200px]", isStudent ? "items-end" : "items-start")}>
 
           {/* Sender Name Label */}
           <div className="flex items-center gap-2 mb-1.5 px-0.5">
@@ -94,10 +111,11 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName })
           </div>
 
           <div
+            style={isStudent ? { background: bubbleBg(bubbleTheme) } : undefined}
             className={cn(
-              "p-5 rounded-2xl text-sm leading-relaxed shadow-sm relative group transition-all font-sans",
+              "p-5 rounded-2xl text-sm leading-relaxed shadow-sm relative transition-all font-sans",
               isStudent
-                ? "bg-primary text-primary-foreground rounded-tr-sm"
+                ? "text-primary-foreground rounded-tr-sm"
                 : isSupervisor
                   ? "bg-amber-50/50 border border-amber-200/50 text-amber-900 rounded-tl-sm ring-1 ring-amber-100"
                   : "bg-white border border-border text-foreground rounded-tl-sm shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]"
@@ -155,18 +173,6 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName })
                   </div>
                 )}
 
-                {/* Edit Button Hook */}
-                {isStudent && onEdit && !isEditing && (
-                  <div className="absolute -left-10 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="p-2 bg-slate-100 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 rounded-full shadow-sm border border-slate-200"
-                      title="Edit & Regenerate"
-                    >
-                      <Edit2 size={12} />
-                    </button>
-                  </div>
-                )}
               </div>
             )}
 
@@ -216,28 +222,33 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName })
               </div>
             )}
 
-            {/* AI Actions */}
-            {isAI && (
-              <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="p-1.5 hover:bg-secondary/50 rounded-md text-secondary-light hover:text-primary transition-colors" title="Copy">
-                  <Copy size={14} />
-                </button>
-                <div className="h-4 w-px bg-border mx-1"></div>
-                <button className="p-1.5 hover:bg-secondary/50 rounded-md text-secondary-light hover:text-primary transition-colors" title="Helpful">
-                  <ThumbsUp size={14} />
-                </button>
-                <button className="p-1.5 hover:bg-secondary/50 rounded-md text-secondary-light hover:text-rose-500 transition-colors" title="Not Helpful">
-                  <ThumbsDown size={14} />
-                </button>
-                {message.citations && message.citations.length > 0 && (
-                  <span className="text-[10px] text-secondary-light ml-auto font-mono flex items-center gap-1" title="本回答检索到知识库来源">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                    RAG · {message.citations.length} sources
-                  </span>
-                )}
-              </div>
-            )}
           </div>
+
+          {/* Hover toolbar — sits just under the bubble, aligned to its side, fitting the message */}
+          {!isEditing && (
+            <div className={cn(
+              "flex items-center gap-0.5 mt-1.5 px-0.5 opacity-0 group-hover:opacity-100 transition-opacity",
+              isStudent && "flex-row-reverse"
+            )}>
+              <button onClick={handleCopy} title={copied ? '已复制' : '复制'} className="p-1.5 rounded-md text-secondary-light hover:text-primary hover:bg-secondary/40 transition-colors">
+                {copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
+              </button>
+              {isStudent && onEdit && (
+                <button onClick={() => setIsEditing(true)} title="编辑并重新发送" className="p-1.5 rounded-md text-secondary-light hover:text-primary hover:bg-secondary/40 transition-colors">
+                  <RefreshCw size={13} />
+                </button>
+              )}
+              {isAI && (
+                <>
+                  <button title="有帮助" className="p-1.5 rounded-md text-secondary-light hover:text-primary hover:bg-secondary/40 transition-colors"><ThumbsUp size={13} /></button>
+                  <button title="待改进" className="p-1.5 rounded-md text-secondary-light hover:text-rose-500 hover:bg-secondary/40 transition-colors"><ThumbsDown size={13} /></button>
+                  {message.citations && message.citations.length > 0 && (
+                    <span className="ml-1 text-[10px] text-secondary-light font-mono flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-500" />RAG · {message.citations.length}</span>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

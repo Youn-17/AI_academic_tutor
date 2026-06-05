@@ -17,7 +17,8 @@ import { createPortal } from 'react-dom';
 import { saveSnippetToKnowledgeBase } from '@/services/SnippetService';
 import { AGENT_ROLES } from '@/services/AgentRoles';
 import { isSubmitEnter } from '@/lib/keyboard';
-import { Comment as IpComment, Code as IpCode, PeoplesTwo as IpTeam, Search as IpSearch, MagicWand as IpMagic } from '@icon-park/react';
+import { Comment as IpComment, Code as IpCode, PeoplesTwo as IpTeam, Search as IpSearch, MagicWand as IpMagic, Theme as IpTheme } from '@icon-park/react';
+import { BUBBLE_THEMES, USER_AVATARS, getBubbleTheme, setBubbleTheme, getUserAvatar, setUserAvatar } from '@/lib/chatPrefs';
 
 interface StudentChatViewProps {
     activeChat: Conversation;
@@ -64,6 +65,9 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     const [attachMenuOpen, setAttachMenuOpen] = useState(false);
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
     const [showSearchInput, setShowSearchInput] = useState(false);
+    const [prefMenuOpen, setPrefMenuOpen] = useState(false);
+    const [bubbleTheme, setBubbleThemeS] = useState<string>(() => getBubbleTheme());
+    const [userAvatarId, setUserAvatarS] = useState<string>(() => getUserAvatar());
 
     // UI State
     const [chatWidth, setChatWidth] = useState<ChatWidth>('wide');
@@ -125,6 +129,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
     const roleMenuRef = useRef<HTMLDivElement>(null);
     const attachMenuRef = useRef<HTMLDivElement>(null);
     const moreMenuRef = useRef<HTMLDivElement>(null);
+    const prefMenuRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const isDark = theme === 'dark';
     const isEN = locale === 'en';
@@ -163,6 +168,9 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
             }
             if (attachMenuRef.current && !attachMenuRef.current.contains(event.target as Node)) {
                 setAttachMenuOpen(false);
+            }
+            if (prefMenuRef.current && !prefMenuRef.current.contains(event.target as Node)) {
+                setPrefMenuOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -592,14 +600,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
 
                         {/* Messages */}
                         {messages.map(msg => (
-                            <div key={msg.id} className="group relative">
-                                <ChatBubble message={msg} onEdit={onEditMessage ? (c) => onEditMessage(msg.id, c) : undefined} />
-                                <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                                    <button onClick={() => handleCopyMessage(msg.content, msg.id)} className="p-1.5 rounded-lg shadow-md transition-all hover:scale-110" style={{ backgroundColor: colors.card }}>
-                                        {copiedMessageId === msg.id ? <Check size={12} className="text-blue-500" /> : <Copy size={12} style={{ color: colors.textSecondary }} />}
-                                    </button>
-                                </div>
-                            </div>
+                            <ChatBubble key={msg.id} message={msg} onEdit={onEditMessage ? (c) => onEditMessage(msg.id, c) : undefined} bubbleTheme={bubbleTheme} userAvatarId={userAvatarId} />
                         ))}
 
                         {/* Loading */}
@@ -727,6 +728,35 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                                         )}
                                     </div>
                                 )}
+                                {/* Personalization — bubble colour + avatar (student choice) */}
+                                <div className="relative" ref={prefMenuRef}>
+                                    <button onClick={() => setPrefMenuOpen(v => !v)} title={isEN ? 'Personalize' : '个性化（气泡颜色 / 头像）'}
+                                        className="p-2 rounded-full transition-all hover:bg-blue-500/10" style={{ color: prefMenuOpen ? colors.primary : colors.textSecondary }}>
+                                        <IpTheme theme="outline" size={18} fill={prefMenuOpen ? '#2563EB' : 'currentColor'} />
+                                    </button>
+                                    {prefMenuOpen && (
+                                        <div className="absolute bottom-full left-0 mb-2 w-60 rounded-xl border shadow-xl p-3 z-50" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
+                                            <p className="text-[11px] font-bold mb-2" style={{ color: colors.textSecondary }}>{isEN ? 'Bubble colour' : '气泡颜色'}</p>
+                                            <div className="flex flex-wrap gap-2 mb-3">
+                                                {BUBBLE_THEMES.map(t => (
+                                                    <button key={t.id} onClick={() => { setBubbleThemeS(t.id); setBubbleTheme(t.id); }} title={t.label}
+                                                        className={`w-7 h-7 rounded-full transition-transform hover:scale-110 ${bubbleTheme === t.id ? 'ring-2 ring-offset-1 ring-blue-500' : ''}`}
+                                                        style={{ background: t.bg }} />
+                                                ))}
+                                            </div>
+                                            <p className="text-[11px] font-bold mb-2" style={{ color: colors.textSecondary }}>{isEN ? 'My avatar' : '我的头像'}</p>
+                                            <div className="grid grid-cols-4 gap-1.5">
+                                                {USER_AVATARS.map(a => { const A = a.icon; return (
+                                                    <button key={a.id} onClick={() => { setUserAvatarS(a.id); setUserAvatar(a.id); }} title={a.label}
+                                                        className="h-9 rounded-lg flex items-center justify-center transition-all hover:bg-blue-500/5"
+                                                        style={{ color: colors.text, backgroundColor: userAvatarId === a.id ? 'rgba(37,99,235,0.12)' : undefined, boxShadow: userAvatarId === a.id ? 'inset 0 0 0 1px #60a5fa' : undefined }}>
+                                                        <A theme="outline" size={18} fill="currentColor" />
+                                                    </button>
+                                                ); })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={handleKeyDown} placeholder={messages.length === 0 ? (isEN ? 'What would you like to explore?' : '今天想探索什么？') : (isEN ? 'Continue...' : '继续讨论...')} rows={1} className="flex-1 bg-transparent border-none focus:ring-0 px-3 py-3 min-h-[44px] max-h-[150px] resize-none text-sm outline-none leading-relaxed" style={{ color: colors.text }} disabled={loading} />
