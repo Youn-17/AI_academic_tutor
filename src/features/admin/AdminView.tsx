@@ -655,10 +655,11 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                                         <div>
                                             <label className="block text-xs font-medium text-slate-600 mb-1">服务商</label>
                                             <select value={apiForm.provider}
-                                                onChange={e => setApiForm(f => ({ ...f, provider: e.target.value, model: e.target.value === 'deepseek' ? 'deepseek-chat' : 'glm-4-flash' }))}
+                                                onChange={e => { const p = e.target.value; setApiForm(f => ({ ...f, provider: p, model: p === 'deepseek' ? 'deepseek-chat' : p === 'minimax' ? 'MiniMax-M3' : 'glm-4-flash' })); }}
                                                 className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20">
                                                 <option value="deepseek">DeepSeek</option>
                                                 <option value="zhipu">智谱 AI</option>
+                                                <option value="minimax">MiniMax</option>
                                             </select>
                                         </div>
                                         <div>
@@ -667,6 +668,8 @@ const AdminView: React.FC<AdminViewProps> = ({ onLogout }) => {
                                                 className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20">
                                                 {apiForm.provider === 'deepseek'
                                                     ? <><option value="deepseek-chat">deepseek-chat</option><option value="deepseek-reasoner">deepseek-reasoner</option></>
+                                                    : apiForm.provider === 'minimax'
+                                                    ? <><option value="MiniMax-M3">MiniMax-M3</option><option value="MiniMax-M2.7-highspeed">MiniMax-M2.7-highspeed</option><option value="MiniMax-M2.7">MiniMax-M2.7</option></>
                                                     : <><option value="glm-4-flash">glm-4-flash</option><option value="glm-4">glm-4</option></>}
                                             </select>
                                         </div>

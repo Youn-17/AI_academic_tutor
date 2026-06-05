@@ -827,6 +827,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                             { value: 'deepseek', label: 'DeepSeek',    sub: 'V3 / R1 直连',     badge: '免费', color: 'sky',     docUrl: 'https://platform.deepseek.com/api-docs',            defaultModel: 'deepseek-chat' },
                             { value: 'zhipu',    label: '智谱 GLM',    sub: 'GLM-4.7 / Z1',     badge: null,   color: 'sky',    docUrl: 'https://open.bigmodel.cn/dev/api',                  defaultModel: 'glm-4-flash' },
                             { value: 'moonshot', label: 'Kimi',        sub: 'Moonshot 直连',    badge: null,   color: 'violet',  docUrl: 'https://platform.moonshot.cn/docs/api/chat',         defaultModel: 'moonshot-v1-32k' },
+                            { value: 'minimax',  label: 'MiniMax',     sub: 'M3 旗舰 · 直连',   badge: '新',   color: 'sky',     docUrl: 'https://platform.minimaxi.com/document',            defaultModel: 'MiniMax-M3' },
                             { value: 'tavily',   label: 'Tavily 搜索', sub: '联网搜索·给智能体', badge: '新',   color: 'blue',    docUrl: 'https://docs.tavily.com',                           defaultModel: 'tavily-search' },
                           ].map(p => (
                             <button key={p.value} type="button"
@@ -896,6 +897,12 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                             <optgroup label="最新">
                               <option value="glm-5">glm-5</option>
                             </optgroup>
+                          </select>
+                        ) : apiForm.provider === 'minimax' ? (
+                          <select value={apiForm.model} onChange={e => setApiForm(f => ({ ...f, model: e.target.value }))} className={inputCls}>
+                            <option value="MiniMax-M3">MiniMax-M3（旗舰·编码/推理·1M）</option>
+                            <option value="MiniMax-M2.7-highspeed">MiniMax-M2.7-highspeed（高速）</option>
+                            <option value="MiniMax-M2.7">MiniMax-M2.7</option>
                           </select>
                         ) : apiForm.provider === 'tavily' ? (
                           <div className={`${inputCls} flex items-center text-xs text-slate-500`}>Tavily 联网搜索 · 无需选模型（密钥以 tvly- 开头，配置后智能体即可联网检索）</div>

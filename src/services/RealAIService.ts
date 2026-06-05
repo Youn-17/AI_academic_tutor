@@ -7,7 +7,7 @@
 import { supabase } from '@/lib/supabase';
 import { makeThinkingStripper } from '@/lib/thinking';
 
-export type AIProvider = 'deepseek' | 'zhipu' | 'moonshot' | 'kimi' | 'dmxapi' | 'openai' | 'anthropic' | 'google';
+export type AIProvider = 'deepseek' | 'zhipu' | 'moonshot' | 'kimi' | 'dmxapi' | 'openai' | 'anthropic' | 'google' | 'minimax';
 
 export interface AIConfig {
     provider: AIProvider;
@@ -325,6 +325,16 @@ export const AI_MODELS: Record<string, { id: string; name: string; provider: AIP
         category: 'free',
         color: 'bg-indigo-600',
     },
+    // === MiniMax (direct, OpenAI-compatible) ===
+    'minimax-m3': {
+        id: 'minimax-m3',
+        name: 'MiniMax M3',
+        provider: 'minimax',
+        model: 'MiniMax-M3',
+        description: 'MiniMax 旗舰：强编码 / 推理 / 多轮，1M 上下文',
+        category: 'premium',
+        color: 'bg-sky-600',
+    },
     // === ChatGPT via DMXAPI ===
     'gpt-5.4': {
         id: 'gpt-5.4',
@@ -624,7 +634,7 @@ export const AI_CONFIGS = {
 export const MODEL_CATEGORIES = {
     recommended: {
         name: '推荐 · 已就绪',
-        models: ['auto', 'team', 'claude-sonnet-4-6', 'deepseek-chat', 'deepseek-reasoner', 'glm-5', 'gpt-5.4'],
+        models: ['auto', 'team', 'claude-sonnet-4-6', 'deepseek-chat', 'deepseek-reasoner', 'glm-5', 'gpt-5.4', 'minimax-m3'],
         color: 'bg-blue-500',
     },
 };

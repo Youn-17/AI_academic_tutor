@@ -14,6 +14,7 @@ const DEEPSEEK_URL  = 'https://api.deepseek.com/v1/chat/completions';
 const ZHIPU_URL     = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
 const MOONSHOT_URL  = 'https://api.moonshot.cn/v1/chat/completions';
 const GOOGLE_URL    = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+const MINIMAX_URL   = 'https://api.minimaxi.com/v1/chat/completions';   // MiniMax OpenAI-compatible (China host; .io for international)
 
 // ── Platform API Keys (env fallbacks) ─────────────────────
 const DMXAPI_API_KEY    = Deno.env.get('DMXAPI_API_KEY')    || '';
@@ -26,7 +27,7 @@ const SUPABASE_URL              = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY         = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-const SUPPORTED_PROVIDERS = ['dmxapi', 'deepseek', 'zhipu', 'moonshot', 'kimi', 'google'] as const;
+const SUPPORTED_PROVIDERS = ['dmxapi', 'deepseek', 'zhipu', 'moonshot', 'kimi', 'google', 'minimax'] as const;
 type Provider = typeof SUPPORTED_PROVIDERS[number];
 
 const corsHeaders = {
@@ -117,6 +118,7 @@ function resolveEndpoint(p: Provider): string {
   if (p === 'zhipu')                    return ZHIPU_URL;
   if (p === 'moonshot' || p === 'kimi') return MOONSHOT_URL;
   if (p === 'google')                   return GOOGLE_URL;
+  if (p === 'minimax')                  return MINIMAX_URL;
   return DMXAPI_URL;
 }
 function resolvePlatformKey(p: Provider): string {
@@ -772,6 +774,7 @@ serve(async (req: Request) => {
     else if (rawProvider === 'zhipu') provider = 'zhipu';
     else if (rawProvider === 'moonshot' || rawProvider === 'kimi') provider = 'moonshot';
     else if (rawProvider === 'google') provider = 'google';
+    else if (rawProvider === 'minimax') provider = 'minimax';
     else provider = 'dmxapi';
 
     // ── 4a. Multimodal: if any message carries an image, force a vision-capable route
