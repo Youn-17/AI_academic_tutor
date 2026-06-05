@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm';
 import { RiRobot2Line } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import GeneratedChart from '@/features/student/components/GeneratedChart';
+import StructuredAnswer from '@/shared/components/StructuredAnswer';
 
 interface ChatBubbleProps {
   message: Message;
@@ -24,6 +25,28 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit }) => {
   // already strips at the source; this also cleans messages stored earlier.
   const cleanedContent = (message.content || '')
     .replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/gi, '').trim() || message.content;
+
+  // Shared markdown typography — a comfortable CJK reading rhythm + a real heading hierarchy so
+  // sections read as groups (the old prose-p:my-1.5 / prose-headings:my-2 collapsed everything into
+  // a flat wall). The readable measure (line length) is capped on the wrapper below, not here.
+  const proseClass = cn(
+    "prose prose-sm max-w-none break-words",
+    isStudent ? "prose-invert" : "prose-slate",
+    // rhythm
+    "prose-p:my-3 prose-p:leading-[1.85] prose-li:my-1 prose-li:leading-[1.8] prose-ul:my-3 prose-ol:my-3",
+    // hierarchy: headings get size + top margin (grouping); CJK looks bad italic → not-italic quotes
+    "prose-headings:font-semibold prose-headings:tracking-tight",
+    "prose-h1:text-[1.15rem] prose-h1:mt-6 prose-h1:mb-3",
+    "prose-h2:text-[1.05rem] prose-h2:mt-5 prose-h2:mb-2.5",
+    "prose-h3:text-[0.95rem] prose-h3:mt-4 prose-h3:mb-1.5",
+    !isStudent && "prose-headings:text-primary-dark",
+    "prose-strong:font-semibold",
+    "prose-pre:bg-slate-900 prose-pre:text-slate-50 prose-pre:rounded-lg prose-pre:p-3 prose-pre:font-mono prose-pre:text-xs",
+    "prose-blockquote:border-l-accent prose-blockquote:bg-accent/5 prose-blockquote:py-1 prose-blockquote:px-3 prose-blockquote:rounded-r prose-blockquote:not-italic",
+    "prose-table:my-3 prose-table:block prose-table:overflow-x-auto prose-th:border prose-th:border-slate-300 prose-th:bg-slate-100 prose-th:px-3 prose-th:py-1.5 prose-th:font-semibold prose-th:text-left prose-td:border prose-td:border-slate-200 prose-td:px-3 prose-td:py-1.5",
+    "prose-code:before:content-none prose-code:after:content-none prose-code:bg-slate-100 prose-code:text-pink-600 prose-code:text-[0.85em] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-normal",
+    "[&_pre]:!bg-slate-900 [&_pre]:!text-slate-100 [&_pre]:!p-3.5 [&_pre]:!rounded-xl [&_pre]:!overflow-x-auto [&_pre_code]:!bg-transparent [&_pre_code]:!text-slate-100 [&_pre_code]:!p-0 [&_pre_code]:!font-normal [&_pre_code]:!text-[0.8rem] [&_pre_code]:!leading-relaxed"
+  );
 
   const handleSave = () => {
     // "Save & Retry" always re-runs (even if the text is unchanged) so the button
@@ -119,20 +142,17 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit }) => {
                 </div>
               </div>
             ) : (
-              // Text Renderer
-              <div className={cn(
-                "prose prose-sm max-w-none break-words relative",
-                isStudent ? "prose-invert" : "prose-slate",
-                "prose-p:my-1.5 prose-headings:my-2 prose-ul:my-2 prose-li:my-0.5",
-                "prose-pre:bg-slate-900 prose-pre:text-slate-50 prose-pre:rounded-lg prose-pre:p-3 prose-pre:font-mono prose-pre:text-xs",
-                "prose-blockquote:border-l-accent prose-blockquote:bg-accent/5 prose-blockquote:py-1 prose-blockquote:px-3 prose-blockquote:rounded-r prose-blockquote:italic",
-                // GFM tables → real bordered tables (horizontally scrollable on overflow)
-                "prose-table:my-3 prose-table:block prose-table:overflow-x-auto prose-th:border prose-th:border-slate-300 prose-th:bg-slate-100 prose-th:px-3 prose-th:py-1.5 prose-th:font-semibold prose-th:text-left prose-td:border prose-td:border-slate-200 prose-td:px-3 prose-td:py-1.5",
-                "prose-code:before:content-none prose-code:after:content-none prose-code:bg-slate-100 prose-code:text-pink-600 prose-code:text-[0.85em] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-normal",
-                // code BLOCKS: force readable light-on-dark; the inline-code bg above must NOT bleed into <pre><code>
-                "[&_pre]:!bg-slate-900 [&_pre]:!text-slate-100 [&_pre]:!p-3.5 [&_pre]:!rounded-xl [&_pre]:!overflow-x-auto [&_pre_code]:!bg-transparent [&_pre_code]:!text-slate-100 [&_pre_code]:!p-0 [&_pre_code]:!font-normal [&_pre_code]:!text-[0.8rem] [&_pre_code]:!leading-relaxed"
-              )}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanedContent}</ReactMarkdown>
+              // Text Renderer — measure capped to a readable column (~44rem ≈ 44 CJK chars/line);
+              // the bubble can still go wide for tables/code/charts (they scroll inside). AI answers
+              // get the structured 概要 + collapsible-section treatment; others render straight.
+              <div className="relative max-w-[44rem]">
+                {isAI ? (
+                  <StructuredAnswer content={cleanedContent} proseClass={proseClass} />
+                ) : (
+                  <div className={proseClass}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanedContent}</ReactMarkdown>
+                  </div>
+                )}
 
                 {/* Edit Button Hook */}
                 {isStudent && onEdit && !isEditing && (
