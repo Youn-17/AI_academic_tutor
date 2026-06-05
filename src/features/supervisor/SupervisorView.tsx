@@ -333,6 +333,18 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
     return matchStatus && matchSearch;
   }), [conversations, filterStatus, searchTerm]);
 
+  // group by student so the list shows each student once; the specific conversation is then
+  // chosen in the chat panel's selector.
+  const studentGroups = useMemo(() => {
+    const map = new Map<string, { studentId: string; studentName: string; convs: typeof filteredChats }>();
+    for (const c of filteredChats) {
+      const key = c.studentId || c.studentName || c.id;
+      if (!map.has(key)) map.set(key, { studentId: c.studentId, studentName: c.studentName, convs: [] });
+      map.get(key)!.convs.push(c);
+    }
+    return Array.from(map.values());
+  }, [filteredChats]);
+
   const weeklyStats = useMemo(() => {
     const labels = ['日', '一', '二', '三', '四', '五', '六'];
     const counts = new Array(7).fill(0);
@@ -456,51 +468,44 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
           </div>
 
           <div className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
-            {filteredChats.length === 0 ? (
+            {studentGroups.length === 0 ? (
               <div className="text-center py-12 text-slate-400">
                 <GraduationCap size={28} className="mx-auto mb-2 opacity-40" />
                 <p className="text-sm">暂无学生数据</p>
                 <p className="text-xs mt-1 text-slate-300">学生加入班级后将在此显示</p>
               </div>
             ) : (
-              filteredChats.map(chat => (
-                <div key={chat.id} onClick={() => handleChatSelect(chat.id)}
-                  className={`relative p-3 rounded-xl cursor-pointer border transition-all group
-                    ${selectedChatId === chat.id
-                      ? 'bg-blue-50 border-blue-200/70 shadow-sm'
-                      : 'border-transparent hover:bg-slate-50 hover:border-slate-200'
-                    }`}
-                >
-                  {selectedChatId === chat.id && <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-blue-500 rounded-r" />}
-
-                  <div className="flex justify-between items-start mb-1 pl-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                        {(chat.studentName?.[0] || '?').toUpperCase()}
+              studentGroups.map(group => {
+                const isActive = selectedChat?.studentId === group.studentId;
+                const hasFlagged = group.convs.some(c => c.status === 'flagged');
+                const hasActive = group.convs.some(c => c.status === 'active');
+                return (
+                  <div key={group.studentId || group.studentName} onClick={() => handleChatSelect(group.convs[0].id)}
+                    className={`relative p-3 rounded-xl cursor-pointer border transition-all group
+                      ${isActive
+                        ? 'bg-blue-50 border-blue-200/70 shadow-sm'
+                        : 'border-transparent hover:bg-slate-50 hover:border-slate-200'
+                      }`}
+                  >
+                    {isActive && <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-blue-500 rounded-r" />}
+                    <div className="flex justify-between items-center pl-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                          {(group.studentName?.[0] || '?').toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="block text-sm font-semibold text-slate-800 truncate">{group.studentName || '未知学生'}</span>
+                          <span className="block text-[11px] text-slate-400">{group.convs.length} 个对话</span>
+                        </div>
                       </div>
-                      <span className="text-sm font-semibold text-slate-800 truncate">{chat.studentName || '未知学生'}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          const newStatus = chat.status === 'flagged' ? 'active' : 'flagged';
-                          ConversationService.updateConversationStatus(chat.id, newStatus).then(() => setRefreshTrigger(p => p + 1));
-                        }}
-                        className={`p-0.5 rounded transition-colors
-                          ${chat.status === 'flagged' ? 'text-rose-500' : 'text-slate-300 hover:text-rose-400 opacity-0 group-hover:opacity-100'}`}
-                      >
-                        <Flag size={13} fill={chat.status === 'flagged' ? 'currentColor' : 'none'} />
-                      </button>
-                      {chat.status === 'completed' && <CheckCircle size={12} className="text-blue-500" />}
-                      {chat.status === 'active' && <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {hasFlagged && <Flag size={13} className="text-rose-500" fill="currentColor" />}
+                        {hasActive && <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />}
+                      </div>
                     </div>
                   </div>
-
-                  <p className="text-xs text-slate-400 truncate pl-1 ml-9">{chat.title || '对话'}</p>
-                  <p className="text-[10px] text-slate-300 mt-0.5 pl-1 ml-9 font-mono">{chat.lastActive}</p>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -525,12 +530,37 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                   </>
                 );
               })()}
-              {viewMode === 'chat' && selectedChat && (
-                <>
-                  <span className="text-slate-300 text-xs">/</span>
-                  <span className="text-sm text-slate-600">{selectedChat.studentName}</span>
-                </>
-              )}
+              {viewMode === 'chat' && selectedChat && (() => {
+                const studentConvs = conversations.filter(c => c.studentId === selectedChat.studentId);
+                return (
+                  <>
+                    <span className="text-slate-300 text-xs">/</span>
+                    <span className="text-sm text-slate-600">{selectedChat.studentName}</span>
+                    {studentConvs.length > 1 ? (
+                      <select
+                        value={selectedChatId || ''}
+                        onChange={e => handleChatSelect(e.target.value)}
+                        title="切换该学生的对话"
+                        className="ml-1 max-w-[180px] text-xs rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-600 outline-none cursor-pointer focus:border-blue-400"
+                      >
+                        {studentConvs.map(c => <option key={c.id} value={c.id}>{c.title || '对话'}</option>)}
+                      </select>
+                    ) : (
+                      <span className="text-xs text-slate-400">· {selectedChat.title || '对话'}</span>
+                    )}
+                    <button
+                      onClick={() => {
+                        const newStatus = selectedChat.status === 'flagged' ? 'active' : 'flagged';
+                        ConversationService.updateConversationStatus(selectedChat.id, newStatus).then(() => setRefreshTrigger(p => p + 1));
+                      }}
+                      title={selectedChat.status === 'flagged' ? '取消预警' : '标记预警'}
+                      className={`p-1 rounded transition-colors ${selectedChat.status === 'flagged' ? 'text-rose-500' : 'text-slate-300 hover:text-rose-400'}`}
+                    >
+                      <Flag size={13} fill={selectedChat.status === 'flagged' ? 'currentColor' : 'none'} />
+                    </button>
+                  </>
+                );
+              })()}
             </div>
           </div>
 

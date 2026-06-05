@@ -15,6 +15,7 @@ import { getRolePrompt } from '@/services/AgentRoles';
 import { logResearchEvent } from '@/services/ResearchLog';
 import { readFileContent } from '@/services/DocumentService';
 import { getMyCondition, getEnrollmentStatus, enrollInStudy, type StudyCondition } from '@/services/StudyService';
+import { suggestTitle } from '@/services/TitleService';
 import { useToast, useConfirm } from '@/shared/components/FeedbackProvider';
 import { Menu, Loader2 } from 'lucide-react';
 
@@ -340,8 +341,11 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       sent = true;
 
       if (chatHistory.length === 1) {
-        const newTitle = content.slice(0, 20) || 'New Chat';
-        ConversationService.updateConversationTitle(convId, newTitle).then(loadConversations);
+        // smart auto-title — only on the first turn, so a later manual rename is never overwritten
+        suggestTitle(content).then(t => {
+          const newTitle = (t || content.slice(0, 20) || '新对话').trim();
+          ConversationService.updateConversationTitle(convId, newTitle).then(loadConversations);
+        });
       }
 
     } catch (err) {
@@ -407,6 +411,15 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
       setReasoning('');
       sendingRef.current = false;
       abortRef.current = null;
+    }
+  };
+
+  const handleUpdateTags = async (id: string, tags: string[]) => {
+    try {
+      await ConversationService.updateConversationTags(id, tags);
+      await loadConversations();
+    } catch (e) {
+      console.error('Failed to update tags:', e);
     }
   };
 
@@ -514,6 +527,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
           onDeleteChat={handleDeleteChat}
           onArchiveChat={handleArchiveChat}
           onRenameChat={handleRenameChat}
+          onUpdateTags={handleUpdateTags}
           currentView={viewMode}
           onSelectView={(v) => { handleSelectView(v); setMobileNav(false); }}
           onLogout={onLogout}

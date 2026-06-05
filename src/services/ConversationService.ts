@@ -142,6 +142,16 @@ export async function updateConversationTitle(conversationId: string, title: str
     if (error) throw error;
 }
 
+// Update conversation tags (student-side tagging / classification)
+export async function updateConversationTags(conversationId: string, tags: string[]): Promise<void> {
+    const { error } = await supabase
+        .from('conversations')
+        .update({ tags })
+        .eq('id', conversationId);
+
+    if (error) throw error;
+}
+
 // Delete a conversation
 export async function deleteConversation(conversationId: string): Promise<void> {
     const { error } = await supabase

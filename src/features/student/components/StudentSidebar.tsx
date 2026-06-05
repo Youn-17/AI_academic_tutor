@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import {
     LayoutDashboard, UserCircle, Presentation, Library,
     Plus, MoreVertical, Archive, Trash2, Edit2, LogOut, PanelLeftClose, PanelLeftOpen, Network,
-    MessageSquare, Sparkles
+    MessageSquare, Sparkles, Tag
 } from 'lucide-react';
 import { Conversation, Theme, Locale } from '@/types';
 import { isSubmitEnter } from '@/lib/keyboard';
@@ -16,6 +16,7 @@ interface StudentSidebarProps {
     onDeleteChat: (id: string) => void;
     onArchiveChat: (id: string) => void;
     onRenameChat: (id: string, newTitle: string) => void;
+    onUpdateTags?: (id: string, tags: string[]) => void;
     currentView: 'dashboard' | 'chat' | 'profile' | 'classroom' | 'knowledge' | 'graph';
     onSelectView: (view: 'dashboard' | 'chat' | 'profile' | 'classroom' | 'knowledge' | 'graph') => void;
     onLogout: () => void;
@@ -27,7 +28,7 @@ interface StudentSidebarProps {
 
 const StudentSidebar: React.FC<StudentSidebarProps> = ({
     conversations, activeChatId, onSelectChat, onCreateChat,
-    onDeleteChat, onArchiveChat, onRenameChat,
+    onDeleteChat, onArchiveChat, onRenameChat, onUpdateTags,
     currentView, onSelectView, onLogout, theme, locale,
     isCollapsed, onToggleCollapse
 }) => {
@@ -37,6 +38,9 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
     const [menuPosition, setMenuPosition] = useState<{ top: number, left: number } | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState('');
+    const [editingTagsId, setEditingTagsId] = useState<string | null>(null);
+    const [tagInput, setTagInput] = useState('');
+    const [tagFilter, setTagFilter] = useState<string | null>(null);
 
     const menuRef = useRef<HTMLDivElement>(null);
     const editInputRef = useRef<HTMLInputElement>(null);
@@ -93,6 +97,14 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
     const sidebarBg = isDark
         ? 'bg-[#07111A] border-blue-900/20'
         : 'bg-slate-50/95 border-slate-200/70 backdrop-blur-xl';
+
+    // tags across all conversations (for the filter) + the conversations matching the active filter
+    const allTags = Array.from(new Set(conversations.flatMap(c => c.tags || [])));
+    const visibleConvs = tagFilter ? conversations.filter(c => (c.tags || []).includes(tagFilter)) : conversations;
+    const chipCls = (on: boolean) =>
+        `px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${on
+            ? 'bg-blue-600 text-white'
+            : isDark ? 'bg-slate-800 text-slate-400 hover:text-slate-200' : 'bg-slate-100 text-slate-500 hover:text-slate-700'}`;
 
     return (
         <div className={`relative flex flex-col h-full border-r transition-all duration-300 ease-in-out z-30 ${sidebarBg} ${isCollapsed ? 'w-[68px]' : 'w-[260px]'}`}>
@@ -174,13 +186,23 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
 
             {/* Conversation List */}
             <div className="flex-1 overflow-y-auto px-2.5 pb-4 space-y-0.5 scrollbar-hide relative">
-                {conversations.length === 0 && !isCollapsed && (
-                    <div className={`px-3 py-6 text-center text-xs ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
-                        <MessageSquare size={20} className="mx-auto mb-2 opacity-40" />
-                        <p>{locale === 'en' ? 'No conversations yet' : '暂无对话'}</p>
+                {/* Tag filter (classification) */}
+                {!isCollapsed && allTags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 px-1 pb-2">
+                        <button onClick={() => setTagFilter(null)} className={chipCls(tagFilter === null)}>{locale === 'en' ? 'All' : '全部'}</button>
+                        {allTags.map(t => (
+                            <button key={t} onClick={() => setTagFilter(tagFilter === t ? null : t)} className={chipCls(tagFilter === t)}># {t}</button>
+                        ))}
                     </div>
                 )}
-                {conversations.map(chat => (
+
+                {visibleConvs.length === 0 && !isCollapsed && (
+                    <div className={`px-3 py-6 text-center text-xs ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                        <MessageSquare size={20} className="mx-auto mb-2 opacity-40" />
+                        <p>{tagFilter ? (locale === 'en' ? 'No conversations with this tag' : '该标签下暂无对话') : (locale === 'en' ? 'No conversations yet' : '暂无对话')}</p>
+                    </div>
+                )}
+                {visibleConvs.map(chat => (
                     <div key={chat.id} className="relative group/item">
                         {editingId === chat.id ? (
                             <input
@@ -219,6 +241,48 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
                                 )}
                             </button>
                         )}
+
+                        {/* tag chips (display) */}
+                        {!isCollapsed && editingId !== chat.id && editingTagsId !== chat.id && (chat.tags?.length ?? 0) > 0 && (
+                            <div className="flex flex-wrap gap-1 px-3 pb-1.5">
+                                {chat.tags!.map(t => (
+                                    <span key={t} className={`px-1.5 py-0.5 rounded text-[10px] ${isDark ? 'bg-blue-500/15 text-blue-300' : 'bg-blue-500/10 text-blue-600'}`}># {t}</span>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* tag editor */}
+                        {!isCollapsed && editingTagsId === chat.id && (
+                            <div className={`mx-1 mb-1 p-2 rounded-lg border ${isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'}`} onClick={(e) => e.stopPropagation()}>
+                                {(chat.tags?.length ?? 0) > 0 && (
+                                    <div className="flex flex-wrap gap-1 mb-1.5">
+                                        {chat.tags!.map(t => (
+                                            <span key={t} className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] ${isDark ? 'bg-blue-500/15 text-blue-300' : 'bg-blue-500/10 text-blue-600'}`}>
+                                                # {t}
+                                                <button onClick={() => onUpdateTags?.(chat.id, (chat.tags || []).filter(x => x !== t))} className="hover:text-rose-500">×</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                <div className="flex gap-1 items-center">
+                                    <input
+                                        value={tagInput}
+                                        autoFocus
+                                        onChange={(e) => setTagInput(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (isSubmitEnter(e)) {
+                                                const nt = tagInput.trim();
+                                                if (nt && !(chat.tags || []).includes(nt)) onUpdateTags?.(chat.id, [...(chat.tags || []), nt]);
+                                                setTagInput('');
+                                            }
+                                        }}
+                                        placeholder={locale === 'en' ? 'Add tag, Enter' : '加标签后回车'}
+                                        className={`flex-1 text-xs px-2 py-1 rounded outline-none border ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-700'}`}
+                                    />
+                                    <button onClick={() => { setEditingTagsId(null); setTagInput(''); }} className="text-xs px-2 py-1 text-slate-400 hover:text-blue-500">{locale === 'en' ? 'Done' : '完成'}</button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>
@@ -246,6 +310,9 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
                 >
                     <button onClick={() => { setEditingId(menuOpenId); setEditTitle(conversations.find(c => c.id === menuOpenId)?.title || ''); setMenuOpenId(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg transition-colors ${isDark ? 'hover:bg-slate-700 text-slate-200' : 'hover:bg-slate-50 text-slate-700'}`}>
                         <Edit2 size={12} /> {locale === 'en' ? 'Rename' : '重命名'}
+                    </button>
+                    <button onClick={() => { setEditingTagsId(menuOpenId); setMenuOpenId(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg transition-colors ${isDark ? 'hover:bg-slate-700 text-slate-200' : 'hover:bg-slate-50 text-slate-700'}`}>
+                        <Tag size={12} /> {locale === 'en' ? 'Tags' : '标签'}
                     </button>
                     <button onClick={() => { onArchiveChat(menuOpenId); setMenuOpenId(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg transition-colors ${isDark ? 'hover:bg-slate-700 text-slate-200' : 'hover:bg-slate-50 text-slate-700'}`}>
                         <Archive size={12} /> {locale === 'en' ? 'Archive' : '归档'}
