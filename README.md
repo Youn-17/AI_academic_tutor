@@ -74,11 +74,13 @@ flowchart LR
         S["苏格拉底导师 Socratic Tutor"]
         D["论辩伙伴 Devil's Advocate"]
         M["元认知教练 Metacognitive Coach"]
+        AF["情感支持 Affective Support"]
     end
     subgraph IA["教学助手 Instructional Assistants"]
         P["论文反馈 Paper Feedback"]
         C["概念讲解 Concept Explainer"]
         Q["练习自测 Practice Quizzer"]
+        CD["编程导师 Coding Tutor"]
     end
     subgraph CA["教学顾问 Classroom Analyst"]
         A["面向教师 · 可解释、可覆盖的介入建议<br/>teacher-facing, interpretable & overridable"]
@@ -124,6 +126,108 @@ flowchart LR
 
 ---
 
+## 功能演示 / Feature Showcase
+
+> 以下截图来自线上系统 **[www.techedu.icu](https://www.techedu.icu/)**,依次走过学生端与教师端的核心功能。
+> The screenshots below come from the live system and walk through the core student- and teacher-facing features in order.
+
+### 学生端 / Student experience
+
+**example1 · 选择智能体角色 / Choose an agent role**
+
+![example1](docs/screenshots/example1.png)
+
+学生可在 **11 种**有学习科学依据的角色预设间切换——默认导师、苏格拉底导师、论辩伙伴、元认知教练、情感支持、学习伙伴、论文反馈、课程导师、概念讲解、练习自测、编程导师;所选角色的插画头像会同步成为对话头像。
+The learner switches among **11** learning-science role presets; the chosen role's illustrated avatar also becomes the chat avatar.
+
+**example2 · 模型选择与「研究团队」/ Model picker & "Research Team"**
+
+![example2](docs/screenshots/example2.png)
+
+「自动选择」按任务择优(Claude / GPT / Gemini),也可显式指定 Claude Sonnet 4.6、DeepSeek V4 等;开启「研究团队」即进入多智能体协作:组长规划 → 并行专科 → 质检 → 综合。
+Auto-route by task, pin a specific model, or switch on the multi-agent **Research Team** (lead → parallel specialists → critic → synthesis).
+
+**example3 · 代码高亮、一键复制与追问建议 / Highlighted code, copy & follow-ups**
+
+![example3](docs/screenshots/example3.png)
+
+代码块语法高亮并支持顶栏一键复制;回答末尾自动给出可点击的「追问建议」,一键把探究引向更深。
+Syntax-highlighted code blocks with one-click copy, plus clickable **follow-up suggestions** that deepen the inquiry in a single tap.
+
+**example4 · 生成式交互可视化(沙箱)/ Generative interactive visualization (sandboxed)**
+
+![example4](docs/screenshots/example4.png)
+
+AI 直接生成自包含的 HTML/SVG,在**隔离沙箱 iframe**(无同源权限)中运行——此例可拖动滑块即时改变正态分布曲线,让抽象概念变得可操作。
+The AI ships self-contained HTML/SVG that runs in a **sandboxed iframe** (no same-origin) — here a draggable slider reshapes a normal-distribution curve in real time.
+
+**example5 · 知识库与检索增强(RAG)/ Knowledge base & RAG**
+
+![example5](docs/screenshots/example5.png)
+
+学生可见的全局学术语料(此例 134 篇文献 / 7,835 个知识块,统计与学习科学经典)。回答基于 pgvector 检索接地、有据可查。
+A curated academic corpus visible to students (here 134 docs / 7,835 chunks); answers are grounded in pgvector retrieval.
+
+**example6 · 知识图谱(自动概念图)/ Knowledge graph (auto concept map)**
+
+![example6](docs/screenshots/example6.png)
+
+从对话中自动抽取「概念—关系」图(React Flow,可拖动、带动效),把一次次问答沉淀为结构化的认知地图。
+A draggable, animated concept map auto-extracted from the dialogue (React Flow).
+
+**example7 · 学生成长仪表盘 / Student growth dashboard**
+
+![example7](docs/screenshots/example7.png)
+
+累计对话、AI 交互、由 AI 评估的能力雷达,以及「优势 / 待改进 / 建议」协同反馈——全部来自学生的真实使用数据。
+Cumulative usage, an AI-assessed capability radar, and strengths / gaps / suggestions — all from the student's real usage data.
+
+### 教师端与治理 / Teacher & governance
+
+**example8 · 教师专属 AI 助手 / Teacher's private AI assistant**
+
+![example8](docs/screenshots/example8.png)
+
+与学生端隔离的教师工作台,接入多顶级模型,用于学情分析、生成课程讨论题、制定指导计划等。
+A teacher-only workbench (separate from the student app) for learning analytics, discussion-prompt generation, and guidance planning.
+
+**example9 · 四层知识库管理 / Four-layer knowledge-base management**
+
+![example9](docs/screenshots/example9.png)
+
+教师管理 RAG 语料,分「全局 / 领域 / 个人 / 记忆」四层检索范围,精细控制不同角色与学生可见的知识边界。
+Teachers manage the RAG corpus across four retrieval layers — global / domain / personal / memory.
+
+**example10 · 教师实时介入 / Real-time teacher intervention**
+
+![example10](docs/screenshots/example10.png)
+
+教师可旁观任一学生与 AI 的对话,并把指导意见**直接补入对话流**;AI 尊重并让位于教师判断。
+Teachers watch any student–AI thread and inject guidance **directly into the stream**; the AI defers to the teacher.
+
+**example11 · 认识论守则与可解释介入 / Epistemic guardrail & interpretable intervention**
+
+![example11](docs/screenshots/example11.png)
+
+每次分析都展示其依据(例如区分「信息来源 ≠ 认知功能」),介入可解释、可覆盖——这正是系统守护学习者认识论主体性的方式。
+Every analysis surfaces its rationale (e.g. "information source ≠ cognitive function"); interventions are interpretable and overridable — the core of protecting epistemic agency.
+
+**example12 · AI 使用监控 / AI usage monitoring**
+
+![example12](docs/screenshots/example12.png)
+
+教师后端按**模型 / 角色**记录调用次数与 Token 消耗(此例 5 轮 / 47.0K Token / 1 次安全拦截),并展示各模型用量与「角色 × 模型」分布,便于把任务分配给最合适、最经济的 AI。
+The teacher backend tracks call counts and token spend per **model / role** (here 5 turns / 47.0K tokens / 1 safety block), so each task can be routed to the most suitable, most economical model.
+
+**example13 · 研究数据导出与多模型配置 / Research export & multi-provider config**
+
+![example13](docs/screenshots/example13.png)
+
+一键导出**去标识化**研究数据(events / messages / participants + codebook,可直接用于 ENA / 序列分析 / GLMM);并可配置多家模型供应商与联网检索(Tavily)的 Key、默认模型与关联班级。
+One-click **anonymized** research export (ready for ENA / sequential analysis / GLMM), plus multi-provider model and web-search (Tavily) key configuration.
+
+---
+
 ## 中文文档
 
 ### 项目简介
@@ -136,7 +240,7 @@ AI Academic Tutor 是一个研究型的学术辅导平台,服务于研究生的�
 
 | 能力 | 说明 |
 |---|---|
-| 八种智能体角色 | 苏格拉底导师 · 论辩伙伴 · 元认知教练 · 学习伙伴 · 论文反馈 · 课程导师 · 概念讲解 · 练习自测——每一种均为有学习科学依据的提示词预设 |
+| 十一种智能体角色 | 默认导师 · 苏格拉底导师 · 论辩伙伴 · 元认知教练 · 情感支持 · 学习伙伴 · 论文反馈 · 课程导师 · 概念讲解 · 练习自测 · 编程导师——每一种均为有学习科学依据的提示词预设 |
 | 多智能体研究团队 | 「组长」拆解任务 → 并行专科(检索 / 分析 / 推理 / 情感 / 联网)→ 质检 → 自检并精修(规划-求解 Plan-and-Solve + 反思 Reflexion);**依赖感知规划**让下游专科基于上游发现 |
 | 多模态 | 上传图表、截图或手写内容,由视觉模型识读 |
 | 代码解释器 | 在隔离沙箱中分析表格、绘制图表、生成 Excel / Word |
@@ -238,7 +342,7 @@ The system has grown from a single Socratic tutor into a **governable multi-agen
 
 | Capability | Description |
 |---|---|
-| Eight agent roles | Socratic Tutor · Devil's Advocate · Metacognitive Coach · Learning Companion · Paper Feedback · Course Tutor · Concept Explainer · Practice Quizzer — each a learning-science-grounded prompt preset |
+| Eleven agent roles | Default · Socratic Tutor · Devil's Advocate · Metacognitive Coach · Affective Support · Learning Companion · Paper Feedback · Course Tutor · Concept Explainer · Practice Quizzer · Coding Tutor — each a learning-science-grounded prompt preset |
 | Multi-agent research team | A "lead" decomposes the task → parallel specialists (retrieve / analyze / reason / affective / web) → critic → self-reflect & refine (Plan-and-Solve + Reflexion); **dependency-aware planning** lets downstream specialists build on upstream findings |
 | Multimodal | Upload a figure, screenshot, or handwriting for a vision model to read |
 | Code interpreter | Analyze tables, draw charts, and generate Excel / Word in an isolated sandbox |
