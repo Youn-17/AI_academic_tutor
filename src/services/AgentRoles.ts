@@ -2,7 +2,10 @@
 // Auto-assembled from the platform-agent-ecosystem workflow; prompts are learning-science grounded.
 // NOTE: roles apply to NON-experiment users only; A/B participants keep RealAIService SYSTEM_PROMPTS.academic/.direct untouched.
 import { SYSTEM_PROMPTS } from './RealAIService';
-import { Compass, Swords, BrainCircuit, HeartHandshake, NotebookPen, GraduationCap, Lightbulb, ListChecks, type LucideIcon } from 'lucide-react';
+import type { ComponentType } from 'react';
+import { Robot, Compass, Communication, Brain, Heart, EditTwo, School, Tips, ListCheckbox } from '@icon-park/react';
+// IconPark (ByteDance) icon components take theme/size/fill props.
+type RoleIcon = ComponentType<{ theme?: 'outline' | 'filled' | 'two-tone' | 'multi-color'; size?: number | string; fill?: string | string[]; strokeWidth?: number; className?: string }>;
 
 export const EPISTEMIC_GUARDRAIL = `## 不可逾越的协作守则（治理底线，适用于所有情形）
 1. 学生始终是知识的作者与责任人。你的角色是支持其思考，而非代替其产出。
@@ -239,19 +242,20 @@ const P_affective = `# 学习伙伴 · 情感支持
 [见下方统一守护栏。] 本角色尤其要守住：提供情感与动机支持，但**不代写、不代做受评任务**；情绪支持不是替其卸掉学业责任，而是帮他有力量自己面对。`;
 
 export interface AgentRole {
-  id: string; name: string; nameEn: string; emoji: string; icon: LucideIcon;
+  id: string; name: string; nameEn: string; emoji: string; icon: RoleIcon;
   desc: string; category: 'general' | 'research' | 'course'; prompt: string;
 }
 
 export const AGENT_ROLES: AgentRole[] = [
+  { id: 'default', name: '默认导师', nameEn: 'Default Tutor', emoji: '🤖', icon: Robot, desc: '标准学术导师，不套用任何特定角色', category: 'general', prompt: SYSTEM_PROMPTS.academic },
   { id: 'socratic', name: '苏格拉底导师', nameEn: 'Socratic Tutor', emoji: '🧭', icon: Compass, desc: '追问引导，不直接给答案', category: 'general', prompt: SYSTEM_PROMPTS.academic },
-  { id: 'debate', name: '论辩伙伴', nameEn: "Devil's Advocate", emoji: '⚔️', icon: Swords, desc: '质疑论点、逼你拿出证据', category: 'general', prompt: withGuard(P_debate) },
-  { id: 'metacog', name: '元认知教练', nameEn: 'Metacognitive Coach', emoji: '🧠', icon: BrainCircuit, desc: '只问过程不给答案，练自我调节', category: 'general', prompt: withGuard(P_metacog) },
-  { id: 'affective', name: '学习伙伴', nameEn: 'Learning Companion', emoji: '🤗', icon: HeartHandshake, desc: '情绪支持+动机调节，陪你稳住状态', category: 'general', prompt: withGuard(P_affective) },
-  { id: 'paperfeedback', name: '论文反馈', nameEn: 'Paper Feedback', emoji: '📝', icon: NotebookPen, desc: '评你的草稿，绝不代写', category: 'research', prompt: withGuard(P_paperfb) },
-  { id: 'course-tutor', name: '课程导师', nameEn: 'Course Tutor', emoji: '📚', icon: GraduationCap, desc: '苏格拉底式带你学课程', category: 'course', prompt: withGuard(P_academicCourse) },
-  { id: 'explainer', name: '概念讲解', nameEn: 'Concept Explainer', emoji: '💡', icon: Lightbulb, desc: '例题+类比把概念讲透', category: 'course', prompt: withGuard(P_explainer) },
-  { id: 'quizzer', name: '练习自测', nameEn: 'Practice Quizzer', emoji: '✅', icon: ListChecks, desc: '出题自测+形成性反馈', category: 'course', prompt: withGuard(P_quizzer) },
+  { id: 'debate', name: '论辩伙伴', nameEn: "Devil's Advocate", emoji: '⚔️', icon: Communication, desc: '质疑论点、逼你拿出证据', category: 'general', prompt: withGuard(P_debate) },
+  { id: 'metacog', name: '元认知教练', nameEn: 'Metacognitive Coach', emoji: '🧠', icon: Brain, desc: '只问过程不给答案，练自我调节', category: 'general', prompt: withGuard(P_metacog) },
+  { id: 'affective', name: '学习伙伴', nameEn: 'Learning Companion', emoji: '🤗', icon: Heart, desc: '情绪支持+动机调节，陪你稳住状态', category: 'general', prompt: withGuard(P_affective) },
+  { id: 'paperfeedback', name: '论文反馈', nameEn: 'Paper Feedback', emoji: '📝', icon: EditTwo, desc: '评你的草稿，绝不代写', category: 'research', prompt: withGuard(P_paperfb) },
+  { id: 'course-tutor', name: '课程导师', nameEn: 'Course Tutor', emoji: '📚', icon: School, desc: '苏格拉底式带你学课程', category: 'course', prompt: withGuard(P_academicCourse) },
+  { id: 'explainer', name: '概念讲解', nameEn: 'Concept Explainer', emoji: '💡', icon: Tips, desc: '例题+类比把概念讲透', category: 'course', prompt: withGuard(P_explainer) },
+  { id: 'quizzer', name: '练习自测', nameEn: 'Practice Quizzer', emoji: '✅', icon: ListCheckbox, desc: '出题自测+形成性反馈', category: 'course', prompt: withGuard(P_quizzer) },
 ];
 
 export function getRolePrompt(id: string): string {

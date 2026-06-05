@@ -80,7 +80,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
   const [isThinking, setIsThinking] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const [selectedModel, setSelectedModel] = useState('auto');
-  const [selectedRole, setSelectedRole] = useState<string>(() => localStorage.getItem('hak_role') || 'socratic');
+  const [selectedRole, setSelectedRole] = useState<string>(() => localStorage.getItem('hak_role') || 'default');
   const handleRoleSelect = (id: string) => { setSelectedRole(id); logResearchEvent({ event_type: 'role_switched', event_subtype: id, session_id: activeChatIdRef.current, condition }); try { localStorage.setItem('hak_role', id); } catch { /* ignore */ } };
   const [useRag, setUseRag] = useState(false);
   const [condition, setCondition] = useState<StudyCondition | null>(null);  // A/B 实验条件(非参与者=null)
