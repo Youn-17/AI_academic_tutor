@@ -81,7 +81,7 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
         { id: 'dashboard', icon: LayoutDashboard, label: locale === 'en' ? 'Dashboard' : '学习概览' },
         { id: 'classroom', icon: Presentation, label: locale === 'en' ? 'Classroom' : '课堂互动' },
         { id: 'knowledge', icon: Network, label: locale === 'en' ? 'Knowledge' : '知识图谱' },
-        { id: 'profile', icon: UserCircle, label: locale === 'en' ? 'Profile' : '个人档案' },
+        { id: 'profile', icon: UserCircle, label: locale === 'en' ? 'Home' : '个人主页' },
     ];
 
     const sidebarBg = isDark

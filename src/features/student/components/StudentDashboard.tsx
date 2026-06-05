@@ -108,7 +108,7 @@ export default function StudentDashboard({ theme, userName, onNewChat, onOpenKno
   const lastActive = stats?.last_active_time ? new Date(stats.last_active_time).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }) : '—';
 
   return (
-    <div className={`flex-1 overflow-y-auto p-5 md:p-8 space-y-6 ${isDark ? 'bg-[#06122A]' : 'bg-slate-50'}`}>
+    <div className={`h-full overflow-y-auto p-5 md:p-8 space-y-6 ${isDark ? 'bg-[#06122A]' : 'bg-slate-50'}`}>
       {/* Header */}
       <div>
         <h1 className={`text-3xl md:text-4xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`} style={{ fontFamily: 'Crimson Pro, Georgia, serif' }}>{greeting}，{userName.split(' ')[0]}</h1>

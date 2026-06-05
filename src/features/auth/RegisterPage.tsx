@@ -10,8 +10,9 @@ import {
 type Lang = 'zh-CN' | 'zh-TW' | 'en';
 type StudentIdentity = 'undergraduate' | 'master' | 'phd' | 'other';
 
-const em  = '#059669';
-const emL = '#10B981';
+// Accent aligned to the login/landing brand (blue → sky), not the old emerald.
+const em  = '#2563EB';
+const emL = '#38BDF8';
 
 // ── i18n ─────────────────────────────────────────
 const STR: Record<Lang, Record<string, string | Record<string, string>>> = {
@@ -265,13 +266,13 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
   const [error, setError]             = useState<string | null>(null);
   const [success, setSuccess]         = useState(false);
 
-  // Design tokens
-  const bg       = isDark ? '#07111A' : '#F8FAFC';
-  const surface  = isDark ? '#0D1E2C' : '#FFFFFF';
-  const border   = isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0';
-  const textBase = isDark ? '#E8F1F8' : '#0F172A';
-  const textMuted= isDark ? '#7A9BB0' : '#64748B';
-  const inputBg  = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
+  // Design tokens — matched to LoginPage (blue-navy palette) for cross-page consistency.
+  const bg       = isDark ? '#06122A' : '#F4F8FF';
+  const surface  = isDark ? '#0C1E3E' : '#FFFFFF';
+  const border   = isDark ? 'rgba(120,170,255,0.14)' : '#DCE6F6';
+  const textBase = isDark ? '#E9F1FF' : '#0A1A33';
+  const textMuted= isDark ? '#8AA4CC' : '#56688A';
+  const inputBg  = isDark ? 'rgba(120,170,255,0.05)' : 'rgba(37,99,235,0.03)';
 
   const s              = STR[lang] as Record<string, string>;
   const identityLabels = (STR[lang].identity as Record<string, string>);
@@ -521,7 +522,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onSwitchToLogin, onSuccess,
 
       {/* ── RIGHT — Community panel ── */}
       <div className="hidden lg:flex flex-1 flex-col justify-center px-10 xl:px-14 py-10 relative overflow-hidden"
-        style={{ background: isDark ? '#0A1825' : '#F0FDF4' }}>
+        style={{ background: isDark ? '#0A1825' : '#EFF6FF' }}>
 
         {/* Ambient orbs */}
         <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full pointer-events-none"

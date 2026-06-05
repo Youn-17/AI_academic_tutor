@@ -115,7 +115,7 @@ export default function StudentProfile({ theme }: StudentProfileProps) {
 
     if (loading) {
         return (
-            <div className={`flex-1 flex items-center justify-center ${isDark ? 'bg-[#07111A]' : 'bg-slate-50'}`}>
+            <div className={`h-full flex items-center justify-center ${isDark ? 'bg-[#07111A]' : 'bg-slate-50'}`}>
                 <div className="flex items-center gap-3">
                     <div className="w-5 h-5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
                     <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>加载中...</span>
@@ -125,7 +125,7 @@ export default function StudentProfile({ theme }: StudentProfileProps) {
     }
 
     return (
-        <div className={`flex-1 overflow-y-auto ${isDark ? 'bg-[#07111A]' : 'bg-slate-50'}`}>
+        <div className={`h-full overflow-y-auto ${isDark ? 'bg-[#07111A]' : 'bg-slate-50'}`}>
 
             {/* Hero Header */}
             <div className={`relative overflow-hidden px-6 pt-10 pb-6 border-b ${isDark ? 'bg-gradient-to-br from-[#07111A] via-[#0B1A28] to-[#07111A] border-blue-900/20' : 'bg-gradient-to-br from-blue-50 via-white to-sky-50/50 border-slate-200/50'}`}>
