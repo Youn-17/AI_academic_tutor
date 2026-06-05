@@ -72,7 +72,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeChatId, setActiveChatId] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([]);
-  const [viewMode, setViewMode] = useState<'dashboard' | 'chat' | 'profile' | 'classroom' | 'knowledge'>('dashboard');
+  const [viewMode, setViewMode] = useState<'dashboard' | 'chat' | 'profile' | 'classroom' | 'knowledge' | 'graph'>('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Chat State
@@ -533,10 +533,11 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
         >
           <Menu size={18} className="text-slate-600 dark:text-slate-300" />
         </button>
-        {viewMode === 'dashboard' && <StudentDashboard theme={theme} userName={profile?.full_name || 'Student'} onNewChat={handleCreateChat} onOpenKnowledge={() => handleSelectView('knowledge')} />}
+        {viewMode === 'dashboard' && <StudentDashboard theme={theme} userName={profile?.full_name || 'Student'} onNewChat={handleCreateChat} onOpenKnowledge={() => handleSelectView('knowledge')} onOpenGraph={() => handleSelectView('graph')} />}
         {viewMode === 'profile' && <StudentProfile theme={theme} />}
         {viewMode === 'classroom' && <StudentClassroomView />}
-        {viewMode === 'knowledge' && <StudentKnowledgeView theme={theme} />}
+        {viewMode === 'knowledge' && <StudentKnowledgeView theme={theme} mode="library" />}
+        {viewMode === 'graph' && <StudentKnowledgeView theme={theme} mode="graph" />}
         {viewMode === 'chat' && activeChat && (
           <StudentChatView
             activeChat={activeChat}

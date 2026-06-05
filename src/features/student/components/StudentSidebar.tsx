@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    LayoutDashboard, UserCircle, Presentation,
+    LayoutDashboard, UserCircle, Presentation, Library,
     Plus, MoreVertical, Archive, Trash2, Edit2, LogOut, PanelLeftClose, PanelLeftOpen, Network,
     MessageSquare, Sparkles
 } from 'lucide-react';
@@ -15,8 +15,8 @@ interface StudentSidebarProps {
     onDeleteChat: (id: string) => void;
     onArchiveChat: (id: string) => void;
     onRenameChat: (id: string, newTitle: string) => void;
-    currentView: 'dashboard' | 'chat' | 'profile' | 'classroom' | 'knowledge';
-    onSelectView: (view: 'dashboard' | 'chat' | 'profile' | 'classroom' | 'knowledge') => void;
+    currentView: 'dashboard' | 'chat' | 'profile' | 'classroom' | 'knowledge' | 'graph';
+    onSelectView: (view: 'dashboard' | 'chat' | 'profile' | 'classroom' | 'knowledge' | 'graph') => void;
     onLogout: () => void;
     theme: Theme;
     locale: Locale;
@@ -80,7 +80,8 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
     const navItems = [
         { id: 'dashboard', icon: LayoutDashboard, label: locale === 'en' ? 'Dashboard' : '学习概览' },
         { id: 'classroom', icon: Presentation, label: locale === 'en' ? 'Classroom' : '课堂互动' },
-        { id: 'knowledge', icon: Network, label: locale === 'en' ? 'Knowledge' : '知识图谱' },
+        { id: 'knowledge', icon: Library, label: locale === 'en' ? 'Library' : '知识库' },
+        { id: 'graph', icon: Network, label: locale === 'en' ? 'Graph' : '知识图谱' },
         { id: 'profile', icon: UserCircle, label: locale === 'en' ? 'Home' : '个人主页' },
     ];
 

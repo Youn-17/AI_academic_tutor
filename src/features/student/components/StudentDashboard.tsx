@@ -10,7 +10,7 @@ import { getConversations, getMessages } from '@/services/ConversationService';
 import { Theme, Role } from '@/types';
 import { supabase } from '@/lib/supabase';
 
-interface StudentDashboardProps { theme: Theme; userName: string; onNewChat?: () => void; onOpenKnowledge?: () => void }
+interface StudentDashboardProps { theme: Theme; userName: string; onNewChat?: () => void; onOpenKnowledge?: () => void; onOpenGraph?: () => void }
 
 const EDGE_FN = (import.meta.env.VITE_SUPABASE_FUNCTIONS_URL as string) || 'https://oztozjwngekmqtuylypt.supabase.co/functions/v1';
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -73,7 +73,7 @@ const INSIGHT_CFG: Record<string, { label: string; cls: string; border: string }
   milestone: { label: '里程碑', cls: 'bg-amber-100 text-amber-700', border: '#f59e0b' },
 };
 
-export default function StudentDashboard({ theme, userName, onNewChat, onOpenKnowledge }: StudentDashboardProps) {
+export default function StudentDashboard({ theme, userName, onNewChat, onOpenKnowledge, onOpenGraph }: StudentDashboardProps) {
   const isDark = theme === 'dark';
   const [stats, setStats] = useState<UserStats | null>(null);
   const [insights, setInsights] = useState<{ type: string; content: string }[]>([]);
@@ -127,7 +127,7 @@ export default function StudentDashboard({ theme, userName, onNewChat, onOpenKno
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: '新对话', sub: '与 AI 导师探讨', Icon: RiChat3Line, action: onNewChat },
-          { label: '知识图谱', sub: '可视化你的概念', Icon: RiNodeTree, action: onOpenKnowledge },
+          { label: '知识图谱', sub: '可视化你的概念', Icon: RiNodeTree, action: onOpenGraph },
           { label: '联网检索', sub: '让 AI 查最新资料', Icon: RiSearchEyeLine, action: onNewChat },
           { label: '知识库', sub: '检索教材与论文', Icon: RiBookOpenLine, action: onOpenKnowledge },
         ].map((a, i) => (

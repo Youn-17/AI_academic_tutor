@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { ReactFlow, Background, Controls, type Node, type Edge, MarkerType } from '@xyflow/react';
+import { ReactFlow, Background, Controls, MiniMap, useNodesState, useEdgesState, type Node, type Edge, MarkerType } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { RiNodeTree, RiRefreshLine, RiLoader4Line, RiErrorWarningLine } from '@remixicon/react';
 import { supabase } from '@/lib/supabase';
@@ -61,7 +61,7 @@ function toFlow(g: RawGraph, isDark: boolean): { nodes: Node[]; edges: Edge[] } 
     const c = KIND_COLOR[nd.kind || 'default'] || KIND_COLOR.default;
     nodes.push({
       id: nd.id, position: { x: Math.round(R * Math.cos(ang)), y: Math.round(R * Math.sin(ang)) },
-      data: { label: nd.label },
+      data: { label: nd.label, kind: nd.kind || 'default' },
       style: {
         background: isDark ? 'rgba(12,30,62,0.85)' : '#fff', color: text,
         border: `1.5px solid ${c}`, borderRadius: 12, padding: '8px 12px', fontSize: 12, fontWeight: 600,
@@ -76,7 +76,7 @@ function toFlow(g: RawGraph, isDark: boolean): { nodes: Node[]; edges: Edge[] } 
     if (!ids.has(e.source) || !ids.has(e.target)) return;
     edges.push({
       id: `e${i}`, source: e.source, target: e.target, label: e.label,
-      animated: false, style: { stroke: isDark ? '#3B82F6' : '#60A5FA', strokeWidth: 1.5 },
+      animated: true, style: { stroke: isDark ? '#3B82F6' : '#60A5FA', strokeWidth: 1.5 },
       labelStyle: { fill: isDark ? '#8AA4CC' : '#56688A', fontSize: 10 },
       labelBgStyle: { fill: isDark ? '#0C1E3E' : '#F4F8FF', fillOpacity: 0.9 },
       markerEnd: { type: MarkerType.ArrowClosed, color: isDark ? '#3B82F6' : '#60A5FA' },
@@ -95,8 +95,10 @@ function toFlow(g: RawGraph, isDark: boolean): { nodes: Node[]; edges: Edge[] } 
 
 const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ messages, theme }) => {
   const isDark = theme === 'dark';
-  const [nodes, setNodes] = useState<Node[]>([]);
-  const [edges, setEdges] = useState<Edge[]>([]);
+  // useNodesState/useEdgesState wire React Flow's internal drag/zoom changes back into state — the
+  // old plain useState passed nodes WITHOUT onNodesChange, so nodes couldn't actually be dragged.
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error' | 'empty'>('idle');
 
   const generate = useCallback(async () => {
@@ -135,9 +137,14 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ messages, theme }) => {
       </button>
 
       {status === 'done' ? (
-        <ReactFlow nodes={nodes} edges={edges} fitView fitViewOptions={{ padding: 0.25 }} nodesDraggable minZoom={0.3} maxZoom={1.6}>
+        <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+          fitView fitViewOptions={{ padding: 0.25 }} nodesDraggable nodesConnectable={false} minZoom={0.3} maxZoom={1.8}>
           <Background color={isDark ? 'rgba(120,170,255,0.10)' : 'rgba(37,99,235,0.08)'} gap={22} size={1} />
-          <Controls showInteractive={false} position="bottom-right" />
+          <Controls showInteractive={false} position="bottom-left" />
+          <MiniMap pannable zoomable position="bottom-right"
+            nodeColor={(n) => (n.id === '__c' ? '#2563EB' : (KIND_COLOR[String((n.data as { kind?: string })?.kind || 'default')] || KIND_COLOR.default))}
+            maskColor={isDark ? 'rgba(6,18,42,0.55)' : 'rgba(244,248,255,0.55)'}
+            style={{ background: isDark ? '#0C1E3E' : '#fff', border: `1px solid ${border}`, borderRadius: 10, width: 150, height: 100 }} />
         </ReactFlow>
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center text-center px-6 gap-3">

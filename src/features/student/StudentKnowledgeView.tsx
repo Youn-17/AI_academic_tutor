@@ -15,6 +15,7 @@ import {
 
 interface StudentKnowledgeViewProps {
     theme: 'light' | 'dark';
+    mode?: 'library' | 'graph';   // which view (the sidebar picks); defaults to library
 }
 
 type MainTab = 'graph' | 'library';
@@ -40,12 +41,15 @@ const LAYER_META: Record<string, { label: string; color: string; icon: React.Rea
     domain:   { label: '课程资料', color: 'bg-blue-600',   icon: <BookOpen size={13} /> },
 };
 
-const StudentKnowledgeView: React.FC<StudentKnowledgeViewProps> = ({ theme }) => {
+const StudentKnowledgeView: React.FC<StudentKnowledgeViewProps> = ({ theme, mode = 'library' }) => {
     const isDark = theme === 'dark';
 
-    /* ── tabs ── */
-    const [mainTab, setMainTab] = useState<MainTab>('library');
+    /* ── which view — controlled by the sidebar entry, no in-page tab ── */
+    const mainTab: MainTab = mode;
     const [libraryLayer, setLibraryLayer] = useState<LibraryLayer>('all');
+    /* ── graph: conversation selector (history) + 综合 aggregate ── */
+    const [graphSel, setGraphSel] = useState<string>('all');
+    const [convList, setConvList] = useState<{ id: string; title: string }[]>([]);
 
     /* ── knowledge graph ── */
     const [messages, setMessages] = useState<Message[]>([]);
@@ -91,27 +95,45 @@ const StudentKnowledgeView: React.FC<StudentKnowledgeViewProps> = ({ theme }) =>
         };
     }, [docs, loadDocs]);
 
-    /* ── load graph messages ── */
-    const loadGraph = useCallback(async () => {
-        setGraphLoading(true);
-        try {
-            const convs = await ConversationService.getConversations();
-            if (convs.length > 0) {
-                const msgs = await ConversationService.getMessages(convs[0].id);
-                setMessages(msgs);
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setGraphLoading(false);
-        }
-    }, []);
-
+    /* ── load the conversation list (for the selector) ── */
     useEffect(() => {
-        if (mainTab === 'graph' && messages.length === 0) {
-            loadGraph();
-        }
-    }, [mainTab, loadGraph, messages.length]);
+        if (mainTab !== 'graph') return;
+        ConversationService.getConversations()
+            .then(cs => setConvList(cs.slice(0, 30).map(c => ({ id: c.id, title: c.title }))))
+            .catch(() => {});
+    }, [mainTab]);
+
+    /* ── load graph messages for the current selection (综合全部 or one conversation) ── */
+    useEffect(() => {
+        if (mainTab !== 'graph') return;
+        let cancelled = false;
+        setGraphLoading(true);
+        (async () => {
+            try {
+                let msgs: Message[] = [];
+                if (graphSel === 'all') {
+                    // 综合:汇总最近若干会话，直到约 6000 字(图谱抽取上限)
+                    const cs = await ConversationService.getConversations();
+                    let total = 0;
+                    for (const c of cs.slice(0, 8)) {
+                        const m = await ConversationService.getMessages(c.id);
+                        msgs.push(...m);
+                        total += m.reduce((a, x) => a + (x.content?.length || 0), 0);
+                        if (total > 6000) break;
+                    }
+                } else {
+                    msgs = await ConversationService.getMessages(graphSel);
+                }
+                if (!cancelled) setMessages(msgs);
+            } catch (e) {
+                console.error(e);
+                if (!cancelled) setMessages([]);
+            } finally {
+                if (!cancelled) setGraphLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [mainTab, graphSel]);
 
     /* ── upload ── */
     const handleUpload = async (files: FileList | File[]) => {
@@ -177,31 +199,11 @@ const StudentKnowledgeView: React.FC<StudentKnowledgeViewProps> = ({ theme }) =>
             {/* ── Header ── */}
             <header className={`h-14 px-6 flex items-center justify-between border-b ${headerBg} flex-shrink-0`}>
                 <div className="flex items-center gap-2">
-                    {/* Tab switcher */}
-                    <div className={`flex items-center gap-1 p-1 rounded-xl ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-                        <button
-                            onClick={() => setMainTab('library')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                                mainTab === 'library'
-                                    ? 'bg-blue-600 text-white shadow'
-                                    : `${subText} hover:${text}`
-                            }`}
-                        >
-                            <Library size={14} />
-                            知识库
-                        </button>
-                        <button
-                            onClick={() => setMainTab('graph')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                                mainTab === 'graph'
-                                    ? 'bg-blue-600 text-white shadow'
-                                    : `${subText} hover:${text}`
-                            }`}
-                        >
-                            <Network size={14} />
-                            知识图谱
-                        </button>
-                    </div>
+                    {/* Title — which view is chosen in the left sidebar (知识库 / 知识图谱) */}
+                    {mainTab === 'graph'
+                        ? <Network size={18} className="text-blue-500" />
+                        : <Library size={18} className="text-blue-500" />}
+                    <span className={`text-base font-bold ${text}`}>{mainTab === 'graph' ? '知识图谱' : '知识库'}</span>
                 </div>
 
                 {mainTab === 'library' && (
@@ -240,8 +242,18 @@ const StudentKnowledgeView: React.FC<StudentKnowledgeViewProps> = ({ theme }) =>
                 )}
 
                 {mainTab === 'graph' && (
-                    <div className={`text-xs ${subText}`}>
-                        基于对话内容自动生成
+                    <div className="flex items-center gap-2">
+                        <select
+                            value={graphSel}
+                            onChange={e => setGraphSel(e.target.value)}
+                            className={`text-sm rounded-lg border px-3 py-1.5 outline-none cursor-pointer ${isDark ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}
+                        >
+                            <option value="all">综合(全部对话)</option>
+                            {convList.map(c => (
+                                <option key={c.id} value={c.id}>{c.title || '未命名对话'}</option>
+                            ))}
+                        </select>
+                        <span className={`text-xs ${subText} hidden sm:inline`}>分类着色 · 可拖动</span>
                     </div>
                 )}
             </header>
@@ -371,7 +383,7 @@ const StudentKnowledgeView: React.FC<StudentKnowledgeViewProps> = ({ theme }) =>
                         </div>
                     ) : (
                         <div className="w-full h-full">
-                            <KnowledgeGraph messages={messages} theme={theme} />
+                            <KnowledgeGraph key={graphSel} messages={messages} theme={theme} />
 
                             {/* Floating insight card */}
                             <div className={`absolute bottom-6 right-6 p-4 rounded-2xl border backdrop-blur-md shadow-xl ${isDark ? 'bg-slate-900/90 border-slate-700' : 'bg-white/90 border-slate-200'}`}>
