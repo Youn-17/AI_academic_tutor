@@ -14,6 +14,7 @@ import LearningSankeyChart from '@/shared/components/charts/LearningSankeyChart'
 import ActivityHeatmap from '@/shared/components/charts/ActivityHeatmap';
 import ClassroomView from '@/features/supervisor/ClassroomView';
 import KnowledgeBaseView from '@/features/supervisor/KnowledgeBaseView';
+import ModelUsagePanel from '@/features/supervisor/ModelUsagePanel';
 
 import {
   Users, MessageSquare, AlertTriangle, Search, Send, BarChart2,
@@ -34,7 +35,7 @@ interface SupervisorViewProps {
   setLocale: (l: Locale) => void;
 }
 
-type ViewMode = 'dashboard' | 'chat' | 'classroom' | 'knowledge' | 'ai' | 'settings';
+type ViewMode = 'dashboard' | 'chat' | 'classroom' | 'knowledge' | 'ai' | 'usage' | 'settings';
 type FilterStatus = 'all' | 'active' | 'flagged' | 'completed';
 
 type ModelEntry = { id: string; name: string; tier: 'free' | 'pro'; provider: string };
@@ -373,6 +374,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
     { id: 'classroom',  icon: Presentation, label: '课堂' },
     { id: 'knowledge',  icon: Database,     label: '知识库' },
     { id: 'ai',         icon: BrainCircuit, label: 'AI 助手' },
+    { id: 'usage',      icon: Activity,     label: 'AI 监控' },
     { id: 'settings',   icon: Settings,     label: '设置' },
   ];
 
@@ -579,7 +581,8 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
 
         {/* ── Views ──────────────────────────────────── */}
 
-        {viewMode === 'classroom' ? <ClassroomView />
+        {viewMode === 'usage' ? <ModelUsagePanel />
+          : viewMode === 'classroom' ? <ClassroomView />
           : viewMode === 'knowledge' ? <KnowledgeBaseView />
 
           /* ── AI Assistant ── */

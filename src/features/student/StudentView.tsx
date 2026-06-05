@@ -11,6 +11,7 @@ import ConsentEnrollmentPage from '@/features/student/ConsentEnrollmentPage';
 import { useAuth } from '@/features/auth/AuthProvider';
 import * as ConversationService from '@/services/ConversationService';
 import { streamChat, AI_CONFIGS, AI_MODELS, SYSTEM_PROMPTS, ChatMessage } from '@/services/RealAIService';
+import { logModelUsage } from '@/services/ModelUsage';
 import { getRolePrompt } from '@/services/AgentRoles';
 import { logResearchEvent } from '@/services/ResearchLog';
 import { readFileContent } from '@/services/DocumentService';
@@ -260,6 +261,7 @@ const StudentView: React.FC<StudentViewProps> = ({ onLogout, locale, setLocale, 
           onTeamStep: (s) => { setAgentSteps(prev => [...prev, teamStepEntry(s)]); if (s.phase === 'plan' && s.status === 'done') logTool('research_team', { plan: (s.plan || []).map((p: any) => p.role) }); },
           onReasoning: (t) => setReasoning(prev => prev + t),
           onArtifacts: (a) => { collectedArtifacts = a; },
+          onUsage: (u) => logModelUsage({ conversation_id: convId, provider: config.provider, model: u.model || config.model, active_role: condition === 'A_direct' ? null : selectedRole, mode: u.mode, prompt_tokens: u.prompt_tokens, completion_tokens: u.completion_tokens, total_tokens: u.total_tokens, provider_calls: u.provider_calls, tools: u.tools, safety_blocked: u.safety_blocked }),
           attachedFile: dataFile,
         })) {
         fullResponse += chunk;

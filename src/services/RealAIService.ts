@@ -64,6 +64,7 @@ export interface StreamOptions {
     onAgentStep?: (step: { tool?: string; args?: any; status?: string; found?: number }) => void;
     onReasoning?: (text: string) => void;       // reasoning_content / _reasoning channel
     onArtifacts?: (a: { charts: string[]; files: { name: string; b64?: string; url?: string }[] }) => void;  // run_python charts/files
+    onUsage?: (u: { model?: string; prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; provider_calls?: number; tools?: string[]; safety_blocked?: boolean; mode?: string }) => void;  // token usage → AI-usage monitor
     team?: boolean;                             // multi-agent orchestrator (research team)
     onTeamStep?: (step: { phase?: string; status?: string; idx?: number; agent?: string; role?: string; subtask?: string; notes?: string; plan?: { role: string; label: string; subtask: string }[] }) => void;
     attachedFile?: { name: string; b64: string };  // a data file the student uploaded → run_python /data/
@@ -184,6 +185,8 @@ export async function* streamChat(
                     if (parsed._artifacts) { opts.onArtifacts?.(parsed._artifacts); continue; }
                     if (parsed._team_step) { opts.onTeamStep?.(parsed._team_step); continue; }
                     if (parsed._reasoning) { opts.onReasoning?.(String(parsed._reasoning)); continue; }
+                    if (parsed._usage) { opts.onUsage?.(parsed._usage); continue; }
+                    if (parsed.usage && !(parsed.choices && parsed.choices.length)) { opts.onUsage?.({ ...parsed.usage, model: parsed.model, mode: 'direct', provider_calls: 1 }); continue; }
                     if (parsed.error) { continue; } // stream-level error; loop ends on [DONE]/close
                     const delta = parsed.choices?.[0]?.delta || {};
                     if (typeof delta.reasoning_content === 'string') opts.onReasoning?.(delta.reasoning_content);

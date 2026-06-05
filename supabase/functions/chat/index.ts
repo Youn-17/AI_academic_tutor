@@ -423,7 +423,7 @@ async function callProviderJSON(apiUrl: string, key: string, params: any): Promi
 // splitting "analyse risk" from "decide safe/unsafe" sharply improves judgement).
 // Fail-OPEN on any error — the in-prompt EPISTEMIC_GUARDRAIL remains the first layer;
 // only an EXPLICIT unsafe verdict rewrites the reply.
-async function safetyCheck(apiUrl: string, key: string, model: string, userQuery: string, answer: string): Promise<{ safe: boolean; risk?: string }> {
+async function safetyCheck(apiUrl: string, key: string, model: string, userQuery: string, answer: string): Promise<{ safe: boolean; risk?: string; usage?: any }> {
   try {
     const r = await callProviderJSON(apiUrl, key, {
       model, temperature: 0, max_tokens: 220,
@@ -433,8 +433,8 @@ async function safetyCheck(apiUrl: string, key: string, model: string, userQuery
       ],
     });
     const j = extractJSON(r?.choices?.[0]?.message?.content || '');
-    if (j && j.safe === false) return { safe: false, risk: String(j.risk || '潜在学术诚信风险') };
-    return { safe: true };
+    if (j && j.safe === false) return { safe: false, risk: String(j.risk || '潜在学术诚信风险'), usage: r?.usage };
+    return { safe: true, usage: r?.usage };
   } catch (_) {
     return { safe: true };   // a checker failure must never block a legitimate answer
   }
@@ -490,6 +490,16 @@ async function runAgentStream(controller: ReadableStreamDefaultController, opts:
   const send = (o: any) => controller.enqueue(enc.encode(`data: ${JSON.stringify(o)}\n\n`));
   const msgs: any[] = [...opts.messages];
   const allSources: any[] = [];
+  // token-usage accounting for the AI-usage monitor — summed across every provider call this
+  // turn (tool rounds + final + safety check), emitted as a _usage frame just before [DONE].
+  const usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, provider_calls: 0 };
+  const toolsUsed = new Set<string>();
+  let safetyBlocked = false;
+  const addU = (r: any) => {
+    const u = r?.usage;
+    if (u) { usage.prompt_tokens += u.prompt_tokens || 0; usage.completion_tokens += u.completion_tokens || 0; usage.total_tokens += u.total_tokens || 0; }
+    usage.provider_calls += 1;
+  };
 
   try {
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
@@ -498,7 +508,7 @@ async function runAgentStream(controller: ReadableStreamDefaultController, opts:
       // often ignore tool_choice:'none' and keep emitting empty tool-call turns.
       const params: any = { ...opts.baseParams, messages: msgs };
       if (!forceFinal) { params.tools = opts.tools; params.tool_choice = 'auto'; }
-      const resp = await callProviderJSON(opts.apiUrl, opts.key, params);
+      const resp = await callProviderJSON(opts.apiUrl, opts.key, params); addU(resp);
       const choice = resp.choices?.[0] || {};
       const m = choice.message || {};
       if (m.reasoning_content) send({ _reasoning: String(m.reasoning_content) });
@@ -511,6 +521,7 @@ async function runAgentStream(controller: ReadableStreamDefaultController, opts:
         for (const tc of toolCalls) {
           let args: any = {};
           try { args = JSON.parse(tc.function?.arguments || '{}'); } catch (_) { continue; /* skip malformed */ }
+          if (tc.function?.name) toolsUsed.add(tc.function.name);
           send({ _agent_step: { tool: tc.function?.name, args, status: 'running' } });
           const res = await executeTool(tc.function?.name, args, opts.ctx);
           const { content, sources } = res;
@@ -537,6 +548,7 @@ async function runAgentStream(controller: ReadableStreamDefaultController, opts:
             ...opts.baseParams,
             messages: [...msgs, { role: 'user', content: '请基于以上信息，现在直接用中文文字给出完整回答，不要再调用任何工具。' }],
           });
+          addU(retry);
           clean = stripThinking(retry.choices?.[0]?.message?.content || '');
         } catch (_) { /* ignore */ }
       }
@@ -546,7 +558,9 @@ async function runAgentStream(controller: ReadableStreamDefaultController, opts:
       // common short Socratic turns keep near-zero added latency. Fail-open. ──
       if (clean.length > 400 || clean.includes('```')) {
         const sc = await safetyCheck(opts.apiUrl, opts.key, opts.baseParams.model, lastUserText(opts.messages), clean);
+        addU({ usage: sc.usage });
         if (!sc.safe) {
+          safetyBlocked = true;
           send({ _safety: { blocked: true, risk: sc.risk } });   // frontend/research can capture the interception
           clean = '我重新想了一下：这样直接帮你，可能越过了学术诚信的边界（比如替你完成要提交、要评分的内容）。我更想帮你真正学会——把你卡在的那一步具体讲给我，我们一起拆解、用一个结构相似的例子带你走一遍，最后由你自己完成。这样你交出去的，才真正属于你。';
         }
@@ -554,6 +568,7 @@ async function runAgentStream(controller: ReadableStreamDefaultController, opts:
       for (let i = 0; i < clean.length; i += 60) {
         send({ choices: [{ index: 0, delta: { content: clean.slice(i, i + 60) } }] });
       }
+      send({ _usage: { ...usage, model: opts.baseParams?.model, tools: [...toolsUsed], safety_blocked: safetyBlocked, mode: 'agent' } });
       controller.enqueue(enc.encode('data: [DONE]\n\n'));
       controller.close();
       return;
@@ -978,7 +993,7 @@ serve(async (req: Request) => {
     const response = await fetchWithTimeout(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${resolvedApiKey}` },
-      body: JSON.stringify({ ...baseParams, messages: finalMessages, stream }),
+      body: JSON.stringify({ ...baseParams, messages: finalMessages, stream, ...(stream ? { stream_options: { include_usage: true } } : {}) }),
     }, T_CONNECT);
 
     if (!response.ok) {
