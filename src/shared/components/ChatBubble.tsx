@@ -11,9 +11,10 @@ import StructuredAnswer from '@/shared/components/StructuredAnswer';
 interface ChatBubbleProps {
   message: Message;
   onEdit?: (newContent: string) => void;
+  studentName?: string;   // teacher view: label the student's own messages with their name, not "我"
 }
 
-const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit }) => {
+const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName }) => {
   const isStudent = message.sender === Role.STUDENT;
   const isSupervisor = message.sender === Role.SUPERVISOR;
   const isAI = message.sender === Role.AI;
@@ -85,7 +86,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit }) => {
           {/* Sender Name Label */}
           <div className="flex items-center gap-2 mb-1.5 px-0.5">
             <span className="text-xs font-semibold text-secondary-DEFAULT">
-              {isStudent ? '我' : isSupervisor ? '教师介入' : 'AI 导师'}
+              {isStudent ? (studentName || '我') : isSupervisor ? '教师介入' : 'AI 导师'}
             </span>
             <span className="text-[10px] text-secondary-light opacity-50">
               {message.timestamp}

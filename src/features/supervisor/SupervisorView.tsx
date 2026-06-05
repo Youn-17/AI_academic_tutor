@@ -1084,7 +1084,7 @@ const SupervisorView: React.FC<SupervisorViewProps> = ({ onLogout, locale, setLo
                   </div>
                 )}
                 {selectedChat.messages.map(msg => (
-                  <ChatBubble key={msg.id} message={msg} />
+                  <ChatBubble key={msg.id} message={msg} studentName={selectedChat.studentName} />
                 ))}
                 <div ref={messagesEndRef} />
               </div>

@@ -803,6 +803,19 @@ serve(async (req: Request) => {
           .from('ai_api_configs').select('api_key')
           .in('provider', pf).eq('is_active', true).in('class_id', classIds).limit(1).maybeSingle();
         if (teacherKey?.api_key) resolvedApiKey = teacherKey.api_key;
+        // 1b: a teacher's "all my classes" key (class_id NULL, scope=class) — owned by a teacher of
+        //     one of the student's classes. Without this an "所有班级" key never resolves for students.
+        if (!resolvedApiKey) {
+          const { data: classRows } = await serviceClient
+            .from('classes').select('teacher_id').in('id', classIds);
+          const teacherIds = [...new Set((classRows || []).map((c: any) => c.teacher_id).filter(Boolean))];
+          if (teacherIds.length) {
+            const { data: allClassKey } = await serviceClient
+              .from('ai_api_configs').select('api_key')
+              .in('provider', pf).eq('is_active', true).is('class_id', null).in('owner_id', teacherIds).limit(1).maybeSingle();
+            if (allClassKey?.api_key) resolvedApiKey = allClassKey.api_key;
+          }
+        }
       }
       if (!resolvedApiKey) {
         const pf = provider === 'dmxapi' ? ['dmxapi', 'openai', 'anthropic']
