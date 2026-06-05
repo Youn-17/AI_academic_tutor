@@ -19,9 +19,10 @@ interface ChatBubbleProps {
   bubbleTheme?: string;   // student-chosen bubble colour (chatPrefs)
   userAvatarId?: string;  // student-chosen avatar (chatPrefs)
   aiRoleId?: string;      // current agent role → drives the AI tutor's illustrated avatar
+  onFeedback?: (kind: 'helpful' | 'improve') => void;  // student rates the AI reply (RLHF preference signal)
 }
 
-const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, bubbleTheme, userAvatarId, aiRoleId }) => {
+const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, bubbleTheme, userAvatarId, aiRoleId, onFeedback }) => {
   const isStudent = message.sender === Role.STUDENT;
   const isSupervisor = message.sender === Role.SUPERVISOR;
   const isAI = message.sender === Role.AI;
@@ -66,6 +67,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, b
   };
 
   const [copied, setCopied] = useState(false);
+  const [feedback, setFeedback] = useState<'helpful' | 'improve' | null>(null);
   const handleCopy = () => {
     navigator.clipboard?.writeText(cleanedContent)
       .then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); })
@@ -236,8 +238,8 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onEdit, studentName, b
               )}
               {isAI && (
                 <>
-                  <button title="有帮助" className="p-1.5 rounded-md text-secondary-light hover:text-primary hover:bg-secondary/40 transition-colors"><ThumbsUp size={13} /></button>
-                  <button title="待改进" className="p-1.5 rounded-md text-secondary-light hover:text-rose-500 hover:bg-secondary/40 transition-colors"><ThumbsDown size={13} /></button>
+                  <button onClick={() => { setFeedback('helpful'); onFeedback?.('helpful'); }} title={feedback === 'helpful' ? '已标记：有帮助' : '有帮助'} className={cn("p-1.5 rounded-md transition-colors", feedback === 'helpful' ? "text-emerald-500 bg-emerald-50" : "text-secondary-light hover:text-primary hover:bg-secondary/40")}><ThumbsUp size={13} /></button>
+                  <button onClick={() => { setFeedback('improve'); onFeedback?.('improve'); }} title={feedback === 'improve' ? '已标记：待改进' : '待改进'} className={cn("p-1.5 rounded-md transition-colors", feedback === 'improve' ? "text-rose-500 bg-rose-50" : "text-secondary-light hover:text-rose-500 hover:bg-secondary/40")}><ThumbsDown size={13} /></button>
                   {message.citations && message.citations.length > 0 && (
                     <span className="ml-1 text-[10px] text-secondary-light font-mono flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-500" />RAG · {message.citations.length}</span>
                   )}

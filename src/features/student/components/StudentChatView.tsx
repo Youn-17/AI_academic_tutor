@@ -16,6 +16,7 @@ import type { PaperBasic } from '@/services/SemanticScholarService';
 import { createPortal } from 'react-dom';
 import { saveSnippetToKnowledgeBase } from '@/services/SnippetService';
 import { AGENT_ROLES } from '@/services/AgentRoles';
+import { logResearchEvent } from '@/services/ResearchLog';
 import { isSubmitEnter } from '@/lib/keyboard';
 import { Comment as IpComment, Code as IpCode, PeoplesTwo as IpTeam, Search as IpSearch, MagicWand as IpMagic, Theme as IpTheme, ListView as IpList } from '@icon-park/react';
 import { BUBBLE_THEMES, USER_AVATARS, MBTI_AVATARS, getBubbleTheme, setBubbleTheme, getUserAvatar, setUserAvatar } from '@/lib/chatPrefs';
@@ -607,7 +608,7 @@ const StudentChatView: React.FC<StudentChatViewProps> = ({
                         {/* Messages */}
                         {messages.map(msg => (
                             <div key={msg.id} id={`m-${msg.id}`}>
-                                <ChatBubble message={msg} onEdit={onEditMessage ? (c) => onEditMessage(msg.id, c) : undefined} bubbleTheme={bubbleTheme} userAvatarId={userAvatarId} aiRoleId={selectedRole} />
+                                <ChatBubble message={msg} onEdit={onEditMessage ? (c) => onEditMessage(msg.id, c) : undefined} bubbleTheme={bubbleTheme} userAvatarId={userAvatarId} aiRoleId={selectedRole} onFeedback={(kind) => logResearchEvent({ event_type: 'preference', event_subtype: kind, session_id: activeChat.id, active_role: selectedRole, model: selectedModel, message_id: msg.id, payload: { kind } })} />
                             </div>
                         ))}
 
